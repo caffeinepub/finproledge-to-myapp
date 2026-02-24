@@ -1,0 +1,78 @@
+{
+  "kind": "implementation_plan",
+  "version": "1.0",
+  "title": "Multi-currency card payments for clients with admin PayPal configuration",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "summary": "Update PaymentForm to support multi-currency selection and card payment method types",
+      "acceptanceCriteria": [
+        "PaymentForm displays a currency selector dropdown with at least 10 major currencies",
+        "PaymentForm displays card type options covering Visa, Mastercard, Amex, Discover, and other major card brands",
+        "Selected currency is shown alongside the payment amount in the form",
+        "Currency and card type selections are submitted with the payment request"
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/components/PaymentForm.tsx",
+          "operation": "modify",
+          "description": "Add a currency selector dropdown with major currencies (USD, EUR, GBP, CAD, AUD, JPY, CHF, NZD, SGD, HKD) and update the existing payment method selector to include card type options (Visa, Mastercard, Amex, Discover, JCB, Diners Club, UnionPay). Update the form state to track both currency and cardType. Pass currencyCode and cardType as separate arguments to the createPayment mutation. Display the selected currency next to the amount input field. Ensure form validation requires both currency and payment method/card type selection before submission."
+        },
+        {
+          "path": "frontend/src/hooks/usePayments.ts",
+          "operation": "modify",
+          "description": "Update the useCreatePayment mutation to accept currencyCode (string) and cardType (string or null) as additional parameters and pass them to the backend createPayment function. Update the TypeScript types to reflect the new signature: createPayment(amount: bigint, currencyCode: string, paymentMethod: PaymentMethod, cardType: string | null). Ensure React Query invalidates payment-related queries on successful payment creation."
+        }
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "summary": "Update AdminPaymentSettings to save and display PayPal receiving account with email validation",
+      "acceptanceCriteria": [
+        "Admin portal has a clearly labeled 'PayPal Receiving Account' input field under payment settings",
+        "Submitting the form saves the PayPal email to the backend",
+        "Saved PayPal email is pre-populated when the admin revisits the settings",
+        "Invalid email format is rejected with a validation message",
+        "The saved PayPal account email is displayed in the AdminPaymentTable or payment detail views so admins know which account will receive funds"
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/components/AdminPaymentSettings.tsx",
+          "operation": "modify",
+          "description": "Update the form to prominently feature a 'PayPal Receiving Account' field with clear labeling and help text indicating this is where client payments will be sent. Add HTML5 email validation (type='email' and pattern attribute) to ensure proper email format. Remove or demote Stripe as the primary receiving method, making PayPal the emphasized option. Load existing paypalEmail from getAdminPaymentSettings on mount and pre-populate the input. On form submission, validate the email format client-side and show error feedback if invalid. Call setAdminPaymentSettings with the AdminPaymentSettings object containing paypalEmail. Display a success toast after saving."
+        },
+        {
+          "path": "frontend/src/hooks/usePayments.ts",
+          "operation": "modify",
+          "description": "Ensure useGetAdminPaymentSettings query fetches the current AdminPaymentSettings including paypalEmail field. Ensure useSetAdminPaymentSettings mutation accepts an AdminPaymentSettings object with paypalEmail and calls the backend setAdminPaymentSettings function. Invalidate the admin payment settings query on successful mutation to refresh the UI."
+        },
+        {
+          "path": "frontend/src/components/AdminPaymentTable.tsx",
+          "operation": "modify",
+          "description": "Add a section above the payment table that displays the configured PayPal receiving account email retrieved from useGetAdminPaymentSettings. Show a message like 'Payments are received at: [paypalEmail]' or 'PayPal Account: [paypalEmail]' to inform admins which account will receive funds. If no PayPal email is configured, display a warning message with a link to the payment settings tab."
+        }
+      ]
+    },
+    {
+      "id": "REQ-4",
+      "summary": "Display currency and payment method/card type in AdminPaymentTable and PaymentHistoryTable",
+      "acceptanceCriteria": [
+        "Amount column in AdminPaymentTable shows the currency code next to the numeric amount",
+        "A 'Card / Method' column displays the card type or payment method chosen by the client",
+        "PaymentHistoryTable on the client side also shows the currency and payment method"
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/components/AdminPaymentTable.tsx",
+          "operation": "modify",
+          "description": "Update the Amount column to display currency alongside the numeric value, formatted as '[amount] [currencyCode]' (e.g., '150.00 EUR'). Add a new 'Card / Method' column that displays the cardType if available (e.g., 'Visa'), otherwise display the paymentMethod enum label (e.g., 'Credit Card'). Ensure the table headers and column widths accommodate the new display format. Use the PaymentRecord type from backend.d.ts which includes currencyCode, cardType, and paymentMethod fields."
+        },
+        {
+          "path": "frontend/src/components/PaymentHistoryTable.tsx",
+          "operation": "modify",
+          "description": "Update the Amount column to display currency alongside the numeric value, formatted as '[amount] [currencyCode]' (e.g., '100.00 USD'). Update the Payment Method column to display the cardType if available (e.g., 'Mastercard'), otherwise display the paymentMethod enum label (e.g., 'PayPal'). Ensure the table remains responsive and the new fields are visible in mobile view. Use the PaymentRecord type from backend.d.ts which includes currencyCode, cardType, and paymentMethod fields."
+        }
+      ]
+    }
+  ]
+}

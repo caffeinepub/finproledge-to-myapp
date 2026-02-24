@@ -1,0 +1,84 @@
+{
+  "kind": "coverage_report",
+  "version": "1.0",
+  "generatedAt": "2026-02-24T15:35:09.806Z",
+  "sources": {
+    "buildRequest": true,
+    "implementationPlan": true
+  },
+  "requirements": {
+    "total": 4,
+    "implemented": 3,
+    "items": [
+      {
+        "id": "REQ-1",
+        "summary": "Update the PaymentForm component to support all major card payment methods (Visa, Mastercard, Amex, Discover, etc.) and allow clients to select their preferred currency from a list of common currencies (USD, EUR, GBP, CAD, AUD, JPY, CHF, etc.) before submitting a payment. The selected currency and card type must be stored with the payment record.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/components/PaymentForm.tsx",
+          "frontend/src/hooks/usePayments.ts"
+        ],
+        "matchedFiles": [
+          "frontend/src/components/PaymentForm.tsx",
+          "frontend/src/hooks/usePayments.ts"
+        ]
+      },
+      {
+        "id": "REQ-2",
+        "summary": "Update the backend Payment data type and createPayment function to store the client-selected currency code (e.g., 'USD', 'EUR') and card/payment method type alongside the existing payment fields.",
+        "status": "unknown",
+        "plannedFiles": [],
+        "matchedFiles": []
+      },
+      {
+        "id": "REQ-3",
+        "summary": "Update AdminPaymentSettings component and the admin payment configuration backend to allow the admin to save a PayPal email/account for receiving payments. The PayPal account field should be clearly labeled, validated as an email, and persisted in the backend. Remove or demote Stripe as the primary receiving method if currently presented as equal to PayPal.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/components/AdminPaymentSettings.tsx",
+          "frontend/src/hooks/usePayments.ts",
+          "frontend/src/components/AdminPaymentTable.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/components/AdminPaymentSettings.tsx",
+          "frontend/src/hooks/usePayments.ts",
+          "frontend/src/components/AdminPaymentTable.tsx"
+        ]
+      },
+      {
+        "id": "REQ-4",
+        "summary": "Update the AdminPaymentTable component to display the currency of each payment alongside the amount (e.g., '150.00 EUR') and show the payment method / card type used by the client.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/components/AdminPaymentTable.tsx",
+          "frontend/src/components/PaymentHistoryTable.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/components/AdminPaymentTable.tsx",
+          "frontend/src/components/PaymentHistoryTable.tsx"
+        ]
+      }
+    ]
+  },
+  "changedFiles": [
+    "backend/main.mo",
+    "backend/migration.mo",
+    "build-request.json",
+    "feature_evidence.json",
+    "frontend-file-summaries.txt",
+    "frontend-implementation-plan.json",
+    "frontend/src/backend.d.ts",
+    "frontend/src/backend.ts",
+    "frontend/src/components/AdminPaymentSettings.tsx",
+    "frontend/src/components/AdminPaymentTable.tsx",
+    "frontend/src/components/PaymentForm.tsx",
+    "frontend/src/components/PaymentHistoryTable.tsx",
+    "frontend/src/declarations/backend.did.d.ts",
+    "frontend/src/declarations/backend.did.js",
+    "frontend/src/hooks/usePayments.ts",
+    "project_state.json",
+    "scratch/component-selection.json",
+    "spec.md",
+    "spec_vs_diff_report.json"
+  ]
+}

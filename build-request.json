@@ -1,0 +1,101 @@
+{
+  "kind": "build_request",
+  "title": "Multi-currency card payments for clients with admin PayPal configuration",
+  "projectName": "FINPROLEDGE",
+  "priority": "normal",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "text": "Update the PaymentForm component to support all major card payment methods (Visa, Mastercard, Amex, Discover, etc.) and allow clients to select their preferred currency from a list of common currencies (USD, EUR, GBP, CAD, AUD, JPY, CHF, etc.) before submitting a payment. The selected currency and card type must be stored with the payment record.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-6"
+        ],
+        "quotes": [
+          "provide all kinds of way to make payment like through any card and let them choose their Currencies"
+        ]
+      },
+      "acceptanceCriteria": [
+        "PaymentForm displays a currency selector dropdown with at least 10 major currencies",
+        "PaymentForm displays card type options covering Visa, Mastercard, Amex, Discover, and other major card brands",
+        "Selected currency is shown alongside the payment amount in the form",
+        "Currency and card type selections are submitted with the payment request"
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "text": "Update the backend Payment data type and createPayment function to store the client-selected currency code (e.g., 'USD', 'EUR') and card/payment method type alongside the existing payment fields.",
+      "target": "backend",
+      "source": {
+        "messageIds": [
+          "msg-6"
+        ],
+        "quotes": [
+          "let them choose their Currencies"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Payment record type includes a currency field (Text) and paymentMethod field (Text)",
+        "createPayment accepts currency and paymentMethod parameters",
+        "Existing payment queries return the currency and paymentMethod fields",
+        "Admin payment table displays the currency alongside the amount"
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "text": "Update AdminPaymentSettings component and the admin payment configuration backend to allow the admin to save a PayPal email/account for receiving payments. The PayPal account field should be clearly labeled, validated as an email, and persisted in the backend. Remove or demote Stripe as the primary receiving method if currently presented as equal to PayPal.",
+      "target": "both",
+      "source": {
+        "messageIds": [
+          "msg-6"
+        ],
+        "quotes": [
+          "Admin is going to receive in the PayPal account that admin has to add through Admin portal"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Admin portal has a clearly labeled 'PayPal Receiving Account' input field under payment settings",
+        "Submitting the form saves the PayPal email to the backend",
+        "Saved PayPal email is pre-populated when the admin revisits the settings",
+        "Invalid email format is rejected with a validation message",
+        "The saved PayPal account email is displayed in the AdminPaymentTable or payment detail views so admins know which account will receive funds"
+      ]
+    },
+    {
+      "id": "REQ-4",
+      "text": "Update the AdminPaymentTable component to display the currency of each payment alongside the amount (e.g., '150.00 EUR') and show the payment method / card type used by the client.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-6"
+        ],
+        "quotes": [
+          "provide all kinds of way to make payment like through any card and let them choose their Currencies"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Amount column in AdminPaymentTable shows the currency code next to the numeric amount",
+        "A 'Card / Method' column displays the card type or payment method chosen by the client",
+        "PaymentHistoryTable on the client side also shows the currency and payment method"
+      ]
+    }
+  ],
+  "constraints": [
+    "All Motoko logic must remain in backend/main.mo (single-actor architecture)",
+    "Do not modify files under frontend/src/hooks/useInternetIdentity.ts, frontend/src/hooks/useActor.ts, frontend/src/main.tsx, or frontend/src/components/ui",
+    "Actual payment processing (charging cards) is out of scope — only the UI selection and data storage of currency/card type is required",
+    "Admin PayPal account must be configured exclusively through the Admin portal, not hardcoded"
+  ],
+  "nonGoals": [
+    "Real-time payment gateway or card-charging integration (Stripe SDK, PayPal SDK, etc.)",
+    "Cryptocurrency or blockchain payment support",
+    "Automatic currency conversion or exchange rate calculation",
+    "Client-side PayPal checkout flow",
+    "SMS or email payment confirmations"
+  ],
+  "imageRequirements": {
+    "required": [],
+    "edits": []
+  }
+}

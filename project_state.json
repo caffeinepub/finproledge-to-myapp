@@ -1,0 +1,62 @@
+{
+  "schemaVersion": "1.0.0",
+  "projectStateVersion": 3,
+  "summary": "Project includes a payment system where clients can pay using any card with multi-currency support, and admins receive payments via a PayPal account configured through the Admin portal.",
+  "architectural_notes": [
+    "Payment flow: client pays via card (multi-currency) → admin receives funds in PayPal account set in Admin portal"
+  ],
+  "known_issues": [],
+  "isFixRequest": false,
+  "existing_features": [
+    {
+      "id": "feature-update-the-paymentform-component-to-support-all-major-card-payment-methods-visa-mastercard-amex-discover-etc-and-allow-clients-to-select-their-preferred-currency-from-a-list-of-common-currencies-usd-eur-gbp-cad-aud-jpy-chf-etc-before-submitting-a-payment-the-selected-currency-and-card-type-must-be-stored-with-the-payment-record",
+      "title": "Update the PaymentForm component to support all major card payment methods (Visa, Mastercard, Amex, Discover, etc.) and allow clients to select their preferred currency from a list of common currencies (USD, EUR, GBP, CAD, AUD, JPY, CHF, etc.) before submitting a payment. The selected currency and card type must be stored with the payment record.",
+      "reqIds": [
+        "REQ-1"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-update-adminpaymentsettings-component-and-the-admin-payment-configuration-backend-to-allow-the-admin-to-save-a-paypal-email-account-for-receiving-payments-the-paypal-account-field-should-be-clearly-labeled-validated-as-an-email-and-persisted-in-the-backend-remove-or-demote-stripe-as-the-primary-receiving-method-if-currently-presented-as-equal-to-paypal",
+      "title": "Update AdminPaymentSettings component and the admin payment configuration backend to allow the admin to save a PayPal email/account for receiving payments. The PayPal account field should be clearly labeled, validated as an email, and persisted in the backend. Remove or demote Stripe as the primary receiving method if currently presented as equal to PayPal.",
+      "reqIds": [
+        "REQ-3"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-update-the-adminpaymenttable-component-to-display-the-currency-of-each-payment-alongside-the-amount-e-g-150-00-eur-and-show-the-payment-method-card-type-used-by-the-client",
+      "title": "Update the AdminPaymentTable component to display the currency of each payment alongside the amount (e.g., '150.00 EUR') and show the payment method / card type used by the client.",
+      "reqIds": [
+        "REQ-4"
+      ],
+      "version": 1
+    }
+  ],
+  "new_feature_requests": [
+    {
+      "id": "AR-1",
+      "summary": "Client-facing payment support for all card types with multi-currency selection",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-2",
+      "summary": "Admin receives payments via PayPal account configured through the Admin portal",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-4",
+      "summary": "Update the backend Payment data type and createPayment function to store the client-selected currency code (e.g., 'USD', 'EUR') and card/payment method type alongside the existing payment fields.",
+      "reqIds": [
+        "REQ-2"
+      ],
+      "status": "pending"
+    }
+  ],
+  "gameProjectType": "none",
+  "projectName": "FINPROLEDGE",
+  "clarification_mode": "instant",
+  "clarification_rounds": 0
+}
