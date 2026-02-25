@@ -8,13 +8,13 @@ import Runtime "mo:core/Runtime";
 import MixinAuthorization "authorization/MixinAuthorization";
 import MixinStorage "blob-storage/Mixin";
 import Storage "blob-storage/Storage";
-import Migration "migration";
+
 
 import AccessControl "authorization/access-control";
 import UserApproval "user-approval/approval";
 
 // Data migration in with clause
-(with migration = Migration.run)
+
 actor {
   let accessControlState = AccessControl.initState();
   var userApprovalState : UserApproval.UserApprovalState = UserApproval.initState(accessControlState);
@@ -1048,5 +1048,238 @@ actor {
     nextDeadlineId += 1;
 
     deadlineId;
+  };
+
+  // ---------- Update Record Status Functions ----------
+  // Clients can only update the status of their own records (where clientPrincipal == caller).
+  // Admins can update any record regardless of clientPrincipal.
+
+  public shared ({ caller }) func updateToDoStatus(toDoId : Nat, newStatus : ToDoStatus) : async () {
+    let isAdmin = AccessControl.isAdmin(accessControlState, caller);
+    let isApproved = UserApproval.isApproved(userApprovalState, caller);
+    if (not isAdmin and not isApproved) {
+      Runtime.trap("Unauthorized: Only approved users or admins can update to-do status");
+    };
+    switch (toDoItems.get(toDoId)) {
+      case (null) { Runtime.trap("To-Do item not found") };
+      case (?toDo) {
+        if (not isAdmin) {
+          switch (toDo.clientPrincipal) {
+            case (?client) {
+              if (client != caller) {
+                Runtime.trap("Unauthorized: Can only update your own to-dos");
+              };
+            };
+            case (null) {
+              Runtime.trap("Unauthorized: Can only update your own to-dos");
+            };
+          };
+        };
+        let updatedToDo = {
+          toDo with
+          status = newStatus;
+        };
+        toDoItems.add(toDoId, updatedToDo);
+      };
+    };
+  };
+
+  public shared ({ caller }) func updateTimelineStatus(timelineId : Nat, newStatus : TimelineStatus) : async () {
+    let isAdmin = AccessControl.isAdmin(accessControlState, caller);
+    let isApproved = UserApproval.isApproved(userApprovalState, caller);
+    if (not isAdmin and not isApproved) {
+      Runtime.trap("Unauthorized: Only approved users or admins can update timeline status");
+    };
+    switch (timelineEntries.get(timelineId)) {
+      case (null) { Runtime.trap("Timeline entry not found") };
+      case (?timeline) {
+        if (not isAdmin) {
+          switch (timeline.clientPrincipal) {
+            case (?client) {
+              if (client != caller) {
+                Runtime.trap("Unauthorized: Can only update your own timelines");
+              };
+            };
+            case (null) {
+              Runtime.trap("Unauthorized: Can only update your own timelines");
+            };
+          };
+        };
+        let updatedTimeline = {
+          timeline with
+          status = newStatus;
+        };
+        timelineEntries.add(timelineId, updatedTimeline);
+      };
+    };
+  };
+
+  public shared ({ caller }) func updateFollowUpStatus(followUpId : Nat, newStatus : FollowUpStatus) : async () {
+    let isAdmin = AccessControl.isAdmin(accessControlState, caller);
+    let isApproved = UserApproval.isApproved(userApprovalState, caller);
+    if (not isAdmin and not isApproved) {
+      Runtime.trap("Unauthorized: Only approved users or admins can update follow-up status");
+    };
+    switch (followUpItems.get(followUpId)) {
+      case (null) { Runtime.trap("Follow-up item not found") };
+      case (?followUp) {
+        if (not isAdmin) {
+          switch (followUp.clientPrincipal) {
+            case (?client) {
+              if (client != caller) {
+                Runtime.trap("Unauthorized: Can only update your own follow-ups");
+              };
+            };
+            case (null) {
+              Runtime.trap("Unauthorized: Can only update your own follow-ups");
+            };
+          };
+        };
+        let updatedFollowUp = {
+          followUp with
+          status = newStatus;
+        };
+        followUpItems.add(followUpId, updatedFollowUp);
+      };
+    };
+  };
+
+  public shared ({ caller }) func updateDeadlineStatus(deadlineId : Nat, newStatus : DeadlineStatus) : async () {
+    let isAdmin = AccessControl.isAdmin(accessControlState, caller);
+    let isApproved = UserApproval.isApproved(userApprovalState, caller);
+    if (not isAdmin and not isApproved) {
+      Runtime.trap("Unauthorized: Only approved users or admins can update deadline status");
+    };
+    switch (deadlineRecords.get(deadlineId)) {
+      case (null) { Runtime.trap("Deadline record not found") };
+      case (?deadline) {
+        if (not isAdmin) {
+          switch (deadline.clientPrincipal) {
+            case (?client) {
+              if (client != caller) {
+                Runtime.trap("Unauthorized: Can only update your own deadlines");
+              };
+            };
+            case (null) {
+              Runtime.trap("Unauthorized: Can only update your own deadlines");
+            };
+          };
+        };
+        let updatedDeadline = {
+          deadline with
+          status = newStatus;
+        };
+        deadlineRecords.add(deadlineId, updatedDeadline);
+      };
+    };
+  };
+
+  // ---------- Client Task Status Update Endpoints ----------
+  // These endpoints are specifically for clients to update the status of their own
+  // task records (clientToDo, clientTimeline, clientFollowUp, clientDeadline).
+  // The caller must be an approved user and must own the record (clientPrincipal == caller).
+
+  public shared ({ caller }) func updateClientToDoStatus(toDoId : Nat, newStatus : ToDoStatus) : async () {
+    if (not UserApproval.isApproved(userApprovalState, caller)) {
+      Runtime.trap("Unauthorized: Only approved users can update their to-do status");
+    };
+    switch (toDoItems.get(toDoId)) {
+      case (null) { Runtime.trap("To-Do item not found") };
+      case (?toDo) {
+        switch (toDo.clientPrincipal) {
+          case (?client) {
+            if (client != caller) {
+              Runtime.trap("Unauthorized: Can only update your own to-dos");
+            };
+          };
+          case (null) {
+            Runtime.trap("Unauthorized: Can only update your own to-dos");
+          };
+        };
+        let updatedToDo = {
+          toDo with
+          status = newStatus;
+        };
+        toDoItems.add(toDoId, updatedToDo);
+      };
+    };
+  };
+
+  public shared ({ caller }) func updateClientTimelineStatus(timelineId : Nat, newStatus : TimelineStatus) : async () {
+    if (not UserApproval.isApproved(userApprovalState, caller)) {
+      Runtime.trap("Unauthorized: Only approved users can update their timeline status");
+    };
+    switch (timelineEntries.get(timelineId)) {
+      case (null) { Runtime.trap("Timeline entry not found") };
+      case (?timeline) {
+        switch (timeline.clientPrincipal) {
+          case (?client) {
+            if (client != caller) {
+              Runtime.trap("Unauthorized: Can only update your own timelines");
+            };
+          };
+          case (null) {
+            Runtime.trap("Unauthorized: Can only update your own timelines");
+          };
+        };
+        let updatedTimeline = {
+          timeline with
+          status = newStatus;
+        };
+        timelineEntries.add(timelineId, updatedTimeline);
+      };
+    };
+  };
+
+  public shared ({ caller }) func updateClientFollowUpStatus(followUpId : Nat, newStatus : FollowUpStatus) : async () {
+    if (not UserApproval.isApproved(userApprovalState, caller)) {
+      Runtime.trap("Unauthorized: Only approved users can update their follow-up status");
+    };
+    switch (followUpItems.get(followUpId)) {
+      case (null) { Runtime.trap("Follow-up item not found") };
+      case (?followUp) {
+        switch (followUp.clientPrincipal) {
+          case (?client) {
+            if (client != caller) {
+              Runtime.trap("Unauthorized: Can only update your own follow-ups");
+            };
+          };
+          case (null) {
+            Runtime.trap("Unauthorized: Can only update your own follow-ups");
+          };
+        };
+        let updatedFollowUp = {
+          followUp with
+          status = newStatus;
+        };
+        followUpItems.add(followUpId, updatedFollowUp);
+      };
+    };
+  };
+
+  public shared ({ caller }) func updateClientDeadlineStatus(deadlineId : Nat, newStatus : DeadlineStatus) : async () {
+    if (not UserApproval.isApproved(userApprovalState, caller)) {
+      Runtime.trap("Unauthorized: Only approved users can update their deadline status");
+    };
+    switch (deadlineRecords.get(deadlineId)) {
+      case (null) { Runtime.trap("Deadline record not found") };
+      case (?deadline) {
+        switch (deadline.clientPrincipal) {
+          case (?client) {
+            if (client != caller) {
+              Runtime.trap("Unauthorized: Can only update your own deadlines");
+            };
+          };
+          case (null) {
+            Runtime.trap("Unauthorized: Can only update your own deadlines");
+          };
+        };
+        let updatedDeadline = {
+          deadline with
+          status = newStatus;
+        };
+        deadlineRecords.add(deadlineId, updatedDeadline);
+      };
+    };
   };
 };

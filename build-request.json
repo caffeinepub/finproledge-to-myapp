@@ -1,174 +1,77 @@
 {
   "kind": "build_request",
-  "title": "Client visibility and self-service for To-Dos, Timelines, Follow-Ups, and Deadlines",
-  "projectName": "FINPROLEDGE",
-  "priority": "high",
+  "title": "Add status change controls for client-facing task items",
+  "projectName": "FINPROLEDGE Compliance",
+  "priority": "normal",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Extend the backend data models for ToDoItem, TimelineEntry, FollowUpItem, and DeadlineRecord to include an optional `clientPrincipal` field (already present on some models per CreateToDoForm and CreateFollowUpForm). Ensure all four types consistently store the assigned client principal so items can be filtered per client.",
-      "target": "backend",
+      "text": "In the MyComplianceTasksSection component, add inline status-change controls (select dropdowns or segmented buttons) for each task type — To-Dos, Timelines, Follow-Ups, and Deadlines — so that clients can update the status of their own tasks directly from the compliance dashboard. Each control should reflect the current status and immediately call the appropriate mutation hook on change (e.g., useUpdateClientToDoStatus, useUpdateClientTimelineStatus, useUpdateClientFollowUpStatus, useUpdateClientDeadlineStatus or equivalent hooks). Show a toast notification on success or failure.",
+      "target": "frontend",
       "source": {
         "messageIds": [
           "msg-6"
         ],
         "quotes": [
-          "Any To do Added by the Admin for a Client would be shown to the Respective Client"
+          "provide a Way to change Status"
         ]
       },
       "acceptanceCriteria": [
-        "ToDoItem, TimelineEntry, FollowUpItem, and DeadlineRecord each have an optional clientPrincipal field",
-        "Existing records without a clientPrincipal remain accessible to admins without regression"
+        "Each task row in the My Compliance Tasks section (To-Dos, Timelines, Follow-Ups, Deadlines tabs) displays a status selector showing the current status.",
+        "Selecting a new status triggers the correct backend mutation for that task type.",
+        "A success toast is shown when the status is updated successfully.",
+        "An error toast is shown if the update fails.",
+        "The status badge/selector updates optimistically or refreshes after mutation completes."
       ]
     },
     {
       "id": "REQ-2",
-      "text": "Add backend query functions `getMyToDos`, `getMyTimelines`, `getMyFollowUps`, and `getMyDeadlines` that return only the records where `clientPrincipal` matches the caller's principal OR where the record was created by the caller themselves (client-self-created items). These functions must be callable by any authenticated user (not admin-only).",
-      "target": "backend",
+      "text": "In the ClientTasksTab component, add the same inline status-change controls for each task type (To-Dos, Timelines, Follow-Ups, Deadlines) in the respective tab tables, so clients can update task statuses from the client portal as well. Reuse or share the status select logic from MyComplianceTasksSection to keep behavior consistent.",
+      "target": "frontend",
       "source": {
         "messageIds": [
           "msg-6"
         ],
         "quotes": [
-          "Any To do Added by the Admin for a Client would be shown to the Respective Client",
-          "Any Client itself can add a to do"
+          "provide a Way to change Status"
         ]
       },
       "acceptanceCriteria": [
-        "getMyToDos returns to-dos assigned to the caller by admin plus to-dos the caller created themselves",
-        "getMyTimelines, getMyFollowUps, getMyDeadlines behave identically for their respective types",
-        "A client cannot see items assigned to a different client principal",
-        "Admin can still query all items via existing admin-only functions"
+        "Each task table in ClientTasksTab includes a status selector per row for all four task types.",
+        "The status options match the valid statuses defined in the backend types for each task.",
+        "Changing the status calls the correct mutation and shows feedback toasts.",
+        "Newly created tasks show the status control immediately without requiring a page reload."
       ]
     },
     {
       "id": "REQ-3",
-      "text": "Add backend mutation functions `createClientToDo`, `createClientTimeline`, `createClientFollowUp`, and `createClientDeadline` that allow any authenticated client to create their own items. These records must automatically set `clientPrincipal` to the caller's principal so they appear in the caller's own filtered queries.",
-      "target": "backend",
+      "text": "Ensure the backend actor exposes update-status endpoints for all four client task types (clientToDo, clientTimeline, clientFollowUp, clientDeadline) if they do not already exist. Each endpoint should accept the task ID and new status, verify the caller owns the record, and persist the updated status. Add or extend the corresponding frontend mutation hooks (e.g., in useComplianceAdmin.ts or a dedicated client-task hooks file) to call these endpoints.",
+      "target": "both",
       "source": {
         "messageIds": [
           "msg-6"
         ],
         "quotes": [
-          "Any Client itself can add a to do. This applies Similarly for Timeline, Follow-Up, Deadlines."
+          "provide a Way to change Status"
         ]
       },
       "acceptanceCriteria": [
-        "An authenticated non-admin user can successfully call createClientToDo and the item appears in their getMyToDos result",
-        "Same applies for Timeline, FollowUp, and Deadline client creation functions",
-        "The created item is visible to the admin in the existing admin list queries"
-      ]
-    },
-    {
-      "id": "REQ-4",
-      "text": "Update the `useComplianceAdmin` hook (or create a new `useClientCompliance` hook) to expose React Query hooks for `getMyToDos`, `getMyTimelines`, `getMyFollowUps`, `getMyDeadlines`, and the four new client-create mutations. These hooks must be usable from client-facing pages.",
-      "target": "frontend",
-      "source": {
-        "messageIds": [
-          "msg-6"
-        ],
-        "quotes": [
-          "Any To do Added by the Admin for a Client would be shown to the Respective Client"
-        ]
-      },
-      "acceptanceCriteria": [
-        "A new or updated hook file exports useGetMyToDos, useGetMyTimelines, useGetMyFollowUps, useGetMyDeadlines query hooks",
-        "The hook file also exports useCreateClientToDo, useCreateClientTimeline, useCreateClientFollowUp, useCreateClientDeadline mutation hooks",
-        "On mutation success, the corresponding 'getMyX' query is invalidated and refetched"
-      ]
-    },
-    {
-      "id": "REQ-5",
-      "text": "Add a new 'Tasks & Deadlines' (or 'My Tasks') tab to the ComplianceDashboardPage (the client-facing compliance page) that displays four sub-tabs or sections: To-Dos, Timeline, Follow-Ups, and Deadlines. Each section must list items returned by the corresponding `getMyX` query, showing title, description, due date, status, and priority where applicable.",
-      "target": "frontend",
-      "source": {
-        "messageIds": [
-          "msg-6"
-        ],
-        "quotes": [
-          "Any To do Added by the Admin for a Client would be shown to the Respective Client",
-          "This applies Similarly for Timeline, Follow-Up, Deadlines."
-        ]
-      },
-      "acceptanceCriteria": [
-        "Client can navigate to the Tasks & Deadlines tab on the compliance dashboard",
-        "To-Dos section shows all to-dos assigned to this client by admin plus ones the client created",
-        "Timeline section shows timeline entries assigned to or created by this client",
-        "Follow-Ups section shows follow-up items assigned to or created by this client",
-        "Deadlines section shows deadline records assigned to or created by this client",
-        "Each section shows a meaningful empty state when no items exist",
-        "Loading skeletons are shown while data is fetching"
-      ]
-    },
-    {
-      "id": "REQ-6",
-      "text": "Within each section of the client-facing Tasks & Deadlines tab (To-Dos, Timeline, Follow-Ups, Deadlines), add an 'Add' button that opens a form dialog allowing the client to create their own item of that type. The form fields should be consistent with the existing CreateToDoForm, CreateTimelineForm, CreateFollowUpForm, and CreateDeadlineForm components but should not expose admin-only fields (e.g., assigned client principal selector).",
-      "target": "frontend",
-      "source": {
-        "messageIds": [
-          "msg-6"
-        ],
-        "quotes": [
-          "Any Client itself can add a to do. This applies Similarly for Timeline, Follow-Up, Deadlines."
-        ]
-      },
-      "acceptanceCriteria": [
-        "Client can open an 'Add To-Do' dialog and successfully submit a new to-do",
-        "Client can open an 'Add Timeline Entry' dialog and successfully submit a new timeline entry",
-        "Client can open an 'Add Follow-Up' dialog and successfully submit a new follow-up",
-        "Client can open an 'Add Deadline' dialog and successfully submit a new deadline",
-        "After submission the new item appears immediately in the respective list without a full page reload",
-        "The client principal selector (assign-to-client field) is not shown in client-facing forms"
-      ]
-    },
-    {
-      "id": "REQ-7",
-      "text": "In the admin-facing ComplianceAdminDashboardPage, when an admin creates a To-Do, Timeline, Follow-Up, or Deadline using the existing create forms, the admin must be able to optionally assign the item to a specific client by selecting or entering a client principal. Items assigned to a client must appear in that client's `getMyX` queries. This assignment field should be present in the CreateToDoForm, CreateTimelineForm, CreateFollowUpForm, and CreateDeadlineForm (some already have it; ensure all four have it consistently).",
-      "target": "frontend",
-      "source": {
-        "messageIds": [
-          "msg-6"
-        ],
-        "quotes": [
-          "Any To do Added by the Admin for a Client would be shown to the Respective Client"
-        ]
-      },
-      "acceptanceCriteria": [
-        "All four admin create forms (ToDoForm, TimelineForm, FollowUpForm, DeadlineForm) have an optional 'Assign to Client (Principal)' input field",
-        "When an admin creates an item with a client principal filled in, that item appears in the respective client's getMyX list",
-        "When the client principal field is left empty, the item is admin-only and does not appear in any client's list"
-      ]
-    },
-    {
-      "id": "REQ-8",
-      "text": "Generate a migration module (`backend/migration.mo`) to safely migrate existing state, adding the `clientPrincipal` optional field to any existing ToDoItem, TimelineEntry, FollowUpItem, and DeadlineRecord records that do not already have it, defaulting to `null`.",
-      "target": "backend",
-      "source": {
-        "messageIds": [
-          "msg-6"
-        ],
-        "quotes": [
-          "Any To do Added by the Admin for a Client would be shown to the Respective Client"
-        ]
-      },
-      "acceptanceCriteria": [
-        "The migration.mo run function successfully upgrades old state without data loss",
-        "All pre-existing records have clientPrincipal set to null after migration",
-        "No existing admin-visible records are removed or corrupted by the migration"
+        "Backend exposes updateClientToDoStatus, updateClientTimelineStatus, updateClientFollowUpStatus, and updateClientDeadlineStatus (or equivalent) methods.",
+        "Each method validates that the calling principal owns the task before allowing the update.",
+        "Frontend mutation hooks exist for each of the four task-type status updates.",
+        "Hooks invalidate the relevant query cache keys upon success so the UI reflects the new status."
       ]
     }
   ],
   "constraints": [
-    "Do not break existing admin CRUD operations for To-Dos, Timelines, Follow-Ups, and Deadlines",
-    "Do not edit files under frontend/src/hooks/useInternetIdentity.ts, frontend/src/hooks/useActor.ts, frontend/src/main.tsx, or frontend/src/components/ui",
-    "Client-facing query functions must only return records belonging to the authenticated caller — never expose other clients' data",
-    "Keep all Motoko logic in the single main actor (backend/main.mo)"
+    "Do not modify files under frontend/src/hooks/useActor.ts, frontend/src/hooks/useInternetIdentity.ts, frontend/src/main.tsx, or frontend/src/components/ui.",
+    "Reuse existing TaskStatusSelect pattern (frontend/src/components/TaskStatusSelect.tsx) as the base for client-facing status selectors where applicable.",
+    "Only the task owner (by principal) should be permitted to change their own task status on the backend."
   ],
   "nonGoals": [
-    "Redesigning the admin compliance dashboard UI",
-    "Adding real-time notifications when admin assigns an item to a client",
-    "Allowing clients to edit or delete admin-created items assigned to them",
-    "Role management or new user permission levels beyond existing admin/client distinction"
+    "Admin-side status changes are already handled by TaskStatusSelect and ComplianceAdmin components — do not duplicate or replace that logic.",
+    "Do not add new task types beyond To-Dos, Timelines, Follow-Ups, and Deadlines.",
+    "Do not redesign the overall layout of MyComplianceTasksSection or ClientTasksTab."
   ],
   "imageRequirements": {
     "required": [],

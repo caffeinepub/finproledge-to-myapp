@@ -305,8 +305,16 @@ export interface backendInterface {
     setAdminPaymentSettings(settings: AdminPaymentSettings): Promise<void>;
     setApproval(user: Principal, status: ApprovalStatus): Promise<void>;
     submitDeliverable(input: ClientDeliverableInput): Promise<bigint>;
+    updateClientDeadlineStatus(deadlineId: bigint, newStatus: DeadlineStatus): Promise<void>;
     updateClientDeliverableStatus(deliverableId: bigint, newStatus: ClientDeliverableStatus): Promise<void>;
+    updateClientFollowUpStatus(followUpId: bigint, newStatus: FollowUpStatus): Promise<void>;
+    updateClientTimelineStatus(timelineId: bigint, newStatus: TimelineStatus): Promise<void>;
+    updateClientToDoStatus(toDoId: bigint, newStatus: ToDoStatus): Promise<void>;
+    updateDeadlineStatus(deadlineId: bigint, newStatus: DeadlineStatus): Promise<void>;
+    updateFollowUpStatus(followUpId: bigint, newStatus: FollowUpStatus): Promise<void>;
     updatePaymentStatus(paymentId: bigint, status: PaymentStatus): Promise<void>;
     updateStatus(requestId: bigint, status: RequestStatus): Promise<void>;
+    updateTimelineStatus(timelineId: bigint, newStatus: TimelineStatus): Promise<void>;
+    updateToDoStatus(toDoId: bigint, newStatus: ToDoStatus): Promise<void>;
     uploadDocument(docType: DocumentType, name: string, file: ExternalBlob): Promise<UploadDocumentResult>;
 }

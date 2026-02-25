@@ -1,15 +1,15 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
-import { AlertTriangle, FileText, FolderOpen, Clock, ListChecks } from 'lucide-react';
+import { AlertTriangle, FileText, FolderOpen, Clock, ListChecks, ClipboardList } from 'lucide-react';
 import { useGetMyDeliverables } from '../hooks/useDeliverables';
 import { DeliverableStatus } from '../backend';
 import { calculateDaysRemaining } from '../utils/dateHelpers';
 import ComplianceDocumentList from '../components/ComplianceDocumentList';
 import DeliverableCard from '../components/DeliverableCard';
 import ClientTasksTab from '../components/ClientTasksTab';
+import MyComplianceTasksSection from '../components/MyComplianceTasksSection';
 
 export default function ComplianceDashboardPage() {
   const { data: deliverables, isLoading } = useGetMyDeliverables();
@@ -44,7 +44,7 @@ export default function ComplianceDashboardPage() {
             <Card className="border-border">
               <CardContent className="pt-4 pb-4">
                 <div className="text-2xl font-bold text-foreground">{deliverables.length}</div>
-                <div className="text-sm text-muted-foreground">Total Tasks</div>
+                <div className="text-sm text-muted-foreground">Total Deliverables</div>
               </CardContent>
             </Card>
             <Card className="border-border">
@@ -73,8 +73,12 @@ export default function ComplianceDashboardPage() {
         )}
 
         {/* Main Tabs */}
-        <Tabs defaultValue="deliverables">
-          <TabsList className="mb-6">
+        <Tabs defaultValue="my-tasks">
+          <TabsList className="mb-6 flex flex-wrap h-auto gap-1">
+            <TabsTrigger value="my-tasks" className="flex items-center gap-2">
+              <ClipboardList className="h-4 w-4" />
+              My Compliance Tasks
+            </TabsTrigger>
             <TabsTrigger value="deliverables" className="flex items-center gap-2">
               <Clock className="h-4 w-4" />
               My Deliverables
@@ -89,12 +93,16 @@ export default function ComplianceDashboardPage() {
             </TabsTrigger>
           </TabsList>
 
+          <TabsContent value="my-tasks">
+            <MyComplianceTasksSection />
+          </TabsContent>
+
           <TabsContent value="deliverables">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <FileText className="h-5 w-5 text-primary" />
-                  My Compliance Tasks
+                  My Compliance Deliverables
                 </CardTitle>
                 <CardDescription>
                   Real-time status of all your compliance deliverables. Approve or reject items when they are ready for your review.

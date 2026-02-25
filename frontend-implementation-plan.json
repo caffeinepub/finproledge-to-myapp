@@ -1,116 +1,62 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Client visibility and self-service for To-Dos, Timelines, Follow-Ups, and Deadlines",
+  "title": "Add status change controls for client-facing task items",
   "requirements": [
     {
-      "id": "REQ-4",
-      "summary": "Expose React Query hooks for client-facing queries and mutations for To-Dos, Timelines, Follow-Ups, and Deadlines",
+      "id": "REQ-1",
+      "summary": "Add inline status-change controls in MyComplianceTasksSection for To-Dos, Timelines, Follow-Ups, and Deadlines so clients can update task statuses with immediate feedback",
       "acceptanceCriteria": [
-        "A new or updated hook file exports useGetMyToDos, useGetMyTimelines, useGetMyFollowUps, useGetMyDeadlines query hooks",
-        "The hook file also exports useCreateClientToDo, useCreateClientTimeline, useCreateClientFollowUp, useCreateClientDeadline mutation hooks",
-        "On mutation success, the corresponding 'getMyX' query is invalidated and refetched"
+        "Each task row in the My Compliance Tasks section (To-Dos, Timelines, Follow-Ups, Deadlines tabs) displays a status selector showing the current status.",
+        "Selecting a new status triggers the correct backend mutation for that task type.",
+        "A success toast is shown when the status is updated successfully.",
+        "An error toast is shown if the update fails.",
+        "The status badge/selector updates optimistically or refreshes after mutation completes."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/components/MyComplianceTasksSection.tsx",
+          "operation": "modify",
+          "description": "Add inline status select controls to each task type table (To-Dos, Timelines, Follow-Ups, Deadlines). For To-Dos, use a select dropdown that calls useUpdateClientToDoStatus with the task ID and new status. For Timelines, call useUpdateClientTimelineStatus. For Follow-Ups, call useUpdateClientFollowUpStatus. For Deadlines, call useUpdateClientDeadlineStatus. Each select should display the current status value and show a toast notification on mutation success or failure. Ensure the mutation hooks invalidate the appropriate query keys to refresh the task lists."
+        },
+        {
+          "path": "frontend/src/hooks/useComplianceAdmin.ts",
+          "operation": "modify",
+          "description": "Add four new mutation hooks for client-facing status updates: useUpdateClientToDoStatus, useUpdateClientTimelineStatus, useUpdateClientFollowUpStatus, and useUpdateClientDeadlineStatus. Each hook should call the corresponding backend method (updateClientToDoStatus, updateClientTimelineStatus, updateClientFollowUpStatus, updateClientDeadlineStatus) and invalidate the query keys ['myToDos'], ['myTimelines'], ['myFollowUps'], ['myDeadlines'] respectively on success to refresh the UI data."
+        }
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "summary": "Add inline status-change controls in ClientTasksTab for all four task types, reusing the status select logic from MyComplianceTasksSection for consistency",
+      "acceptanceCriteria": [
+        "Each task table in ClientTasksTab includes a status selector per row for all four task types.",
+        "The status options match the valid statuses defined in the backend types for each task.",
+        "Changing the status calls the correct mutation and shows feedback toasts.",
+        "Newly created tasks show the status control immediately without requiring a page reload."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/components/ClientTasksTab.tsx",
+          "operation": "modify",
+          "description": "Add inline status select controls to each task type table in the ClientTasksTab component. For the To-Dos table, add a select dropdown that uses useUpdateClientToDoStatus. For Timelines, use useUpdateClientTimelineStatus. For Follow-Ups, use useUpdateClientFollowUpStatus. For Deadlines, use useUpdateClientDeadlineStatus. Each select should mirror the implementation from MyComplianceTasksSection, showing the current status and calling the appropriate mutation hook on change. Display toast notifications for success and failure cases. Ensure the status options match the TypeScript enums: ToDoStatus (pending, inProgress, completed), TimelineStatus (planned, inProgress, completed), FollowUpStatus (pending, completed), DeadlineStatus (active, completed, missed)."
+        }
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "summary": "Ensure backend mutation hooks exist for all four client task status updates and properly invalidate query cache",
+      "acceptanceCriteria": [
+        "Backend exposes updateClientToDoStatus, updateClientTimelineStatus, updateClientFollowUpStatus, and updateClientDeadlineStatus (or equivalent) methods.",
+        "Each method validates that the calling principal owns the task before allowing the update.",
+        "Frontend mutation hooks exist for each of the four task-type status updates.",
+        "Hooks invalidate the relevant query cache keys upon success so the UI reflects the new status."
       ],
       "file_operations": [
         {
           "path": "frontend/src/hooks/useComplianceAdmin.ts",
           "operation": "modify",
-          "description": "Add React Query hooks for client-facing queries (useGetMyToDos, useGetMyTimelines, useGetMyFollowUps, useGetMyDeadlines) and client-create mutations (useCreateClientToDo, useCreateClientTimeline, useCreateClientFollowUp, useCreateClientDeadline). Each query hook should call the corresponding backend method (getMyToDos, getMyTimelines, etc.) and be enabled only when the actor is available. Each mutation hook should invalidate the related 'myX' query key on success."
-        }
-      ]
-    },
-    {
-      "id": "REQ-5",
-      "summary": "Add a 'Tasks & Deadlines' tab to the client-facing compliance dashboard displaying four sections for To-Dos, Timeline, Follow-Ups, and Deadlines",
-      "acceptanceCriteria": [
-        "Client can navigate to the Tasks & Deadlines tab on the compliance dashboard",
-        "To-Dos section shows all to-dos assigned to this client by admin plus ones the client created",
-        "Timeline section shows timeline entries assigned to or created by this client",
-        "Follow-Ups section shows follow-up items assigned to or created by this client",
-        "Deadlines section shows deadline records assigned to or created by this client",
-        "Each section shows a meaningful empty state when no items exist",
-        "Loading skeletons are shown while data is fetching"
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/components/ClientTasksTab.tsx",
-          "operation": "create",
-          "description": "Create a new component that renders four collapsible sections or sub-tabs: To-Dos, Timeline, Follow-Ups, and Deadlines. Each section uses the corresponding useGetMyX hook (from useComplianceAdmin.ts) to fetch data and displays items in a table or card layout showing title, description, due date, status, and priority where applicable. Include loading skeletons during data fetch and an empty state message for each section when no items exist."
-        },
-        {
-          "path": "frontend/src/pages/ComplianceDashboardPage.tsx",
-          "operation": "modify",
-          "description": "Add a new 'Tasks & Deadlines' tab to the existing Tabs component. Wire the tab to render the ClientTasksTab component when selected. Ensure the tab is positioned logically alongside the existing 'Deliverables' and 'Documents' tabs."
-        }
-      ]
-    },
-    {
-      "id": "REQ-6",
-      "summary": "Add client-facing 'Add' buttons and form dialogs for creating To-Dos, Timeline entries, Follow-Ups, and Deadlines",
-      "acceptanceCriteria": [
-        "Client can open an 'Add To-Do' dialog and successfully submit a new to-do",
-        "Client can open an 'Add Timeline Entry' dialog and successfully submit a new timeline entry",
-        "Client can open an 'Add Follow-Up' dialog and successfully submit a new follow-up",
-        "Client can open an 'Add Deadline' dialog and successfully submit a new deadline",
-        "After submission the new item appears immediately in the respective list without a full page reload",
-        "The client principal selector (assign-to-client field) is not shown in client-facing forms"
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/components/ClientCreateToDoForm.tsx",
-          "operation": "create",
-          "description": "Create a client-facing To-Do creation form with fields for title, description, priority, and status (excluding the assignedClient field). Use the useCreateClientToDo mutation hook from useComplianceAdmin.ts. On successful submission, show a success toast and close the dialog."
-        },
-        {
-          "path": "frontend/src/components/ClientCreateTimelineForm.tsx",
-          "operation": "create",
-          "description": "Create a client-facing Timeline entry creation form with fields for title, description, start date, end date, and status (excluding the taskReference field). Use the useCreateClientTimeline mutation hook from useComplianceAdmin.ts. On successful submission, show a success toast and close the dialog."
-        },
-        {
-          "path": "frontend/src/components/ClientCreateFollowUpForm.tsx",
-          "operation": "create",
-          "description": "Create a client-facing Follow-Up item creation form with fields for title, description, due date, status, and notes (excluding the clientReference field). Use the useCreateClientFollowUp mutation hook from useComplianceAdmin.ts. On successful submission, show a success toast and close the dialog."
-        },
-        {
-          "path": "frontend/src/components/ClientCreateDeadlineForm.tsx",
-          "operation": "create",
-          "description": "Create a client-facing Deadline record creation form with fields for title, description, due date, urgency level, and status (excluding the deliverableReference field). Use the useCreateClientDeadline mutation hook from useComplianceAdmin.ts. On successful submission, show a success toast and close the dialog."
-        },
-        {
-          "path": "frontend/src/components/ClientTasksTab.tsx",
-          "operation": "modify",
-          "description": "Add an 'Add' button to each of the four sections (To-Dos, Timeline, Follow-Ups, Deadlines). Each button opens a Dialog containing the corresponding client-facing creation form component (ClientCreateToDoForm, ClientCreateTimelineForm, ClientCreateFollowUpForm, ClientCreateDeadlineForm). Manage dialog open/close state for each section independently."
-        }
-      ]
-    },
-    {
-      "id": "REQ-7",
-      "summary": "Ensure admin creation forms include an optional client principal assignment field for To-Dos, Timeline entries, Follow-Ups, and Deadlines",
-      "acceptanceCriteria": [
-        "All four admin create forms (ToDoForm, TimelineForm, FollowUpForm, DeadlineForm) have an optional 'Assign to Client (Principal)' input field",
-        "When an admin creates an item with a client principal filled in, that item appears in the respective client's getMyX list",
-        "When the client principal field is left empty, the item is admin-only and does not appear in any client's list"
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/components/CreateToDoForm.tsx",
-          "operation": "modify",
-          "description": "Add an optional 'Assign to Client (Principal)' text input field to the form. This field should accept a principal ID string. When the form is submitted, pass the assignedClient value (or null if empty) to the createToDo mutation. Include helper text explaining this field is optional and only for assigning tasks to specific clients."
-        },
-        {
-          "path": "frontend/src/components/CreateTimelineForm.tsx",
-          "operation": "modify",
-          "description": "Add an optional 'Assign to Client (Principal)' text input field to the form. Update the form submission to pass this clientPrincipal value (converted to Principal or null) when calling the backend. Note: The current backend interface for createTimelineEntry does not expose a clientPrincipal parameter, so verify this field is wired correctly once the backend is updated per REQ-1."
-        },
-        {
-          "path": "frontend/src/components/CreateFollowUpForm.tsx",
-          "operation": "modify",
-          "description": "Verify that the existing clientReference field in CreateFollowUpForm matches the new clientPrincipal semantics from the backend. If the field is already present and correctly named, ensure it accepts a principal ID string and is clearly labeled as 'Assign to Client (Principal)'. If not present, add it as an optional text input."
-        },
-        {
-          "path": "frontend/src/components/CreateDeadlineForm.tsx",
-          "operation": "modify",
-          "description": "Add an optional 'Assign to Client (Principal)' text input field to the form. Update the form submission to pass this clientPrincipal value (converted to Principal or null) when calling the backend. Note: The current backend interface for createDeadline does not expose a clientPrincipal parameter, so verify this field is wired correctly once the backend is updated per REQ-1."
+          "description": "Verify that the four client-facing status update mutation hooks (useUpdateClientToDoStatus, useUpdateClientTimelineStatus, useUpdateClientFollowUpStatus, useUpdateClientDeadlineStatus) exist and are correctly configured. If any are missing from REQ-1 implementation, add them now. Each hook must call actor.updateClient[TaskType]Status(taskId, newStatus), handle errors, and invalidate the corresponding query keys: ['myToDos'], ['myTimelines'], ['myFollowUps'], ['myDeadlines']. The backend interface already exposes updateClientToDoStatus, updateClientTimelineStatus, updateClientFollowUpStatus, and updateClientDeadlineStatus methods that accept (taskId: bigint, newStatus: [Status]) and validate principal ownership."
         }
       ]
     }

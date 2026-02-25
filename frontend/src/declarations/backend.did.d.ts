@@ -333,12 +333,29 @@ export interface _SERVICE {
   'setAdminPaymentSettings' : ActorMethod<[AdminPaymentSettings], undefined>,
   'setApproval' : ActorMethod<[Principal, ApprovalStatus], undefined>,
   'submitDeliverable' : ActorMethod<[ClientDeliverableInput], bigint>,
+  'updateClientDeadlineStatus' : ActorMethod<
+    [bigint, DeadlineStatus],
+    undefined
+  >,
   'updateClientDeliverableStatus' : ActorMethod<
     [bigint, ClientDeliverableStatus],
     undefined
   >,
+  'updateClientFollowUpStatus' : ActorMethod<
+    [bigint, FollowUpStatus],
+    undefined
+  >,
+  'updateClientTimelineStatus' : ActorMethod<
+    [bigint, TimelineStatus],
+    undefined
+  >,
+  'updateClientToDoStatus' : ActorMethod<[bigint, ToDoStatus], undefined>,
+  'updateDeadlineStatus' : ActorMethod<[bigint, DeadlineStatus], undefined>,
+  'updateFollowUpStatus' : ActorMethod<[bigint, FollowUpStatus], undefined>,
   'updatePaymentStatus' : ActorMethod<[bigint, PaymentStatus], undefined>,
   'updateStatus' : ActorMethod<[bigint, RequestStatus], undefined>,
+  'updateTimelineStatus' : ActorMethod<[bigint, TimelineStatus], undefined>,
+  'updateToDoStatus' : ActorMethod<[bigint, ToDoStatus], undefined>,
   'uploadDocument' : ActorMethod<
     [DocumentType, string, ExternalBlob],
     UploadDocumentResult

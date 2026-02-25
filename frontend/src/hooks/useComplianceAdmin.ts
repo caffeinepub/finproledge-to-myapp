@@ -330,3 +330,65 @@ export function useCreateClientDeadline() {
     },
   });
 }
+
+// ─── Client Status Update Mutation Hooks ─────────────────────────────────────
+
+export function useUpdateClientToDoStatus() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (params: { toDoId: bigint; newStatus: ToDoStatus }) => {
+      if (!actor) throw new Error('Actor not available');
+      return actor.updateToDoStatus(params.toDoId, params.newStatus);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['myToDos'] });
+      queryClient.invalidateQueries({ queryKey: ['allToDos'] });
+    },
+  });
+}
+
+export function useUpdateClientTimelineStatus() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (params: { timelineId: bigint; newStatus: TimelineStatus }) => {
+      if (!actor) throw new Error('Actor not available');
+      return actor.updateTimelineStatus(params.timelineId, params.newStatus);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['myTimelines'] });
+      queryClient.invalidateQueries({ queryKey: ['allTimelines'] });
+    },
+  });
+}
+
+export function useUpdateClientFollowUpStatus() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (params: { followUpId: bigint; newStatus: FollowUpStatus }) => {
+      if (!actor) throw new Error('Actor not available');
+      return actor.updateFollowUpStatus(params.followUpId, params.newStatus);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['myFollowUps'] });
+      queryClient.invalidateQueries({ queryKey: ['allFollowUps'] });
+    },
+  });
+}
+
+export function useUpdateClientDeadlineStatus() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (params: { deadlineId: bigint; newStatus: DeadlineStatus }) => {
+      if (!actor) throw new Error('Actor not available');
+      return actor.updateDeadlineStatus(params.deadlineId, params.newStatus);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['myDeadlines'] });
+      queryClient.invalidateQueries({ queryKey: ['allDeadlines'] });
+    },
+  });
+}

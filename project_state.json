@@ -1,35 +1,16 @@
 {
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
-  "summary": "A project management app where admins can add To-Dos, Timelines, Follow-Ups, and Deadlines for clients. Items added by admin for a client are visible to that client, and clients can also add their own items.",
-  "architectural_notes": [
-    "Items (To-Dos, Timelines, Follow-Ups, Deadlines) created by admin are scoped to a specific client and visible only to that client",
-    "Clients have the ability to create their own items for each category (To-Dos, Timelines, Follow-Ups, Deadlines)"
-  ],
+  "summary": "Project with multiple task management features (To-Dos, Timelines, Follow-Ups, Deadlines, Compliance Tasks) requiring status management functionality.",
+  "architectural_notes": [],
   "known_issues": [],
   "isFixRequest": false,
   "existing_features": [
     {
-      "id": "feature-update-the-usecomplianceadmin-hook-or-create-a-new-useclientcompliance-hook-to-expose-react-query-hooks-for-getmytodos-getmytimelines-getmyfollowups-getmydeadlines-and-the-four-new-client-create-mutations-these-hooks-must-be-usable-from-client-facing-pages",
-      "title": "Update the `useComplianceAdmin` hook (or create a new `useClientCompliance` hook) to expose React Query hooks for `getMyToDos`, `getMyTimelines`, `getMyFollowUps`, `getMyDeadlines`, and the four new client-create mutations. These hooks must be usable from client-facing pages.",
+      "id": "feature-in-the-clienttaskstab-component-add-the-same-inline-status-change-controls-for-each-task-type-to-dos-timelines-follow-ups-deadlines-in-the-respective-tab-tables-so-clients-can-update-task-statuses-from-the-client-portal-as-well-reuse-or-share-the-status-select-logic-from-mycompliancetaskssection-to-keep-behavior-consistent",
+      "title": "In the ClientTasksTab component, add the same inline status-change controls for each task type (To-Dos, Timelines, Follow-Ups, Deadlines) in the respective tab tables, so clients can update task statuses from the client portal as well. Reuse or share the status select logic from MyComplianceTasksSection to keep behavior consistent.",
       "reqIds": [
-        "REQ-4"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-add-a-new-tasks-deadlines-or-my-tasks-tab-to-the-compliancedashboardpage-the-client-facing-compliance-page-that-displays-four-sub-tabs-or-sections-to-dos-timeline-follow-ups-and-deadlines-each-section-must-list-items-returned-by-the-corresponding-getmyx-query-showing-title-description-due-date-status-and-priority-where-applicable",
-      "title": "Add a new 'Tasks & Deadlines' (or 'My Tasks') tab to the ComplianceDashboardPage (the client-facing compliance page) that displays four sub-tabs or sections: To-Dos, Timeline, Follow-Ups, and Deadlines. Each section must list items returned by the corresponding `getMyX` query, showing title, description, due date, status, and priority where applicable.",
-      "reqIds": [
-        "REQ-5"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-within-each-section-of-the-client-facing-tasks-deadlines-tab-to-dos-timeline-follow-ups-deadlines-add-an-add-button-that-opens-a-form-dialog-allowing-the-client-to-create-their-own-item-of-that-type-the-form-fields-should-be-consistent-with-the-existing-createtodoform-createtimelineform-createfollowupform-and-createdeadlineform-components-but-should-not-expose-admin-only-fields-e-g-assigned-client-principal-selector",
-      "title": "Within each section of the client-facing Tasks & Deadlines tab (To-Dos, Timeline, Follow-Ups, Deadlines), add an 'Add' button that opens a form dialog allowing the client to create their own item of that type. The form fields should be consistent with the existing CreateToDoForm, CreateTimelineForm, CreateFollowUpForm, and CreateDeadlineForm components but should not expose admin-only fields (e.g., assigned client principal selector).",
-      "reqIds": [
-        "REQ-6"
+        "REQ-2"
       ],
       "version": 1
     }
@@ -37,71 +18,29 @@
   "new_feature_requests": [
     {
       "id": "AR-1",
-      "summary": "To-Dos added by admin for a client are shown to that respective client; clients can also add their own To-Dos",
+      "summary": "Provide a way to change the status of tasks (To-Dos, Timelines, Follow-Ups, Deadlines, Compliance Tasks)",
       "reqIds": [],
       "status": "pending"
     },
     {
       "id": "AR-2",
-      "summary": "Timelines added by admin for a client are shown to that respective client; clients can also add their own Timelines",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-3",
-      "summary": "Follow-Ups added by admin for a client are shown to that respective client; clients can also add their own Follow-Ups",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-4",
-      "summary": "Deadlines added by admin for a client are shown to that respective client; clients can also add their own Deadlines",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-5",
-      "summary": "Extend the backend data models for ToDoItem, TimelineEntry, FollowUpItem, and DeadlineRecord to include an optional `clientPrincipal` field (already present on some models per CreateToDoForm and CreateFollowUpForm). Ensure all four types consistently store the assigned client principal so items can be filtered per client.",
+      "summary": "In the MyComplianceTasksSection component, add inline status-change controls (select dropdowns or segmented buttons) for each task type — To-Dos, Timelines, Follow-Ups, and Deadlines — so that clients can update the status of their own tasks directly from the compliance dashboard. Each control should reflect the current status and immediately call the appropriate mutation hook on change (e.g., useUpdateClientToDoStatus, useUpdateClientTimelineStatus, useUpdateClientFollowUpStatus, useUpdateClientDeadlineStatus or equivalent hooks). Show a toast notification on success or failure.",
       "reqIds": [
         "REQ-1"
       ],
       "status": "pending"
     },
     {
-      "id": "AR-6",
-      "summary": "Add backend query functions `getMyToDos`, `getMyTimelines`, `getMyFollowUps`, and `getMyDeadlines` that return only the records where `clientPrincipal` matches the caller's principal OR where the record was created by the caller themselves (client-self-created items). These functions must be callable by any authenticated user (not admin-only).",
-      "reqIds": [
-        "REQ-2"
-      ],
-      "status": "pending"
-    },
-    {
-      "id": "AR-7",
-      "summary": "Add backend mutation functions `createClientToDo`, `createClientTimeline`, `createClientFollowUp`, and `createClientDeadline` that allow any authenticated client to create their own items. These records must automatically set `clientPrincipal` to the caller's principal so they appear in the caller's own filtered queries.",
+      "id": "AR-4",
+      "summary": "Ensure the backend actor exposes update-status endpoints for all four client task types (clientToDo, clientTimeline, clientFollowUp, clientDeadline) if they do not already exist. Each endpoint should accept the task ID and new status, verify the caller owns the record, and persist the updated status. Add or extend the corresponding frontend mutation hooks (e.g., in useComplianceAdmin.ts or a dedicated client-task hooks file) to call these endpoints.",
       "reqIds": [
         "REQ-3"
-      ],
-      "status": "pending"
-    },
-    {
-      "id": "AR-11",
-      "summary": "In the admin-facing ComplianceAdminDashboardPage, when an admin creates a To-Do, Timeline, Follow-Up, or Deadline using the existing create forms, the admin must be able to optionally assign the item to a specific client by selecting or entering a client principal. Items assigned to a client must appear in that client's `getMyX` queries. This assignment field should be present in the CreateToDoForm, CreateTimelineForm, CreateFollowUpForm, and CreateDeadlineForm (some already have it; ensure all four have it consistently).",
-      "reqIds": [
-        "REQ-7"
-      ],
-      "status": "pending"
-    },
-    {
-      "id": "AR-12",
-      "summary": "Generate a migration module (`backend/migration.mo`) to safely migrate existing state, adding the `clientPrincipal` optional field to any existing ToDoItem, TimelineEntry, FollowUpItem, and DeadlineRecord records that do not already have it, defaulting to `null`.",
-      "reqIds": [
-        "REQ-8"
       ],
       "status": "pending"
     }
   ],
   "gameProjectType": "none",
-  "projectName": "FINPROLEDGE",
+  "projectName": "FINPROLEDGE Compliance",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

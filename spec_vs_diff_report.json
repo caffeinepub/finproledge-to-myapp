@@ -1,29 +1,38 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-25T11:50:17.743Z",
-  "summary": "The diff implements most of the required features across backend and frontend. REQ-1 through REQ-6 and REQ-8 appear well-covered. REQ-7 (admin forms must all have 'Assign to Client' field) is partially unclear from the diff — the existing admin forms are not shown as modified. The backend main.mo is modified (truncated) and migration.mo is added. Frontend hooks, client forms, ClientTasksTab, and ComplianceDashboardPage are all updated. However, evidence for REQ-7's requirement that ALL four admin create forms consistently have the clientPrincipal assignment field is absent from the diff.",
+  "generatedAt": "2026-02-25T12:36:09.259Z",
+  "summary": "The diff shows partial implementation of the three requirements. ClientTasksTab.tsx imports status select components (ToDoStatusSelect, TimelineStatusSelect, FollowUpStatusSelect, DeadlineStatusSelect) from TaskStatusSelect, satisfying part of REQ-2. However, the file is truncated so full usage in table rows cannot be confirmed. There is no evidence of MyComplianceTasksSection changes (REQ-1), no backend update-status endpoint additions visible in the truncated main.mo (REQ-3 backend), and no frontend mutation hooks for status updates (REQ-3 frontend). The project_state.json still marks all AR items as 'pending', suggesting the implementation may be incomplete.",
   "missing_requirements": [
     {
-      "id": "REQ-7",
-      "requirement": "All four admin create forms (CreateToDoForm, CreateTimelineForm, CreateFollowUpForm, CreateDeadlineForm) must have an optional 'Assign to Client (Principal)' input field so admins can assign items to clients.",
-      "reason": "The diff shows no modifications to the existing admin-facing create form components (CreateToDoForm, CreateTimelineForm, CreateFollowUpForm, CreateDeadlineForm). There is no evidence that CreateTimelineForm and CreateDeadlineForm were updated to include the clientPrincipal assignment field, which the requirement states must be consistent across all four forms.",
+      "id": "REQ-1",
+      "requirement": "In the MyComplianceTasksSection component, add inline status-change controls for each task type so clients can update status from the compliance dashboard, with toast notifications on success/failure.",
+      "reason": "No changes to MyComplianceTasksSection are present in the diff. The modified files do not include MyComplianceTasksSection.tsx or any equivalent component.",
       "evidence": []
+    },
+    {
+      "id": "REQ-2",
+      "requirement": "Each task table in ClientTasksTab includes a status selector per row for all four task types, with mutation calls and feedback toasts.",
+      "reason": "ClientTasksTab.tsx imports the status select components, but the file is truncated and actual usage in table rows, mutation hook calls, and toast notifications cannot be confirmed from the diff.",
+      "evidence": [
+        "frontend/src/components/ClientTasksTab.tsx"
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "requirement": "Backend exposes updateClientToDoStatus, updateClientTimelineStatus, updateClientFollowUpStatus, and updateClientDeadlineStatus methods, each validating caller ownership. Frontend mutation hooks exist and invalidate relevant query cache keys.",
+      "reason": "The backend main.mo diff is truncated and no update-status methods are visible. No new or modified frontend mutation hooks file appears in the diff to confirm hook additions with cache invalidation.",
+      "evidence": [
+        "backend/main.mo"
+      ]
     }
   ],
   "hallucinated_features": [],
-  "confidence": 0.72,
+  "confidence": 0.45,
   "changed_files": [
     "backend/main.mo",
-    "backend/migration.mo",
     "frontend-file-summaries.txt",
-    "frontend/src/components/ClientCreateDeadlineForm.tsx",
-    "frontend/src/components/ClientCreateFollowUpForm.tsx",
-    "frontend/src/components/ClientCreateTimelineForm.tsx",
-    "frontend/src/components/ClientCreateToDoForm.tsx",
     "frontend/src/components/ClientTasksTab.tsx",
-    "frontend/src/hooks/useComplianceAdmin.ts",
-    "frontend/src/pages/ComplianceDashboardPage.tsx",
     "project_state.json"
   ]
 }

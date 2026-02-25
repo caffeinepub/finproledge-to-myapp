@@ -1,16 +1,13 @@
 # Specification
 
 ## Summary
-**Goal:** Enable clients to view and self-create To-Dos, Timeline entries, Follow-Ups, and Deadlines assigned to them by admins or created by themselves, while admins retain the ability to assign items to specific clients.
+**Goal:** Add inline status-change controls to client-facing task sections so clients can update the status of their own To-Dos, Timelines, Follow-Ups, and Deadlines directly from the compliance dashboard and client portal.
 
 **Planned changes:**
-- Extend backend data models (ToDoItem, TimelineEntry, FollowUpItem, DeadlineRecord) to consistently include an optional `clientPrincipal` field
-- Add backend query functions `getMyToDos`, `getMyTimelines`, `getMyFollowUps`, and `getMyDeadlines` that return only records belonging to the authenticated caller
-- Add backend mutation functions `createClientToDo`, `createClientTimeline`, `createClientFollowUp`, and `createClientDeadline` for authenticated clients to create their own items
-- Create a `useClientCompliance` hook exposing React Query hooks for the new query and mutation functions, with cache invalidation on mutation success
-- Add a "Tasks & Deadlines" tab to the client-facing ComplianceDashboardPage with four sections (To-Dos, Timeline, Follow-Ups, Deadlines), each showing assigned/self-created items with loading skeletons and empty states
-- Add an "Add" button in each section of the client-facing tab that opens a simplified form dialog (without the client principal selector) for self-creating items
-- Ensure all four admin create forms (ToDoForm, TimelineForm, FollowUpForm, DeadlineForm) have an optional "Assign to Client (Principal)" input field
-- Add a migration module (`backend/migration.mo`) to set `clientPrincipal` to null on all pre-existing records
+- Add inline status selectors (reusing the existing `TaskStatusSelect` pattern) to each task row in `MyComplianceTasksSection` for all four task types (To-Dos, Timelines, Follow-Ups, Deadlines).
+- Add the same inline status selectors to each task table in `ClientTasksTab` for all four task types, sharing logic with `MyComplianceTasksSection`.
+- Show success and error toast notifications on status update attempts.
+- Add/expose backend update-status endpoints for `clientToDo`, `clientTimeline`, `clientFollowUp`, and `clientDeadline`, each validating that the calling principal owns the record before persisting the change.
+- Add frontend mutation hooks for each of the four client task-type status updates, invalidating relevant query cache keys on success.
 
-**User-visible outcome:** Clients can log in and see a "Tasks & Deadlines" tab on their compliance dashboard showing items assigned to them by admins as well as items they created themselves, and can add new To-Dos, Timeline entries, Follow-Ups, and Deadlines directly. Admins can optionally assign any newly created item to a specific client principal.
+**User-visible outcome:** Clients can change the status of their own tasks directly from both the compliance dashboard and the client portal, with immediate UI feedback via toast notifications.

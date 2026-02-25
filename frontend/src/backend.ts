@@ -398,9 +398,17 @@ export interface backendInterface {
     setAdminPaymentSettings(settings: AdminPaymentSettings): Promise<void>;
     setApproval(user: Principal, status: ApprovalStatus): Promise<void>;
     submitDeliverable(input: ClientDeliverableInput): Promise<bigint>;
+    updateClientDeadlineStatus(deadlineId: bigint, newStatus: DeadlineStatus): Promise<void>;
     updateClientDeliverableStatus(deliverableId: bigint, newStatus: ClientDeliverableStatus): Promise<void>;
+    updateClientFollowUpStatus(followUpId: bigint, newStatus: FollowUpStatus): Promise<void>;
+    updateClientTimelineStatus(timelineId: bigint, newStatus: TimelineStatus): Promise<void>;
+    updateClientToDoStatus(toDoId: bigint, newStatus: ToDoStatus): Promise<void>;
+    updateDeadlineStatus(deadlineId: bigint, newStatus: DeadlineStatus): Promise<void>;
+    updateFollowUpStatus(followUpId: bigint, newStatus: FollowUpStatus): Promise<void>;
     updatePaymentStatus(paymentId: bigint, status: PaymentStatus): Promise<void>;
     updateStatus(requestId: bigint, status: RequestStatus): Promise<void>;
+    updateTimelineStatus(timelineId: bigint, newStatus: TimelineStatus): Promise<void>;
+    updateToDoStatus(toDoId: bigint, newStatus: ToDoStatus): Promise<void>;
     uploadDocument(docType: DocumentType, name: string, file: ExternalBlob): Promise<UploadDocumentResult>;
 }
 import type { AdminPaymentSettings as _AdminPaymentSettings, ApprovalStatus as _ApprovalStatus, ClientDeliverable as _ClientDeliverable, ClientDeliverableInput as _ClientDeliverableInput, ClientDeliverableStatus as _ClientDeliverableStatus, ClientDocument as _ClientDocument, ComplianceDeliverable as _ComplianceDeliverable, DeadlineRecord as _DeadlineRecord, DeadlineStatus as _DeadlineStatus, DeliverableStatus as _DeliverableStatus, DeliverableType as _DeliverableType, DocumentType as _DocumentType, ExternalBlob as _ExternalBlob, FollowUpItem as _FollowUpItem, FollowUpStatus as _FollowUpStatus, PaymentMethod as _PaymentMethod, PaymentRecord as _PaymentRecord, PaymentStatus as _PaymentStatus, RequestStatus as _RequestStatus, ServiceRequest as _ServiceRequest, ServiceRequestInput as _ServiceRequestInput, ServiceType as _ServiceType, Time as _Time, TimelineEntry as _TimelineEntry, TimelineStatus as _TimelineStatus, ToDoItem as _ToDoItem, ToDoPriority as _ToDoPriority, ToDoStatus as _ToDoStatus, UploadDocumentResult as _UploadDocumentResult, UrgencyLevel as _UrgencyLevel, UserApprovalInfo as _UserApprovalInfo, UserProfile as _UserProfile, UserRole as _UserRole, _CaffeineStorageRefillInformation as __CaffeineStorageRefillInformation, _CaffeineStorageRefillResult as __CaffeineStorageRefillResult } from "./declarations/backend.did.d.ts";
@@ -1210,6 +1218,20 @@ export class Backend implements backendInterface {
             return result;
         }
     }
+    async updateClientDeadlineStatus(arg0: bigint, arg1: DeadlineStatus): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.updateClientDeadlineStatus(arg0, to_candid_DeadlineStatus_n12(this._uploadFile, this._downloadFile, arg1));
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.updateClientDeadlineStatus(arg0, to_candid_DeadlineStatus_n12(this._uploadFile, this._downloadFile, arg1));
+            return result;
+        }
+    }
     async updateClientDeliverableStatus(arg0: bigint, arg1: ClientDeliverableStatus): Promise<void> {
         if (this.processError) {
             try {
@@ -1221,6 +1243,76 @@ export class Backend implements backendInterface {
             }
         } else {
             const result = await this.actor.updateClientDeliverableStatus(arg0, to_candid_ClientDeliverableStatus_n103(this._uploadFile, this._downloadFile, arg1));
+            return result;
+        }
+    }
+    async updateClientFollowUpStatus(arg0: bigint, arg1: FollowUpStatus): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.updateClientFollowUpStatus(arg0, to_candid_FollowUpStatus_n14(this._uploadFile, this._downloadFile, arg1));
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.updateClientFollowUpStatus(arg0, to_candid_FollowUpStatus_n14(this._uploadFile, this._downloadFile, arg1));
+            return result;
+        }
+    }
+    async updateClientTimelineStatus(arg0: bigint, arg1: TimelineStatus): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.updateClientTimelineStatus(arg0, to_candid_TimelineStatus_n16(this._uploadFile, this._downloadFile, arg1));
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.updateClientTimelineStatus(arg0, to_candid_TimelineStatus_n16(this._uploadFile, this._downloadFile, arg1));
+            return result;
+        }
+    }
+    async updateClientToDoStatus(arg0: bigint, arg1: ToDoStatus): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.updateClientToDoStatus(arg0, to_candid_ToDoStatus_n19(this._uploadFile, this._downloadFile, arg1));
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.updateClientToDoStatus(arg0, to_candid_ToDoStatus_n19(this._uploadFile, this._downloadFile, arg1));
+            return result;
+        }
+    }
+    async updateDeadlineStatus(arg0: bigint, arg1: DeadlineStatus): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.updateDeadlineStatus(arg0, to_candid_DeadlineStatus_n12(this._uploadFile, this._downloadFile, arg1));
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.updateDeadlineStatus(arg0, to_candid_DeadlineStatus_n12(this._uploadFile, this._downloadFile, arg1));
+            return result;
+        }
+    }
+    async updateFollowUpStatus(arg0: bigint, arg1: FollowUpStatus): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.updateFollowUpStatus(arg0, to_candid_FollowUpStatus_n14(this._uploadFile, this._downloadFile, arg1));
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.updateFollowUpStatus(arg0, to_candid_FollowUpStatus_n14(this._uploadFile, this._downloadFile, arg1));
             return result;
         }
     }
@@ -1249,6 +1341,34 @@ export class Backend implements backendInterface {
             }
         } else {
             const result = await this.actor.updateStatus(arg0, to_candid_RequestStatus_n107(this._uploadFile, this._downloadFile, arg1));
+            return result;
+        }
+    }
+    async updateTimelineStatus(arg0: bigint, arg1: TimelineStatus): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.updateTimelineStatus(arg0, to_candid_TimelineStatus_n16(this._uploadFile, this._downloadFile, arg1));
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.updateTimelineStatus(arg0, to_candid_TimelineStatus_n16(this._uploadFile, this._downloadFile, arg1));
+            return result;
+        }
+    }
+    async updateToDoStatus(arg0: bigint, arg1: ToDoStatus): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.updateToDoStatus(arg0, to_candid_ToDoStatus_n19(this._uploadFile, this._downloadFile, arg1));
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.updateToDoStatus(arg0, to_candid_ToDoStatus_n19(this._uploadFile, this._downloadFile, arg1));
             return result;
         }
     }
