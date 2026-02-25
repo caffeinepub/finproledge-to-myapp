@@ -1,114 +1,151 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { useGetMyDeliverables, useGetMyPendingDeliverables } from '../hooks/useDeliverables';
+import { useState } from 'react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Skeleton } from '@/components/ui/skeleton';
+import { AlertTriangle, FileText, FolderOpen, Clock } from 'lucide-react';
+import { useGetMyDeliverables } from '../hooks/useDeliverables';
+import { ComplianceDeliverable, DeliverableStatus } from '../backend';
+import { calculateDaysRemaining, isWithinFiveDays } from '../utils/dateHelpers';
+import ComplianceDocumentList from '../components/ComplianceDocumentList';
 import DeliverableCard from '../components/DeliverableCard';
-import { Loader2, AlertTriangle, CheckCircle2 } from 'lucide-react';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { calculateDaysRemaining, isDueSoon } from '../utils/dateHelpers';
+
+function getStatusLabel(status: DeliverableStatus): string {
+  switch (status) {
+    case DeliverableStatus.drafting: return 'Drafting';
+    case DeliverableStatus.inReview: return 'In Review';
+    case DeliverableStatus.completed: return 'Completed';
+    case DeliverableStatus.approved: return 'Approved';
+    case DeliverableStatus.rejected: return 'Rejected';
+    default: return 'Unknown';
+  }
+}
+
+function getStatusVariant(status: DeliverableStatus): 'default' | 'secondary' | 'destructive' | 'outline' {
+  switch (status) {
+    case DeliverableStatus.drafting: return 'secondary';
+    case DeliverableStatus.inReview: return 'default';
+    case DeliverableStatus.completed: return 'default';
+    case DeliverableStatus.approved: return 'default';
+    case DeliverableStatus.rejected: return 'destructive';
+    default: return 'outline';
+  }
+}
 
 export default function ComplianceDashboardPage() {
-  const { data: allDeliverables, isLoading: allLoading } = useGetMyDeliverables();
-  const { data: pendingDeliverables, isLoading: pendingLoading } = useGetMyPendingDeliverables();
+  const { data: deliverables, isLoading } = useGetMyDeliverables();
 
-  const dueSoonCount = pendingDeliverables?.filter((d) => isDueSoon(d.dueDate)).length || 0;
-  const completedCount = allDeliverables?.filter((d) => d.status === 'completed').length || 0;
+  const urgentItems = deliverables?.filter(d => {
+    const days = calculateDaysRemaining(d.dueDate);
+    return days <= 5 && days >= 0 && d.status !== DeliverableStatus.approved && d.status !== DeliverableStatus.completed;
+  }) ?? [];
 
   return (
-    <div className="py-12 bg-muted/30 min-h-[calc(100vh-4rem)]">
-      <div className="container mx-auto px-6">
-        <div className="max-w-6xl mx-auto">
-          <div className="mb-8">
-            <h1 className="text-4xl font-bold mb-2">Compliance Dashboard</h1>
-            <p className="text-muted-foreground">
-              Track deliverable timelines, review status, and deadline countdowns.
-            </p>
-          </div>
-
-          {dueSoonCount > 0 && (
-            <Alert className="mb-6 border-yellow-500/50 bg-yellow-500/10">
-              <AlertTriangle className="h-4 w-4 text-yellow-600" />
-              <AlertTitle className="text-yellow-600">Upcoming Deadlines</AlertTitle>
-              <AlertDescription className="text-yellow-600/90">
-                You have {dueSoonCount} deliverable{dueSoonCount > 1 ? 's' : ''} due within 5 days.
-              </AlertDescription>
-            </Alert>
-          )}
-
-          <div className="grid md:grid-cols-3 gap-6 mb-8">
-            <Card>
-              <CardHeader className="pb-3">
-                <CardDescription>Total Deliverables</CardDescription>
-                <CardTitle className="text-3xl">{allDeliverables?.length || 0}</CardTitle>
-              </CardHeader>
-            </Card>
-            <Card>
-              <CardHeader className="pb-3">
-                <CardDescription>Pending</CardDescription>
-                <CardTitle className="text-3xl">{pendingDeliverables?.length || 0}</CardTitle>
-              </CardHeader>
-            </Card>
-            <Card>
-              <CardHeader className="pb-3">
-                <CardDescription>Completed</CardDescription>
-                <CardTitle className="text-3xl text-green-600">{completedCount}</CardTitle>
-              </CardHeader>
-            </Card>
-          </div>
-
-          <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Pending Deliverables</CardTitle>
-                <CardDescription>Items requiring attention or in progress</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {pendingLoading ? (
-                  <div className="flex items-center justify-center py-12">
-                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                  </div>
-                ) : pendingDeliverables && pendingDeliverables.length > 0 ? (
-                  <div className="grid md:grid-cols-2 gap-4">
-                    {pendingDeliverables.map((deliverable) => (
-                      <DeliverableCard key={deliverable.id.toString()} deliverable={deliverable} />
-                    ))}
-                  </div>
-                ) : (
-                  <Alert>
-                    <CheckCircle2 className="h-4 w-4" />
-                    <AlertDescription>
-                      All deliverables are up to date. Great work!
-                    </AlertDescription>
-                  </Alert>
-                )}
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>All Deliverables</CardTitle>
-                <CardDescription>Complete history of your deliverables</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {allLoading ? (
-                  <div className="flex items-center justify-center py-12">
-                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                  </div>
-                ) : allDeliverables && allDeliverables.length > 0 ? (
-                  <div className="grid md:grid-cols-2 gap-4">
-                    {allDeliverables.map((deliverable) => (
-                      <DeliverableCard key={deliverable.id.toString()} deliverable={deliverable} />
-                    ))}
-                  </div>
-                ) : (
-                  <Alert>
-                    <AlertDescription>
-                      No deliverables found. They will appear here once created.
-                    </AlertDescription>
-                  </Alert>
-                )}
-              </CardContent>
-            </Card>
-          </div>
+    <div className="min-h-screen bg-background">
+      <div className="container mx-auto px-4 py-8 max-w-6xl">
+        {/* Header */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-foreground mb-2">Compliance Dashboard</h1>
+          <p className="text-muted-foreground">Track your compliance deliverables, approvals, and documents in one place.</p>
         </div>
+
+        {/* Urgent Alerts */}
+        {urgentItems.length > 0 && (
+          <Alert className="mb-6 border-amber-500/50 bg-amber-50 dark:bg-amber-950/20">
+            <AlertTriangle className="h-4 w-4 text-amber-600" />
+            <AlertDescription className="text-amber-800 dark:text-amber-200">
+              <strong>{urgentItems.length} item{urgentItems.length > 1 ? 's' : ''}</strong> due within 5 days. Please review and take action.
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* Stats Summary */}
+        {!isLoading && deliverables && (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            <Card className="border-border">
+              <CardContent className="pt-4 pb-4">
+                <div className="text-2xl font-bold text-foreground">{deliverables.length}</div>
+                <div className="text-sm text-muted-foreground">Total Tasks</div>
+              </CardContent>
+            </Card>
+            <Card className="border-border">
+              <CardContent className="pt-4 pb-4">
+                <div className="text-2xl font-bold text-blue-600">
+                  {deliverables.filter(d => d.status === DeliverableStatus.inReview).length}
+                </div>
+                <div className="text-sm text-muted-foreground">In Review</div>
+              </CardContent>
+            </Card>
+            <Card className="border-border">
+              <CardContent className="pt-4 pb-4">
+                <div className="text-2xl font-bold text-green-600">
+                  {deliverables.filter(d => d.status === DeliverableStatus.completed || d.status === DeliverableStatus.approved).length}
+                </div>
+                <div className="text-sm text-muted-foreground">Completed</div>
+              </CardContent>
+            </Card>
+            <Card className="border-border">
+              <CardContent className="pt-4 pb-4">
+                <div className="text-2xl font-bold text-amber-600">{urgentItems.length}</div>
+                <div className="text-sm text-muted-foreground">Due Soon</div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* Main Tabs */}
+        <Tabs defaultValue="deliverables">
+          <TabsList className="mb-6">
+            <TabsTrigger value="deliverables" className="flex items-center gap-2">
+              <Clock className="h-4 w-4" />
+              My Deliverables
+            </TabsTrigger>
+            <TabsTrigger value="documents" className="flex items-center gap-2">
+              <FolderOpen className="h-4 w-4" />
+              Documents
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="deliverables">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <FileText className="h-5 w-5 text-primary" />
+                  My Compliance Tasks
+                </CardTitle>
+                <CardDescription>
+                  Real-time status of all your compliance deliverables. Approve or reject items when they are ready for your review.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {isLoading ? (
+                  <div className="space-y-4">
+                    {[1, 2, 3].map(i => (
+                      <Skeleton key={i} className="h-32 w-full rounded-lg" />
+                    ))}
+                  </div>
+                ) : !deliverables || deliverables.length === 0 ? (
+                  <div className="text-center py-12 text-muted-foreground">
+                    <FileText className="h-12 w-12 mx-auto mb-4 opacity-30" />
+                    <p className="text-lg font-medium">No deliverables yet</p>
+                    <p className="text-sm">Your compliance tasks will appear here once assigned by your advisor.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {deliverables.map(deliverable => (
+                      <DeliverableCard key={deliverable.id.toString()} deliverable={deliverable} />
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="documents">
+            <ComplianceDocumentList />
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );

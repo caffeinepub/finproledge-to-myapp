@@ -14,6 +14,23 @@ export interface AdminPaymentSettings { 'paypalEmail' : string }
 export type ApprovalStatus = { 'pending' : null } |
   { 'approved' : null } |
   { 'rejected' : null };
+export interface ClientDeliverable {
+  'id' : bigint,
+  'status' : ClientDeliverableStatus,
+  'title' : string,
+  'submitter' : Principal,
+  'file' : ExternalBlob,
+  'createdAt' : Time,
+  'description' : string,
+}
+export interface ClientDeliverableInput {
+  'title' : string,
+  'file' : ExternalBlob,
+  'description' : string,
+}
+export type ClientDeliverableStatus = { 'pending' : null } |
+  { 'rejected' : null } |
+  { 'accepted' : null };
 export interface ClientDocument {
   'id' : bigint,
   'client' : Principal,
@@ -21,6 +38,10 @@ export interface ClientDocument {
   'name' : string,
   'docType' : DocumentType,
   'uploadedAt' : Time,
+}
+export interface ClientRetentionMetrics {
+  'portalFunnelDropoffs' : bigint,
+  'returningUserRatio' : number,
 }
 export interface ComplianceDeliverable {
   'id' : bigint,
@@ -30,11 +51,11 @@ export interface ComplianceDeliverable {
   'dueDate' : Time,
   'deliverableType' : DeliverableType,
 }
-export type DeliverableStatus = { 'notStarted' : null } |
-  { 'awaitingReview' : null } |
-  { 'completed' : null } |
-  { 'overdue' : null } |
-  { 'inProgress' : null };
+export type DeliverableStatus = { 'completed' : null } |
+  { 'approved' : null } |
+  { 'inReview' : null } |
+  { 'rejected' : null } |
+  { 'drafting' : null };
 export type DeliverableType = { 'consulting' : null } |
   { 'annual' : null } |
   { 'quarterly' : null } |
@@ -43,6 +64,11 @@ export type DocumentType = { 'payrollReport' : null } |
   { 'auditDoc' : null } |
   { 'taxFiling' : null };
 export type ExternalBlob = Uint8Array;
+export interface LeadGenerationMetrics {
+  'leadQualityBreakup' : { 'low' : bigint, 'high' : bigint, 'medium' : bigint },
+  'formSubmissions' : bigint,
+  'clickToCallCount' : bigint,
+}
 export type PaymentMethod = { 'creditCard' : null } |
   { 'applePay' : null } |
   { 'googlePay' : null } |
@@ -65,6 +91,11 @@ export type RequestStatus = { 'cancelled' : null } |
   { 'pending' : null } |
   { 'completed' : null } |
   { 'inProgress' : null };
+export interface SearchIntentMetrics {
+  'localSeoRankings' : bigint,
+  'seasonalKeywordTrends' : Array<string>,
+  'aiVisibilityScore' : bigint,
+}
 export interface ServiceRequest {
   'id' : bigint,
   'status' : RequestStatus,
@@ -94,7 +125,17 @@ export type ServiceType = { 'bankReconciliation' : null } |
   { 'corporateTaxFiling' : null } |
   { 'payrollAdmin' : null } |
   { 'ledgerMaintenance' : null };
+export interface TechnicalReliabilityMetrics {
+  'pageLoadMs' : bigint,
+  'sslStatus' : boolean,
+  'mobileScore' : bigint,
+}
 export type Time = bigint;
+export interface TrustMetrics {
+  'testimonialClicks' : bigint,
+  'blogEngagement' : bigint,
+  'aboutPageAvgTime' : bigint,
+}
 export type UploadDocumentResult = { 'ok' : bigint } |
   { 'notApproved' : null };
 export interface UserApprovalInfo {
@@ -137,9 +178,11 @@ export interface _SERVICE {
   >,
   '_caffeineStorageUpdateGatewayPrincipals' : ActorMethod<[], undefined>,
   '_initializeAccessControlWithSecret' : ActorMethod<[string], undefined>,
-  'approveClient' : ActorMethod<[Principal], undefined>,
   'assignCallerUserRole' : ActorMethod<[Principal, UserRole], undefined>,
-  'createDeliverable' : ActorMethod<[string, Time, DeliverableType], bigint>,
+  'createDeliverable' : ActorMethod<
+    [Principal, string, Time, DeliverableType],
+    bigint
+  >,
   'createPayment' : ActorMethod<
     [bigint, string, PaymentMethod, [] | [string]],
     bigint
@@ -147,23 +190,38 @@ export interface _SERVICE {
   'createRequest' : ActorMethod<[ServiceType, string, Time], bigint>,
   'createVisitorRequest' : ActorMethod<[ServiceRequestInput], bigint>,
   'getAdminPaymentSettings' : ActorMethod<[], [] | [AdminPaymentSettings]>,
+  'getAllComplianceDeliverables' : ActorMethod<
+    [],
+    Array<ComplianceDeliverable>
+  >,
   'getAllDeliverables' : ActorMethod<[], Array<ComplianceDeliverable>>,
   'getAllDocuments' : ActorMethod<[], Array<ClientDocument>>,
   'getAllPayments' : ActorMethod<[], Array<PaymentRecord>>,
-  'getAllPendingClients' : ActorMethod<[], Array<UserApprovalInfo>>,
   'getAllRequests' : ActorMethod<[], Array<ServiceRequest>>,
+  'getAllSubmittedDeliverables' : ActorMethod<[], Array<ClientDeliverable>>,
   'getCallerUserProfile' : ActorMethod<[], [] | [UserProfile]>,
   'getCallerUserRole' : ActorMethod<[], UserRole>,
-  'getClientApprovalStatus' : ActorMethod<[Principal], boolean>,
   'getClientDeliverables' : ActorMethod<
     [Principal],
     Array<ComplianceDeliverable>
   >,
   'getClientRequests' : ActorMethod<[Principal], Array<ServiceRequest>>,
+  'getClientSubmissions' : ActorMethod<[Principal], Array<ClientDeliverable>>,
   'getMyDeliverables' : ActorMethod<[], Array<ComplianceDeliverable>>,
   'getMyPayments' : ActorMethod<[], Array<PaymentRecord>>,
   'getMyPendingDeliverables' : ActorMethod<[], Array<ComplianceDeliverable>>,
   'getMyRequests' : ActorMethod<[], Array<ServiceRequest>>,
+  'getMySubmittedDeliverables' : ActorMethod<[], Array<ClientDeliverable>>,
+  'getNewAnalyticsSummary' : ActorMethod<
+    [],
+    {
+      'searchIntent' : SearchIntentMetrics,
+      'trust' : TrustMetrics,
+      'technicalReliability' : TechnicalReliabilityMetrics,
+      'leadGeneration' : LeadGenerationMetrics,
+      'clientRetention' : ClientRetentionMetrics,
+    }
+  >,
   'getPendingDeliverables' : ActorMethod<
     [Principal],
     Array<ComplianceDeliverable>
@@ -173,13 +231,13 @@ export interface _SERVICE {
   'isCallerAdmin' : ActorMethod<[], boolean>,
   'isCallerApproved' : ActorMethod<[], boolean>,
   'listApprovals' : ActorMethod<[], Array<UserApprovalInfo>>,
-  'rejectClient' : ActorMethod<[Principal], undefined>,
   'requestApproval' : ActorMethod<[], undefined>,
   'saveCallerUserProfile' : ActorMethod<[UserProfile], undefined>,
   'setAdminPaymentSettings' : ActorMethod<[AdminPaymentSettings], undefined>,
   'setApproval' : ActorMethod<[Principal, ApprovalStatus], undefined>,
-  'updateDeliverableStatus' : ActorMethod<
-    [bigint, DeliverableStatus],
+  'submitDeliverable' : ActorMethod<[ClientDeliverableInput], bigint>,
+  'updateClientDeliverableStatus' : ActorMethod<
+    [bigint, ClientDeliverableStatus],
     undefined
   >,
   'updatePaymentStatus' : ActorMethod<[bigint, PaymentStatus], undefined>,

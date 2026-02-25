@@ -1,21 +1,24 @@
 import React, { useState } from 'react';
-import { useInternetIdentity } from '../hooks/useInternetIdentity';
 import { useGetAllRequests, useUpdateRequestStatus } from '../hooks/useServiceRequests';
 import { useGetAllDocuments } from '../hooks/useDocuments';
 import { useListApprovals, useSetApproval } from '../hooks/useApprovals';
 import { useGetUserProfileByPrincipal } from '../hooks/useUserProfile';
-import { RequestStatus, ServiceType, DocumentType, ApprovalStatus, UserApprovalInfo, UserProfile } from '../backend';
-import { Badge } from '@/components/ui/badge';
+import { RequestStatus, ServiceType, DocumentType, ApprovalStatus, UserApprovalInfo } from '../backend';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { CheckCircle, XCircle, Download, FileText, Users, ClipboardList, AlertCircle, Loader2, CreditCard, Mail, KeyRound } from 'lucide-react';
+import {
+  CheckCircle, XCircle, Download, FileText, Users, ClipboardList,
+  AlertCircle, Loader2, CreditCard, Mail, KeyRound, PackageOpen, BarChart3,
+} from 'lucide-react';
 import AdminGuard from '../components/AdminGuard';
 import AdminPaymentTable from '../components/AdminPaymentTable';
 import AdminPaymentSettings from '../components/AdminPaymentSettings';
+import AdminClientDeliverableTable from '../components/AdminClientDeliverableTable';
+import AnalyticsDashboard from '../components/AnalyticsDashboard';
 import { Principal } from '@dfinity/principal';
 
 function formatDate(time: bigint) {
@@ -79,14 +82,13 @@ function RequestStatusBadge({ status }: { status: RequestStatus }) {
   );
 }
 
-// Sub-component that fetches and displays login details for a single approval entry
 function ClientLoginDetails({ principal }: { principal: Principal }) {
-  const { data: profile, isLoading } = useGetUserProfileByPrincipal(principal);
+  // Pass principal as string — useGetUserProfileByPrincipal expects string
+  const { data: profile, isLoading } = useGetUserProfileByPrincipal(principal.toString());
   const principalStr = principal.toString();
 
   return (
     <div className="space-y-1.5">
-      {/* Principal ID */}
       <div className="flex items-start gap-1.5">
         <KeyRound className="h-3 w-3 text-muted-foreground mt-0.5 flex-shrink-0" />
         <div>
@@ -95,7 +97,6 @@ function ClientLoginDetails({ principal }: { principal: Principal }) {
         </div>
       </div>
 
-      {/* Name & Email */}
       {isLoading ? (
         <div className="flex items-center gap-1.5">
           <Mail className="h-3 w-3 text-muted-foreground flex-shrink-0" />
@@ -209,7 +210,7 @@ function AdminDashboardContent() {
       <div className="bg-primary py-8 px-6 border-b border-white/10">
         <div className="max-w-7xl mx-auto">
           <h1 className="text-2xl font-serif font-bold tracking-wide text-white">Administration Dashboard</h1>
-          <p className="text-white/70 text-sm mt-1">Client management, service engagements, document ledger, and payments</p>
+          <p className="text-white/70 text-sm mt-1">Client management, service engagements, document ledger, payments, and analytics</p>
         </div>
       </div>
 
@@ -260,7 +261,7 @@ function AdminDashboardContent() {
 
         {/* Tabbed Sections */}
         <Tabs defaultValue="approvals" className="w-full">
-          <TabsList className="grid w-full grid-cols-4 mb-6">
+          <TabsList className="grid w-full grid-cols-6 mb-6">
             <TabsTrigger value="approvals" className="flex items-center gap-1.5 text-xs sm:text-sm">
               <Users className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">Approvals</span>
@@ -282,6 +283,15 @@ function AdminDashboardContent() {
             <TabsTrigger value="payments" className="flex items-center gap-1.5 text-xs sm:text-sm">
               <CreditCard className="h-3.5 w-3.5" />
               <span>Payments</span>
+            </TabsTrigger>
+            <TabsTrigger value="deliverables" className="flex items-center gap-1.5 text-xs sm:text-sm">
+              <PackageOpen className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Deliverables</span>
+              <span className="sm:hidden">Deliverables</span>
+            </TabsTrigger>
+            <TabsTrigger value="analytics" className="flex items-center gap-1.5 text-xs sm:text-sm">
+              <BarChart3 className="h-3.5 w-3.5" />
+              <span>Analytics</span>
             </TabsTrigger>
           </TabsList>
 
@@ -373,34 +383,28 @@ function AdminDashboardContent() {
                         {requests.map((req, idx) => (
                           <TableRow key={req.id.toString()} className={`border-b border-border hover:bg-muted/20 transition-colors ${idx % 2 === 0 ? '' : 'bg-muted/10'}`}>
                             <TableCell className="py-3 px-4 text-xs font-mono text-muted-foreground">#{req.id.toString().padStart(4, '0')}</TableCell>
-                            <TableCell className="py-3 px-4">
-                              <div>
-                                {req.name ? (
-                                  <p className="text-sm font-medium text-foreground">{req.name}</p>
-                                ) : (
-                                  <p className="text-xs font-mono text-muted-foreground">{req.client.toString().slice(0, 12)}...</p>
-                                )}
-                                {req.company && <p className="text-xs text-muted-foreground">{req.company}</p>}
-                                {req.email && <p className="text-xs text-muted-foreground">{req.email}</p>}
-                              </div>
+                            <TableCell className="py-3 px-4 text-xs text-muted-foreground font-mono">
+                              {req.name ?? req.client.toString().slice(0, 16) + '…'}
                             </TableCell>
-                            <TableCell className="py-3 px-4 text-sm text-foreground">{serviceTypeLabel(req.serviceType)}</TableCell>
-                            <TableCell className="py-3 px-4 text-sm text-muted-foreground">{formatDate(req.createdAt)}</TableCell>
-                            <TableCell className="py-3 px-4 text-sm text-muted-foreground">{formatDate(req.deadline)}</TableCell>
+                            <TableCell className="py-3 px-4 text-sm">{serviceTypeLabel(req.serviceType)}</TableCell>
+                            <TableCell className="py-3 px-4 text-xs text-muted-foreground whitespace-nowrap">{formatDate(req.createdAt)}</TableCell>
+                            <TableCell className="py-3 px-4 text-xs text-muted-foreground whitespace-nowrap">{formatDate(req.deadline)}</TableCell>
                             <TableCell className="py-3 px-4"><RequestStatusBadge status={req.status} /></TableCell>
                             <TableCell className="py-3 px-4">
                               <Select
                                 value={req.status}
-                                onValueChange={(val) => updateStatus.mutate({ requestId: req.id, status: val as RequestStatus })}
+                                onValueChange={(val) =>
+                                  updateStatus.mutate({ requestId: req.id, status: val as RequestStatus })
+                                }
                               >
-                                <SelectTrigger className="h-7 text-xs w-36 border-border">
+                                <SelectTrigger className="h-7 text-xs w-36">
                                   <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
-                                  <SelectItem value="pending">Pending</SelectItem>
-                                  <SelectItem value="inProgress">In Progress</SelectItem>
-                                  <SelectItem value="completed">Completed</SelectItem>
-                                  <SelectItem value="cancelled">Cancelled</SelectItem>
+                                  <SelectItem value={RequestStatus.pending}>Pending</SelectItem>
+                                  <SelectItem value={RequestStatus.inProgress}>In Progress</SelectItem>
+                                  <SelectItem value={RequestStatus.completed}>Completed</SelectItem>
+                                  <SelectItem value={RequestStatus.cancelled}>Cancelled</SelectItem>
                                 </SelectContent>
                               </Select>
                             </TableCell>
@@ -430,16 +434,17 @@ function AdminDashboardContent() {
                   </div>
                 ) : !documents || documents.length === 0 ? (
                   <div className="p-8 text-center text-muted-foreground text-sm">
-                    No documents on record.
+                    No documents uploaded yet.
                   </div>
                 ) : (
                   <div className="overflow-x-auto">
                     <Table>
                       <TableHeader>
                         <TableRow className="border-b border-border bg-muted/20">
+                          <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground py-3 px-4">Ref #</TableHead>
+                          <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground py-3 px-4">Client</TableHead>
                           <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground py-3 px-4">Document Name</TableHead>
                           <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground py-3 px-4">Type</TableHead>
-                          <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground py-3 px-4">Client</TableHead>
                           <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground py-3 px-4">Uploaded</TableHead>
                           <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground py-3 px-4">Download</TableHead>
                         </TableRow>
@@ -447,26 +452,23 @@ function AdminDashboardContent() {
                       <TableBody>
                         {documents.map((doc, idx) => (
                           <TableRow key={doc.id.toString()} className={`border-b border-border hover:bg-muted/20 transition-colors ${idx % 2 === 0 ? '' : 'bg-muted/10'}`}>
-                            <TableCell className="py-3 px-4 text-sm font-medium text-foreground">{doc.name}</TableCell>
-                            <TableCell className="py-3 px-4">
-                              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-primary/10 text-primary border border-primary/20">
-                                {docTypeLabel(doc.docType)}
-                              </span>
+                            <TableCell className="py-3 px-4 text-xs font-mono text-muted-foreground">#{doc.id.toString().padStart(4, '0')}</TableCell>
+                            <TableCell className="py-3 px-4 text-xs text-muted-foreground font-mono">
+                              {doc.client.toString().slice(0, 16)}…
                             </TableCell>
-                            <TableCell className="py-3 px-4 font-mono text-xs text-muted-foreground">
-                              {doc.client.toString().slice(0, 12)}...
-                            </TableCell>
-                            <TableCell className="py-3 px-4 text-sm text-muted-foreground">{formatDate(doc.uploadedAt)}</TableCell>
+                            <TableCell className="py-3 px-4 text-sm font-medium">{doc.name}</TableCell>
+                            <TableCell className="py-3 px-4 text-xs">{docTypeLabel(doc.docType)}</TableCell>
+                            <TableCell className="py-3 px-4 text-xs text-muted-foreground whitespace-nowrap">{formatDate(doc.uploadedAt)}</TableCell>
                             <TableCell className="py-3 px-4">
-                              <a
-                                href={doc.file.getDirectURL()}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1 text-xs text-primary hover:underline font-medium"
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-7 text-xs px-3"
+                                onClick={() => window.open(doc.file.getDirectURL(), '_blank')}
                               >
-                                <Download className="h-3.5 w-3.5" />
+                                <Download className="h-3 w-3 mr-1" />
                                 Download
-                              </a>
+                              </Button>
                             </TableCell>
                           </TableRow>
                         ))}
@@ -484,6 +486,20 @@ function AdminDashboardContent() {
               <AdminPaymentSettings />
               <AdminPaymentTable />
             </div>
+          </TabsContent>
+
+          {/* Deliverables Tab */}
+          <TabsContent value="deliverables">
+            <AdminClientDeliverableTable />
+          </TabsContent>
+
+          {/* Analytics Tab */}
+          <TabsContent value="analytics">
+            <Card className="border border-border shadow-sm">
+              <CardContent className="p-0">
+                <AnalyticsDashboard />
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
       </div>

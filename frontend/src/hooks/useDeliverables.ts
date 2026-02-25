@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useActor } from './useActor';
-import { ComplianceDeliverable, DeliverableStatus } from '../backend';
+import { ComplianceDeliverable, DeliverableStatus, DeliverableType } from '../backend';
+import { Principal } from '@dfinity/principal';
 
 export function useGetMyDeliverables() {
   const { actor, isFetching } = useActor();
@@ -28,38 +29,41 @@ export function useGetMyPendingDeliverables() {
   });
 }
 
-export function useGetAllDeliverables() {
+export function useGetAllComplianceDeliverables() {
   const { actor, isFetching } = useActor();
 
   return useQuery<ComplianceDeliverable[]>({
-    queryKey: ['allDeliverables'],
+    queryKey: ['allComplianceDeliverables'],
     queryFn: async () => {
       if (!actor) return [];
-      return actor.getAllDeliverables();
+      return actor.getAllComplianceDeliverables();
     },
     enabled: !!actor && !isFetching,
   });
 }
 
-export function useUpdateDeliverableStatus() {
+export function useCreateDeliverable() {
   const { actor } = useActor();
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async ({
-      deliverableId,
-      newStatus,
+      clientPrincipal,
+      title,
+      dueDate,
+      deliverableType,
     }: {
-      deliverableId: bigint;
-      newStatus: DeliverableStatus;
+      clientPrincipal: Principal;
+      title: string;
+      dueDate: bigint;
+      deliverableType: DeliverableType;
     }) => {
       if (!actor) throw new Error('Actor not available');
-      return actor.updateDeliverableStatus(deliverableId, newStatus);
+      return actor.createDeliverable(clientPrincipal, title, dueDate, deliverableType);
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['allComplianceDeliverables'] });
       queryClient.invalidateQueries({ queryKey: ['myDeliverables'] });
-      queryClient.invalidateQueries({ queryKey: ['myPendingDeliverables'] });
-      queryClient.invalidateQueries({ queryKey: ['allDeliverables'] });
     },
   });
 }

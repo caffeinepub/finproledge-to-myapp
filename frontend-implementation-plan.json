@@ -1,50 +1,33 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Client Document Upload & Approval Login Details in Admin",
+  "title": "Restrict Admin Access to finproledge@gmail.com Only",
   "requirements": [
     {
       "id": "REQ-1",
-      "summary": "Add document upload UI to Client Portal page for authenticated clients to upload their own documents",
+      "summary": "Update AdminGuard component to restrict admin access exclusively to finproledge@gmail.com email address",
       "acceptanceCriteria": [
-        "An upload form or button is visible in the client portal documents tab for authenticated clients.",
-        "The client can select a file and a document type before submitting.",
-        "On successful upload, the new document appears in the documents list without a full page reload.",
-        "Upload errors are displayed clearly to the client.",
-        "The upload calls the existing uploadDocument mutation from useDocuments.ts."
+        "AdminGuard in frontend/src/components/AdminGuard.tsx only grants access when the authenticated user's email is exactly 'finproledge@gmail.com'.",
+        "Any other authenticated user visiting an admin-protected route sees an 'Access Denied' message.",
+        "Unauthenticated users are still redirected to log in before the email check occurs.",
+        "The admin navigation links in Navigation.tsx are only visible to the user with email finproledge@gmail.com.",
+        "The isCallerAdmin check used in Navigation.tsx and other components is consistent with the finproledge@gmail.com restriction."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/components/DocumentUploadForm.tsx",
-          "operation": "create",
-          "description": "Create a new DocumentUploadForm component that renders a form allowing clients to select a file, choose a document type (payrollReport, auditDoc, taxFiling), and submit via the uploadDocument mutation from useDocuments hook. Include file input, document type dropdown, submit button, loading state during upload, success message on completion, and error display on failure. Use ExternalBlob.fromBytes to convert the selected file and attach upload progress tracking via withUploadProgress. Verify the blob-storage component's usage instructions before implementing."
+          "path": "frontend/src/components/AdminGuard.tsx",
+          "operation": "modify",
+          "description": "Update the AdminGuard component to check the authenticated user's profile email and only grant admin access when the email exactly matches 'finproledge@gmail.com'. Fetch the user profile via getCallerUserProfile() after authentication succeeds and before the isCallerAdmin check. Show appropriate loading states while fetching the profile. Display an 'Access Denied' message with clear explanation when the authenticated user's email does not match finproledge@gmail.com. Maintain existing behavior for unauthenticated users (redirect to login)."
         },
         {
-          "path": "frontend/src/pages/ClientPortalPage.tsx",
+          "path": "frontend/src/components/Navigation.tsx",
           "operation": "modify",
-          "description": "Import and render the new DocumentUploadForm component within the Documents tab, positioned above the existing DocumentTable component. The upload form should be visible only to authenticated clients. After a successful upload, the documents list should refresh automatically via query invalidation."
-        }
-      ]
-    },
-    {
-      "id": "REQ-3",
-      "summary": "Display login details (principal ID and email) of approval requesters in Admin Dashboard Client Approval tab",
-      "acceptanceCriteria": [
-        "Each entry in the Client Approval tab shows the requester's principal ID.",
-        "Each entry shows the requester's registered email address from their user profile.",
-        "The existing approve/reject action controls remain functional.",
-        "If the profile cannot be fetched, a fallback (e.g., 'Unknown') is displayed gracefully."
-      ],
-      "file_operations": [
+          "description": "Update the Navigation component to ensure admin navigation links (Admin Dashboard, Compliance Admin) are only displayed when both isCallerAdmin returns true AND the authenticated user's email is exactly 'finproledge@gmail.com'. Fetch the user profile using getCallerUserProfile() and verify the email matches before showing admin links. This ensures visual consistency with the AdminGuard access restriction."
+        },
         {
           "path": "frontend/src/hooks/useUserProfile.ts",
           "operation": "modify",
-          "description": "Add a new React Query hook useGetUserProfile(principal: Principal) that calls actor.getUserProfile(principal) to fetch a specific user's profile by principal ID. Enable the query only when actor is available and principal is provided. Return the UserProfile or null if not found."
-        },
-        {
-          "path": "frontend/src/pages/AdminDashboardPage.tsx",
-          "operation": "modify",
-          "description": "In the Client Approval tab section, for each approval entry (UserApprovalInfo), use the new useGetUserProfile hook to fetch the profile for each requester's principal. Display the principal ID using principal.toString() and the email address from the fetched UserProfile. If the profile fetch fails or returns null, display 'Unknown' or 'No email' as a graceful fallback. Maintain the existing approve/reject button controls alongside the displayed login details."
+          "description": "Ensure the useGetCallerUserProfile hook properly handles loading states and returns the user profile with email field. Verify the hook does not cache stale profile data across authentication sessions. This hook will be used by both AdminGuard and Navigation to check the email restriction."
         }
       ]
     }

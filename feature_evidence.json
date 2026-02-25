@@ -2,11 +2,10 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-add-a-document-upload-section-to-the-client-portal-page-so-that-authenticated-clients-can-upload-their-own-documents-the-upload-ui-should-allow-the-client-to-select-a-file-and-a-document-type-then-submit-it-via-the-existing-usedocuments-hook-uploaddocument-mutation-the-uploaded-document-should-appear-in-the-client-s-documents-tab-after-a-successful-upload",
-      "featureTitle": "Add a document upload section to the Client Portal page so that authenticated clients can upload their own documents. The upload UI should allow the client to select a file and a document type, then submit it via the existing useDocuments hook (uploadDocument mutation). The uploaded document should appear in the client's documents tab after a successful upload.",
+      "featureId": "feature-update-the-adminguard-component-to-allow-admin-access-exclusively-to-the-email-address-finproledge-gmail-com-any-authenticated-user-whose-profile-email-does-not-exactly-match-finproledge-gmail-com-must-be-shown-an-access-denied-state-and-prevented-from-viewing-any-admin-only-pages-or-content",
+      "featureTitle": "Update the AdminGuard component to allow admin access exclusively to the email address finproledge@gmail.com. Any authenticated user whose profile email does not exactly match finproledge@gmail.com must be shown an 'Access Denied' state and prevented from viewing any admin-only pages or content.",
       "files": [
-        "frontend/src/components/DocumentUploadForm.tsx",
-        "frontend/src/pages/ClientPortalPage.tsx"
+        "frontend/src/components/Navigation.tsx"
       ],
       "components": [
         "authorization@4.0.0",
@@ -20,28 +19,6 @@
       ],
       "testIds": [
         "REQ-1"
-      ],
-      "confidence": "high"
-    },
-    {
-      "featureId": "feature-in-the-admin-dashboard-page-under-the-client-approval-tab-display-the-login-details-principal-id-and-email-address-from-their-user-profile-of-each-person-who-has-requested-approval-for-each-approval-entry-show-the-requester-s-principal-id-and-their-registered-email-fetched-from-userprofile-alongside-the-existing-approval-rejection-controls",
-      "featureTitle": "In the Admin Dashboard page, under the 'Client Approval' tab, display the login details (principal ID and email address from their user profile) of each person who has requested approval. For each approval entry, show the requester's principal ID and their registered email (fetched from UserProfile) alongside the existing approval/rejection controls.",
-      "files": [
-        "frontend/src/hooks/useUserProfile.ts",
-        "frontend/src/pages/AdminDashboardPage.tsx"
-      ],
-      "components": [
-        "authorization@4.0.0",
-        "blob-storage@4.0.0",
-        "core-infrastructure@1.0.2",
-        "shadcn-ui@1.0.0",
-        "build-template-react@1.0.0",
-        "initial-app@1.0.0",
-        "github-export-icp-cli@1.0.0",
-        "user-approval@3.0.0"
-      ],
-      "testIds": [
-        "REQ-3"
       ],
       "confidence": "high"
     }

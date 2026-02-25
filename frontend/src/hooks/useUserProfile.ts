@@ -1,7 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useActor } from './useActor';
 import { UserProfile } from '../backend';
-import type { Principal } from '@icp-sdk/core/principal';
 
 export function useGetCallerUserProfile() {
   const { actor, isFetching: actorFetching } = useActor();
@@ -23,30 +22,18 @@ export function useGetCallerUserProfile() {
   };
 }
 
-export function useGetUserProfile(user: Principal) {
+export function useGetUserProfileByPrincipal(principal: string) {
   const { actor, isFetching } = useActor();
 
   return useQuery<UserProfile | null>({
-    queryKey: ['userProfile', user.toString()],
+    queryKey: ['userProfile', principal],
     queryFn: async () => {
       if (!actor) return null;
-      return actor.getUserProfile(user);
+      const { Principal } = await import('@dfinity/principal');
+      return actor.getUserProfileByPrincipal(Principal.fromText(principal));
     },
-    enabled: !!actor && !isFetching,
-  });
-}
-
-export function useGetUserProfileByPrincipal(user: Principal | null) {
-  const { actor, isFetching } = useActor();
-
-  return useQuery<UserProfile | null>({
-    queryKey: ['userProfileByPrincipal', user?.toString() ?? ''],
-    queryFn: async () => {
-      if (!actor || !user) return null;
-      return actor.getUserProfileByPrincipal(user);
-    },
-    enabled: !!actor && !isFetching && !!user,
-    retry: false,
+    enabled: !!actor && !isFetching && !!principal,
+    staleTime: 1000 * 60 * 10,
   });
 }
 

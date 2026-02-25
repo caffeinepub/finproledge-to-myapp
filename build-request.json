@@ -1,94 +1,56 @@
 {
   "kind": "build_request",
-  "title": "Client Document Upload & Approval Login Details in Admin",
-  "projectName": "FINPROLEDGE",
-  "priority": "normal",
+  "title": "Restrict Admin Access to finproledge@gmail.com Only",
+  "projectName": "FINPROLEDGE Portal",
+  "priority": "high",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Add a document upload section to the Client Portal page so that authenticated clients can upload their own documents. The upload UI should allow the client to select a file and a document type, then submit it via the existing useDocuments hook (uploadDocument mutation). The uploaded document should appear in the client's documents tab after a successful upload.",
+      "text": "Update the AdminGuard component to allow admin access exclusively to the email address finproledge@gmail.com. Any authenticated user whose profile email does not exactly match finproledge@gmail.com must be shown an 'Access Denied' state and prevented from viewing any admin-only pages or content.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-1"
+          "msg-4"
         ],
         "quotes": [
-          "Provide Client - A way to upload his Documents"
+          "Provide Admin Access only to this Email finproledge@gmail.com"
         ]
       },
       "acceptanceCriteria": [
-        "An upload form or button is visible in the client portal documents tab for authenticated clients.",
-        "The client can select a file and a document type before submitting.",
-        "On successful upload, the new document appears in the documents list without a full page reload.",
-        "Upload errors are displayed clearly to the client.",
-        "The upload calls the existing uploadDocument mutation from useDocuments.ts."
+        "AdminGuard in frontend/src/components/AdminGuard.tsx only grants access when the authenticated user's email is exactly 'finproledge@gmail.com'.",
+        "Any other authenticated user visiting an admin-protected route sees an 'Access Denied' message.",
+        "Unauthenticated users are still redirected to log in before the email check occurs.",
+        "The admin navigation links in Navigation.tsx are only visible to the user with email finproledge@gmail.com.",
+        "The isCallerAdmin check used in Navigation.tsx and other components is consistent with the finproledge@gmail.com restriction."
       ]
     },
     {
       "id": "REQ-2",
-      "text": "In the backend, ensure the uploadDocument function accepts a caller-initiated document upload (with file blob, type, and name) and persists it associated with the caller's principal, returning a success or error result. If this capability already exists in the actor, verify it is exposed correctly; if not, add it.",
+      "text": "Ensure the backend isCallerAdmin authorization logic recognizes only the principal associated with the Internet Identity linked to finproledge@gmail.com as an admin. All admin-gated backend methods must reject calls from any other principal.",
       "target": "backend",
       "source": {
         "messageIds": [
-          "msg-1"
+          "msg-4"
         ],
         "quotes": [
-          "Provide Client - A way to upload his Documents"
+          "Provide Admin Access only to this Email finproledge@gmail.com"
         ]
       },
       "acceptanceCriteria": [
-        "A backend function allows authenticated callers to upload a document with a name, type, and blob.",
-        "The document is stored and associated with the caller's principal.",
-        "The function returns a success variant on success and an error variant on failure."
-      ]
-    },
-    {
-      "id": "REQ-3",
-      "text": "In the Admin Dashboard page, under the 'Client Approval' tab, display the login details (principal ID and email address from their user profile) of each person who has requested approval. For each approval entry, show the requester's principal ID and their registered email (fetched from UserProfile) alongside the existing approval/rejection controls.",
-      "target": "frontend",
-      "source": {
-        "messageIds": [
-          "msg-1"
-        ],
-        "quotes": [
-          "In Administration - under Client Approval add the login details of the person for the approval"
-        ]
-      },
-      "acceptanceCriteria": [
-        "Each entry in the Client Approval tab shows the requester's principal ID.",
-        "Each entry shows the requester's registered email address from their user profile.",
-        "The existing approve/reject action controls remain functional.",
-        "If the profile cannot be fetched, a fallback (e.g., 'Unknown') is displayed gracefully."
-      ]
-    },
-    {
-      "id": "REQ-4",
-      "text": "In the backend, expose a query function that allows the admin to fetch the UserProfile for a given principal, so the Admin Dashboard can retrieve login details (email, name) for each approval requester. If this function already exists (getUserProfileByPrincipal or similar), ensure it is accessible to the admin caller without restriction.",
-      "target": "backend",
-      "source": {
-        "messageIds": [
-          "msg-1"
-        ],
-        "quotes": [
-          "In Administration - under Client Approval add the login details of the person for the approval"
-        ]
-      },
-      "acceptanceCriteria": [
-        "A query function exists that accepts a principal and returns the corresponding UserProfile.",
-        "The function can be called by the authenticated admin without access errors.",
-        "Returns a null/option result if no profile exists for that principal."
+        "The backend admin authorization mixin or actor exposes an isCallerAdmin query that returns true only for the designated admin principal.",
+        "All admin-only update/query methods return an authorization error for non-admin callers.",
+        "No other email or principal is granted admin privileges."
       ]
     }
   ],
   "constraints": [
-    "Do not modify files under frontend/src/hooks/useActor.ts, frontend/src/hooks/useInternetIdentity.ts, frontend/src/main.tsx, or frontend/src/components/ui.",
-    "All Motoko logic must remain in the single actor file backend/main.mo.",
-    "Use the existing useDocuments and useApprovals hooks as the primary interface layer; extend only if necessary."
+    "Do not modify any files listed under frontend.immutablePaths.",
+    "The only permitted admin email is finproledge@gmail.com — no other emails or principals should receive admin access."
   ],
   "nonGoals": [
-    "Do not add a new user role or change the existing admin authorization logic.",
-    "Do not change the visual theme or redesign any pages beyond the two targeted areas.",
-    "Do not add email notification or external messaging on document upload or approval."
+    "Adding support for multiple admin accounts or roles.",
+    "Building an admin management UI to add/remove admins dynamically.",
+    "Changing any non-admin-related functionality or UI."
   ],
   "imageRequirements": {
     "required": [],

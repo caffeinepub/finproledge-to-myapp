@@ -1,15 +1,25 @@
-import { createRouter, createRoute, createRootRoute, RouterProvider, Outlet } from '@tanstack/react-router';
+import { RouterProvider, createRouter, createRoute, createRootRoute, Outlet } from '@tanstack/react-router';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from 'next-themes';
+import { Toaster } from '@/components/ui/sonner';
+import Layout from './components/Layout';
 import HomePage from './pages/HomePage';
 import ServiceBookingPage from './pages/ServiceBookingPage';
 import ClientPortalPage from './pages/ClientPortalPage';
 import ComplianceDashboardPage from './pages/ComplianceDashboardPage';
-import VisitorServiceRequestPage from './pages/VisitorServiceRequestPage';
+import ComplianceAdminDashboardPage from './pages/ComplianceAdminDashboardPage';
 import AdminDashboardPage from './pages/AdminDashboardPage';
-import Layout from './components/Layout';
+import VisitorServiceRequestPage from './pages/VisitorServiceRequestPage';
 import ProtectedRoute from './components/ProtectedRoute';
-import UserProfileSetup from './components/UserProfileSetup';
-import { Toaster } from '@/components/ui/sonner';
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 5,
+      retry: 1,
+    },
+  },
+});
 
 const rootRoute = createRootRoute({
   component: () => (
@@ -33,13 +43,13 @@ const serviceBookingRoute = createRoute({
 
 const visitorRequestRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/visitor-request',
+  path: '/request-service',
   component: VisitorServiceRequestPage,
 });
 
 const clientPortalRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/portal',
+  path: '/client-portal',
   component: () => (
     <ProtectedRoute>
       <ClientPortalPage />
@@ -57,8 +67,16 @@ const complianceDashboardRoute = createRoute({
   ),
 });
 
-// Admin dashboard uses its own AdminGuard (email-based) inside the page component
-// ProtectedRoute handles the base authentication layer
+const complianceAdminDashboardRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/compliance-admin',
+  component: () => (
+    <ProtectedRoute>
+      <ComplianceAdminDashboardPage />
+    </ProtectedRoute>
+  ),
+});
+
 const adminDashboardRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/admin-dashboard',
@@ -71,6 +89,7 @@ const routeTree = rootRoute.addChildren([
   visitorRequestRoute,
   clientPortalRoute,
   complianceDashboardRoute,
+  complianceAdminDashboardRoute,
   adminDashboardRoute,
 ]);
 
@@ -84,10 +103,11 @@ declare module '@tanstack/react-router' {
 
 export default function App() {
   return (
-    <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-      <RouterProvider router={router} />
-      <UserProfileSetup />
-      <Toaster />
+    <ThemeProvider attribute="class" defaultTheme="light">
+      <QueryClientProvider client={queryClient}>
+        <RouterProvider router={router} />
+        <Toaster richColors position="top-right" />
+      </QueryClientProvider>
     </ThemeProvider>
   );
 }

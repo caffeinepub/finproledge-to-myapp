@@ -58,11 +58,11 @@ export const ServiceRequestInput = IDL.Record({
 });
 export const AdminPaymentSettings = IDL.Record({ 'paypalEmail' : IDL.Text });
 export const DeliverableStatus = IDL.Variant({
-  'notStarted' : IDL.Null,
-  'awaitingReview' : IDL.Null,
   'completed' : IDL.Null,
-  'overdue' : IDL.Null,
-  'inProgress' : IDL.Null,
+  'approved' : IDL.Null,
+  'inReview' : IDL.Null,
+  'rejected' : IDL.Null,
+  'drafting' : IDL.Null,
 });
 export const ComplianceDeliverable = IDL.Record({
   'id' : IDL.Nat,
@@ -101,15 +101,6 @@ export const PaymentRecord = IDL.Record({
   'currencyCode' : IDL.Text,
   'amount' : IDL.Nat,
 });
-export const ApprovalStatus = IDL.Variant({
-  'pending' : IDL.Null,
-  'approved' : IDL.Null,
-  'rejected' : IDL.Null,
-});
-export const UserApprovalInfo = IDL.Record({
-  'status' : ApprovalStatus,
-  'principal' : IDL.Principal,
-});
 export const RequestStatus = IDL.Variant({
   'cancelled' : IDL.Null,
   'pending' : IDL.Null,
@@ -129,10 +120,66 @@ export const ServiceRequest = IDL.Record({
   'company' : IDL.Opt(IDL.Text),
   'phone' : IDL.Opt(IDL.Text),
 });
+export const ClientDeliverableStatus = IDL.Variant({
+  'pending' : IDL.Null,
+  'rejected' : IDL.Null,
+  'accepted' : IDL.Null,
+});
+export const ClientDeliverable = IDL.Record({
+  'id' : IDL.Nat,
+  'status' : ClientDeliverableStatus,
+  'title' : IDL.Text,
+  'submitter' : IDL.Principal,
+  'file' : ExternalBlob,
+  'createdAt' : Time,
+  'description' : IDL.Text,
+});
 export const UserProfile = IDL.Record({
   'name' : IDL.Text,
   'email' : IDL.Text,
   'company' : IDL.Text,
+});
+export const SearchIntentMetrics = IDL.Record({
+  'localSeoRankings' : IDL.Nat,
+  'seasonalKeywordTrends' : IDL.Vec(IDL.Text),
+  'aiVisibilityScore' : IDL.Nat,
+});
+export const TrustMetrics = IDL.Record({
+  'testimonialClicks' : IDL.Nat,
+  'blogEngagement' : IDL.Nat,
+  'aboutPageAvgTime' : IDL.Nat,
+});
+export const TechnicalReliabilityMetrics = IDL.Record({
+  'pageLoadMs' : IDL.Nat,
+  'sslStatus' : IDL.Bool,
+  'mobileScore' : IDL.Nat,
+});
+export const LeadGenerationMetrics = IDL.Record({
+  'leadQualityBreakup' : IDL.Record({
+    'low' : IDL.Nat,
+    'high' : IDL.Nat,
+    'medium' : IDL.Nat,
+  }),
+  'formSubmissions' : IDL.Nat,
+  'clickToCallCount' : IDL.Nat,
+});
+export const ClientRetentionMetrics = IDL.Record({
+  'portalFunnelDropoffs' : IDL.Nat,
+  'returningUserRatio' : IDL.Float64,
+});
+export const ApprovalStatus = IDL.Variant({
+  'pending' : IDL.Null,
+  'approved' : IDL.Null,
+  'rejected' : IDL.Null,
+});
+export const UserApprovalInfo = IDL.Record({
+  'status' : ApprovalStatus,
+  'principal' : IDL.Principal,
+});
+export const ClientDeliverableInput = IDL.Record({
+  'title' : IDL.Text,
+  'file' : ExternalBlob,
+  'description' : IDL.Text,
 });
 export const UploadDocumentResult = IDL.Variant({
   'ok' : IDL.Nat,
@@ -167,10 +214,9 @@ export const idlService = IDL.Service({
     ),
   '_caffeineStorageUpdateGatewayPrincipals' : IDL.Func([], [], []),
   '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
-  'approveClient' : IDL.Func([IDL.Principal], [], []),
   'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
   'createDeliverable' : IDL.Func(
-      [IDL.Text, Time, DeliverableType],
+      [IDL.Principal, IDL.Text, Time, DeliverableType],
       [IDL.Nat],
       [],
     ),
@@ -186,6 +232,11 @@ export const idlService = IDL.Service({
       [IDL.Opt(AdminPaymentSettings)],
       ['query'],
     ),
+  'getAllComplianceDeliverables' : IDL.Func(
+      [],
+      [IDL.Vec(ComplianceDeliverable)],
+      ['query'],
+    ),
   'getAllDeliverables' : IDL.Func(
       [],
       [IDL.Vec(ComplianceDeliverable)],
@@ -193,11 +244,14 @@ export const idlService = IDL.Service({
     ),
   'getAllDocuments' : IDL.Func([], [IDL.Vec(ClientDocument)], ['query']),
   'getAllPayments' : IDL.Func([], [IDL.Vec(PaymentRecord)], ['query']),
-  'getAllPendingClients' : IDL.Func([], [IDL.Vec(UserApprovalInfo)], ['query']),
   'getAllRequests' : IDL.Func([], [IDL.Vec(ServiceRequest)], ['query']),
+  'getAllSubmittedDeliverables' : IDL.Func(
+      [],
+      [IDL.Vec(ClientDeliverable)],
+      ['query'],
+    ),
   'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
   'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
-  'getClientApprovalStatus' : IDL.Func([IDL.Principal], [IDL.Bool], ['query']),
   'getClientDeliverables' : IDL.Func(
       [IDL.Principal],
       [IDL.Vec(ComplianceDeliverable)],
@@ -206,6 +260,11 @@ export const idlService = IDL.Service({
   'getClientRequests' : IDL.Func(
       [IDL.Principal],
       [IDL.Vec(ServiceRequest)],
+      ['query'],
+    ),
+  'getClientSubmissions' : IDL.Func(
+      [IDL.Principal],
+      [IDL.Vec(ClientDeliverable)],
       ['query'],
     ),
   'getMyDeliverables' : IDL.Func(
@@ -220,6 +279,24 @@ export const idlService = IDL.Service({
       ['query'],
     ),
   'getMyRequests' : IDL.Func([], [IDL.Vec(ServiceRequest)], ['query']),
+  'getMySubmittedDeliverables' : IDL.Func(
+      [],
+      [IDL.Vec(ClientDeliverable)],
+      ['query'],
+    ),
+  'getNewAnalyticsSummary' : IDL.Func(
+      [],
+      [
+        IDL.Record({
+          'searchIntent' : SearchIntentMetrics,
+          'trust' : TrustMetrics,
+          'technicalReliability' : TechnicalReliabilityMetrics,
+          'leadGeneration' : LeadGenerationMetrics,
+          'clientRetention' : ClientRetentionMetrics,
+        }),
+      ],
+      ['query'],
+    ),
   'getPendingDeliverables' : IDL.Func(
       [IDL.Principal],
       [IDL.Vec(ComplianceDeliverable)],
@@ -238,12 +315,16 @@ export const idlService = IDL.Service({
   'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
   'isCallerApproved' : IDL.Func([], [IDL.Bool], ['query']),
   'listApprovals' : IDL.Func([], [IDL.Vec(UserApprovalInfo)], ['query']),
-  'rejectClient' : IDL.Func([IDL.Principal], [], []),
   'requestApproval' : IDL.Func([], [], []),
   'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
   'setAdminPaymentSettings' : IDL.Func([AdminPaymentSettings], [], []),
   'setApproval' : IDL.Func([IDL.Principal, ApprovalStatus], [], []),
-  'updateDeliverableStatus' : IDL.Func([IDL.Nat, DeliverableStatus], [], []),
+  'submitDeliverable' : IDL.Func([ClientDeliverableInput], [IDL.Nat], []),
+  'updateClientDeliverableStatus' : IDL.Func(
+      [IDL.Nat, ClientDeliverableStatus],
+      [],
+      [],
+    ),
   'updatePaymentStatus' : IDL.Func([IDL.Nat, PaymentStatus], [], []),
   'updateStatus' : IDL.Func([IDL.Nat, RequestStatus], [], []),
   'uploadDocument' : IDL.Func(
@@ -306,11 +387,11 @@ export const idlFactory = ({ IDL }) => {
   });
   const AdminPaymentSettings = IDL.Record({ 'paypalEmail' : IDL.Text });
   const DeliverableStatus = IDL.Variant({
-    'notStarted' : IDL.Null,
-    'awaitingReview' : IDL.Null,
     'completed' : IDL.Null,
-    'overdue' : IDL.Null,
-    'inProgress' : IDL.Null,
+    'approved' : IDL.Null,
+    'inReview' : IDL.Null,
+    'rejected' : IDL.Null,
+    'drafting' : IDL.Null,
   });
   const ComplianceDeliverable = IDL.Record({
     'id' : IDL.Nat,
@@ -349,15 +430,6 @@ export const idlFactory = ({ IDL }) => {
     'currencyCode' : IDL.Text,
     'amount' : IDL.Nat,
   });
-  const ApprovalStatus = IDL.Variant({
-    'pending' : IDL.Null,
-    'approved' : IDL.Null,
-    'rejected' : IDL.Null,
-  });
-  const UserApprovalInfo = IDL.Record({
-    'status' : ApprovalStatus,
-    'principal' : IDL.Principal,
-  });
   const RequestStatus = IDL.Variant({
     'cancelled' : IDL.Null,
     'pending' : IDL.Null,
@@ -377,10 +449,66 @@ export const idlFactory = ({ IDL }) => {
     'company' : IDL.Opt(IDL.Text),
     'phone' : IDL.Opt(IDL.Text),
   });
+  const ClientDeliverableStatus = IDL.Variant({
+    'pending' : IDL.Null,
+    'rejected' : IDL.Null,
+    'accepted' : IDL.Null,
+  });
+  const ClientDeliverable = IDL.Record({
+    'id' : IDL.Nat,
+    'status' : ClientDeliverableStatus,
+    'title' : IDL.Text,
+    'submitter' : IDL.Principal,
+    'file' : ExternalBlob,
+    'createdAt' : Time,
+    'description' : IDL.Text,
+  });
   const UserProfile = IDL.Record({
     'name' : IDL.Text,
     'email' : IDL.Text,
     'company' : IDL.Text,
+  });
+  const SearchIntentMetrics = IDL.Record({
+    'localSeoRankings' : IDL.Nat,
+    'seasonalKeywordTrends' : IDL.Vec(IDL.Text),
+    'aiVisibilityScore' : IDL.Nat,
+  });
+  const TrustMetrics = IDL.Record({
+    'testimonialClicks' : IDL.Nat,
+    'blogEngagement' : IDL.Nat,
+    'aboutPageAvgTime' : IDL.Nat,
+  });
+  const TechnicalReliabilityMetrics = IDL.Record({
+    'pageLoadMs' : IDL.Nat,
+    'sslStatus' : IDL.Bool,
+    'mobileScore' : IDL.Nat,
+  });
+  const LeadGenerationMetrics = IDL.Record({
+    'leadQualityBreakup' : IDL.Record({
+      'low' : IDL.Nat,
+      'high' : IDL.Nat,
+      'medium' : IDL.Nat,
+    }),
+    'formSubmissions' : IDL.Nat,
+    'clickToCallCount' : IDL.Nat,
+  });
+  const ClientRetentionMetrics = IDL.Record({
+    'portalFunnelDropoffs' : IDL.Nat,
+    'returningUserRatio' : IDL.Float64,
+  });
+  const ApprovalStatus = IDL.Variant({
+    'pending' : IDL.Null,
+    'approved' : IDL.Null,
+    'rejected' : IDL.Null,
+  });
+  const UserApprovalInfo = IDL.Record({
+    'status' : ApprovalStatus,
+    'principal' : IDL.Principal,
+  });
+  const ClientDeliverableInput = IDL.Record({
+    'title' : IDL.Text,
+    'file' : ExternalBlob,
+    'description' : IDL.Text,
   });
   const UploadDocumentResult = IDL.Variant({
     'ok' : IDL.Nat,
@@ -415,10 +543,9 @@ export const idlFactory = ({ IDL }) => {
       ),
     '_caffeineStorageUpdateGatewayPrincipals' : IDL.Func([], [], []),
     '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
-    'approveClient' : IDL.Func([IDL.Principal], [], []),
     'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
     'createDeliverable' : IDL.Func(
-        [IDL.Text, Time, DeliverableType],
+        [IDL.Principal, IDL.Text, Time, DeliverableType],
         [IDL.Nat],
         [],
       ),
@@ -434,6 +561,11 @@ export const idlFactory = ({ IDL }) => {
         [IDL.Opt(AdminPaymentSettings)],
         ['query'],
       ),
+    'getAllComplianceDeliverables' : IDL.Func(
+        [],
+        [IDL.Vec(ComplianceDeliverable)],
+        ['query'],
+      ),
     'getAllDeliverables' : IDL.Func(
         [],
         [IDL.Vec(ComplianceDeliverable)],
@@ -441,19 +573,14 @@ export const idlFactory = ({ IDL }) => {
       ),
     'getAllDocuments' : IDL.Func([], [IDL.Vec(ClientDocument)], ['query']),
     'getAllPayments' : IDL.Func([], [IDL.Vec(PaymentRecord)], ['query']),
-    'getAllPendingClients' : IDL.Func(
+    'getAllRequests' : IDL.Func([], [IDL.Vec(ServiceRequest)], ['query']),
+    'getAllSubmittedDeliverables' : IDL.Func(
         [],
-        [IDL.Vec(UserApprovalInfo)],
+        [IDL.Vec(ClientDeliverable)],
         ['query'],
       ),
-    'getAllRequests' : IDL.Func([], [IDL.Vec(ServiceRequest)], ['query']),
     'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
     'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
-    'getClientApprovalStatus' : IDL.Func(
-        [IDL.Principal],
-        [IDL.Bool],
-        ['query'],
-      ),
     'getClientDeliverables' : IDL.Func(
         [IDL.Principal],
         [IDL.Vec(ComplianceDeliverable)],
@@ -462,6 +589,11 @@ export const idlFactory = ({ IDL }) => {
     'getClientRequests' : IDL.Func(
         [IDL.Principal],
         [IDL.Vec(ServiceRequest)],
+        ['query'],
+      ),
+    'getClientSubmissions' : IDL.Func(
+        [IDL.Principal],
+        [IDL.Vec(ClientDeliverable)],
         ['query'],
       ),
     'getMyDeliverables' : IDL.Func(
@@ -476,6 +608,24 @@ export const idlFactory = ({ IDL }) => {
         ['query'],
       ),
     'getMyRequests' : IDL.Func([], [IDL.Vec(ServiceRequest)], ['query']),
+    'getMySubmittedDeliverables' : IDL.Func(
+        [],
+        [IDL.Vec(ClientDeliverable)],
+        ['query'],
+      ),
+    'getNewAnalyticsSummary' : IDL.Func(
+        [],
+        [
+          IDL.Record({
+            'searchIntent' : SearchIntentMetrics,
+            'trust' : TrustMetrics,
+            'technicalReliability' : TechnicalReliabilityMetrics,
+            'leadGeneration' : LeadGenerationMetrics,
+            'clientRetention' : ClientRetentionMetrics,
+          }),
+        ],
+        ['query'],
+      ),
     'getPendingDeliverables' : IDL.Func(
         [IDL.Principal],
         [IDL.Vec(ComplianceDeliverable)],
@@ -494,12 +644,16 @@ export const idlFactory = ({ IDL }) => {
     'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
     'isCallerApproved' : IDL.Func([], [IDL.Bool], ['query']),
     'listApprovals' : IDL.Func([], [IDL.Vec(UserApprovalInfo)], ['query']),
-    'rejectClient' : IDL.Func([IDL.Principal], [], []),
     'requestApproval' : IDL.Func([], [], []),
     'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
     'setAdminPaymentSettings' : IDL.Func([AdminPaymentSettings], [], []),
     'setApproval' : IDL.Func([IDL.Principal, ApprovalStatus], [], []),
-    'updateDeliverableStatus' : IDL.Func([IDL.Nat, DeliverableStatus], [], []),
+    'submitDeliverable' : IDL.Func([ClientDeliverableInput], [IDL.Nat], []),
+    'updateClientDeliverableStatus' : IDL.Func(
+        [IDL.Nat, ClientDeliverableStatus],
+        [],
+        [],
+      ),
     'updatePaymentStatus' : IDL.Func([IDL.Nat, PaymentStatus], [], []),
     'updateStatus' : IDL.Func([IDL.Nat, RequestStatus], [], []),
     'uploadDocument' : IDL.Func(

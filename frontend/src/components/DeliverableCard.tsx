@@ -1,103 +1,177 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useState } from 'react';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
-import { ComplianceDeliverable, DeliverableStatus } from '../backend';
-import { calculateDaysRemaining, formatDeadline, isDueSoon } from '../utils/dateHelpers';
-import { Clock, AlertTriangle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { AlertTriangle, Clock, CheckCircle, XCircle, Loader2 } from 'lucide-react';
+import { ComplianceDeliverable, DeliverableStatus, DeliverableType } from '../backend';
+import { calculateDaysRemaining, isWithinFiveDays } from '../utils/dateHelpers';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useActor } from '../hooks/useActor';
+import { toast } from 'sonner';
 
 interface DeliverableCardProps {
   deliverable: ComplianceDeliverable;
 }
 
+function getStatusLabel(status: DeliverableStatus): string {
+  switch (status) {
+    case DeliverableStatus.drafting: return 'Drafting';
+    case DeliverableStatus.inReview: return 'In Review';
+    case DeliverableStatus.completed: return 'Completed';
+    case DeliverableStatus.approved: return 'Approved';
+    case DeliverableStatus.rejected: return 'Rejected';
+    default: return 'Unknown';
+  }
+}
+
+function getStatusColor(status: DeliverableStatus): string {
+  switch (status) {
+    case DeliverableStatus.drafting: return 'bg-gray-100 text-gray-700 border-gray-200';
+    case DeliverableStatus.inReview: return 'bg-blue-100 text-blue-700 border-blue-200';
+    case DeliverableStatus.completed: return 'bg-green-100 text-green-700 border-green-200';
+    case DeliverableStatus.approved: return 'bg-emerald-100 text-emerald-700 border-emerald-200';
+    case DeliverableStatus.rejected: return 'bg-red-100 text-red-700 border-red-200';
+    default: return 'bg-gray-100 text-gray-700 border-gray-200';
+  }
+}
+
+function getTypeLabel(type: DeliverableType): string {
+  switch (type) {
+    case DeliverableType.consulting: return 'Consulting';
+    case DeliverableType.monthly: return 'Monthly';
+    case DeliverableType.annual: return 'Annual';
+    case DeliverableType.quarterly: return 'Quarterly';
+    default: return 'General';
+  }
+}
+
 export default function DeliverableCard({ deliverable }: DeliverableCardProps) {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
   const daysRemaining = calculateDaysRemaining(deliverable.dueDate);
-  const dueSoon = isDueSoon(deliverable.dueDate);
+  const isUrgent = isWithinFiveDays(deliverable.dueDate);
+  const isOverdue = daysRemaining < 0;
 
-  const getStatusVariant = (status: string) => {
-    switch (status) {
-      case DeliverableStatus.completed:
-        return 'default';
-      case DeliverableStatus.inProgress:
-        return 'secondary';
-      case DeliverableStatus.awaitingReview:
-        return 'outline';
-      case DeliverableStatus.overdue:
-        return 'destructive';
-      default:
-        return 'outline';
-    }
-  };
+  // Show approve/reject buttons when status is inReview or completed
+  const canApproveReject =
+    deliverable.status === DeliverableStatus.inReview ||
+    deliverable.status === DeliverableStatus.completed;
 
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case DeliverableStatus.notStarted:
-        return 'Not Started';
-      case DeliverableStatus.inProgress:
-        return 'In Progress';
-      case DeliverableStatus.awaitingReview:
-        return 'Awaiting Review';
-      case DeliverableStatus.completed:
-        return 'Completed';
-      case DeliverableStatus.overdue:
-        return 'Overdue';
-      default:
-        return status;
-    }
-  };
+  const approveMutation = useMutation({
+    mutationFn: async () => {
+      if (!actor) throw new Error('Actor not available');
+      // Note: Backend needs updateDeliverableStatus for compliance deliverables
+      // Currently using a workaround - this will be a no-op until backend supports it
+      throw new Error('Backend method not yet available');
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['myDeliverables'] });
+      toast.success('Deliverable approved successfully');
+    },
+    onError: () => {
+      toast.error('Approval feature coming soon. Please contact your advisor.');
+    },
+  });
 
-  const getTypeLabel = (type: string) => {
-    switch (type) {
-      case 'consulting':
-        return 'Consulting';
-      case 'monthly':
-        return 'Monthly';
-      case 'quarterly':
-        return 'Quarterly';
-      case 'annual':
-        return 'Annual';
-      default:
-        return type;
-    }
-  };
+  const rejectMutation = useMutation({
+    mutationFn: async () => {
+      if (!actor) throw new Error('Actor not available');
+      throw new Error('Backend method not yet available');
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['myDeliverables'] });
+      toast.success('Deliverable rejected');
+    },
+    onError: () => {
+      toast.error('Rejection feature coming soon. Please contact your advisor.');
+    },
+  });
+
+  const dueDateMs = Number(deliverable.dueDate) / 1_000_000;
+  const dueDateFormatted = new Date(dueDateMs).toLocaleDateString('en-GB', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
 
   return (
-    <Card className={dueSoon && deliverable.status !== DeliverableStatus.completed ? 'border-yellow-500/50 bg-yellow-500/5' : ''}>
-      <CardHeader className="pb-3">
-        <div className="flex items-start justify-between gap-2">
-          <CardTitle className="text-lg">{deliverable.title}</CardTitle>
-          <Badge variant={getStatusVariant(deliverable.status)}>
-            {getStatusLabel(deliverable.status)}
-          </Badge>
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-3">
-        <div className="flex items-center justify-between text-sm">
-          <span className="text-muted-foreground">Type:</span>
-          <span className="font-medium">{getTypeLabel(deliverable.deliverableType)}</span>
-        </div>
-        <div className="flex items-center justify-between text-sm">
-          <span className="text-muted-foreground">Due Date:</span>
-          <span className="font-medium">{formatDeadline(deliverable.dueDate)}</span>
-        </div>
-        {deliverable.status !== DeliverableStatus.completed && (
-          <div className="space-y-2">
-            <div className="flex items-center justify-between text-sm">
-              <div className="flex items-center gap-2">
-                <Clock className="h-4 w-4 text-muted-foreground" />
-                <span className="text-muted-foreground">Days Remaining:</span>
-              </div>
-              <span className={`font-bold ${dueSoon ? 'text-yellow-600' : 'text-foreground'}`}>
-                {daysRemaining}
+    <Card className={`border transition-all ${isUrgent && !isOverdue ? 'border-amber-400 bg-amber-50/30 dark:bg-amber-950/10' : isOverdue ? 'border-red-400 bg-red-50/30 dark:bg-red-950/10' : 'border-border'}`}>
+      <CardContent className="p-5">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+          {/* Left: Title + Type + Status */}
+          <div className="flex-1 min-w-0">
+            <div className="flex flex-wrap items-center gap-2 mb-2">
+              <h3 className="font-semibold text-foreground text-base truncate">{deliverable.title}</h3>
+              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(deliverable.status)}`}>
+                {getStatusLabel(deliverable.status)}
               </span>
             </div>
-            {dueSoon && (
-              <div className="flex items-center gap-2 text-xs text-yellow-600 bg-yellow-500/10 p-2 rounded">
-                <AlertTriangle className="h-3 w-3" />
-                <span>Due within 5 days - Priority attention required</span>
+            <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+              <Badge variant="outline" className="text-xs">
+                {getTypeLabel(deliverable.deliverableType)}
+              </Badge>
+              <span className="flex items-center gap-1">
+                <Clock className="h-3.5 w-3.5" />
+                Due: {dueDateFormatted}
+              </span>
+            </div>
+          </div>
+
+          {/* Right: Countdown + Actions */}
+          <div className="flex flex-col items-end gap-2 shrink-0">
+            {/* Countdown Badge */}
+            {isOverdue ? (
+              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-red-100 text-red-700 border border-red-300">
+                <AlertTriangle className="h-3.5 w-3.5" />
+                Overdue
+              </span>
+            ) : isUrgent ? (
+              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-700 border border-amber-300">
+                <AlertTriangle className="h-3.5 w-3.5" />
+                {daysRemaining === 0 ? 'Due Today' : `${daysRemaining}d left`}
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium bg-muted text-muted-foreground border border-border">
+                <Clock className="h-3.5 w-3.5" />
+                {daysRemaining}d remaining
+              </span>
+            )}
+
+            {/* Approve / Reject Buttons */}
+            {canApproveReject && (
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="text-green-700 border-green-300 hover:bg-green-50 hover:border-green-400 text-xs h-7 px-3"
+                  onClick={() => approveMutation.mutate()}
+                  disabled={approveMutation.isPending || rejectMutation.isPending}
+                >
+                  {approveMutation.isPending ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : (
+                    <CheckCircle className="h-3 w-3 mr-1" />
+                  )}
+                  Approve
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="text-red-700 border-red-300 hover:bg-red-50 hover:border-red-400 text-xs h-7 px-3"
+                  onClick={() => rejectMutation.mutate()}
+                  disabled={approveMutation.isPending || rejectMutation.isPending}
+                >
+                  {rejectMutation.isPending ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : (
+                    <XCircle className="h-3 w-3 mr-1" />
+                  )}
+                  Reject
+                </Button>
               </div>
             )}
           </div>
-        )}
+        </div>
       </CardContent>
     </Card>
   );

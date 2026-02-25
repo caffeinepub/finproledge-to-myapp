@@ -7,9 +7,11 @@ import DocumentTable from '../components/DocumentTable';
 import DocumentUploadForm from '../components/DocumentUploadForm';
 import PaymentForm from '../components/PaymentForm';
 import PaymentHistoryTable from '../components/PaymentHistoryTable';
-import { FileText, CreditCard, ClipboardList, Loader2 } from 'lucide-react';
+import ClientDeliverableForm from '../components/ClientDeliverableForm';
+import ClientDeliverableTable from '../components/ClientDeliverableTable';
+import { FileText, CreditCard, ClipboardList, PackageOpen, Loader2 } from 'lucide-react';
 
-type ActiveTab = 'requests' | 'documents' | 'payments';
+type ActiveTab = 'requests' | 'documents' | 'payments' | 'deliverables';
 
 export default function ClientPortalPage() {
   const { identity } = useInternetIdentity();
@@ -26,6 +28,7 @@ export default function ClientPortalPage() {
     { id: 'requests', label: 'My Requests', icon: <ClipboardList className="h-4 w-4" /> },
     { id: 'documents', label: 'Documents', icon: <FileText className="h-4 w-4" /> },
     { id: 'payments', label: 'Payments', icon: <CreditCard className="h-4 w-4" /> },
+    { id: 'deliverables', label: 'My Deliverables', icon: <PackageOpen className="h-4 w-4" /> },
   ];
 
   return (
@@ -45,12 +48,12 @@ export default function ClientPortalPage() {
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex gap-1 border-b border-border mb-8">
+        <div className="flex gap-1 border-b border-border mb-8 overflow-x-auto">
           {tabs.map(tab => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors -mb-px ${
+              className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors -mb-px whitespace-nowrap ${
                 activeTab === tab.id
                   ? 'border-primary text-primary'
                   : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
@@ -90,6 +93,13 @@ export default function ClientPortalPage() {
           <div className="space-y-8">
             <PaymentForm />
             <PaymentHistoryTable />
+          </div>
+        )}
+
+        {activeTab === 'deliverables' && (
+          <div className="space-y-6">
+            <ClientDeliverableForm />
+            <ClientDeliverableTable />
           </div>
         )}
       </div>

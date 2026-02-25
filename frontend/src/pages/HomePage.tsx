@@ -55,13 +55,13 @@ export default function HomePage() {
                 FINPROLEDGE delivers rigorous accounting, tax, and audit services grounded in integrity, precision, and a deep commitment to your financial wellbeing.
               </p>
               <div className="flex flex-wrap gap-3">
-                <Link to="/visitor-request">
+                <Link to="/request-service">
                   <Button className="bg-accent hover:bg-accent/90 text-accent-foreground font-semibold px-6 py-2.5 text-sm">
                     Engage Our Services
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
                 </Link>
-                <Link to="/portal">
+                <Link to="/client-portal">
                   <Button variant="outline" className="border-white/40 text-white hover:bg-white/10 hover:text-white px-6 py-2.5 text-sm">
                     Client Portal
                   </Button>
@@ -169,9 +169,9 @@ export default function HomePage() {
           <p className="text-muted-foreground text-sm mb-8 max-w-lg mx-auto">
             Submit a service request today and our team will be in touch to discuss your financial requirements and how we can best serve you.
           </p>
-          <Link to="/visitor-request">
+          <Link to="/request-service">
             <Button className="bg-primary hover:bg-primary/90 text-white font-semibold px-8 py-3 text-sm">
-              Submit a Service Request
+              Request a Service
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
           </Link>
