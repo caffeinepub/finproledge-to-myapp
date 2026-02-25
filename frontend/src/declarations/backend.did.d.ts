@@ -76,6 +76,7 @@ export interface ServiceRequest {
   'deadline' : Time,
   'email' : [] | [string],
   'company' : [] | [string],
+  'phone' : [] | [string],
 }
 export interface ServiceRequestInput {
   'serviceType' : ServiceType,
@@ -84,9 +85,11 @@ export interface ServiceRequestInput {
   'deadline' : Time,
   'email' : string,
   'company' : string,
+  'phone' : string,
 }
 export type ServiceType = { 'bankReconciliation' : null } |
   { 'incomeTaxFiling' : null } |
+  { 'other' : null } |
   { 'audits' : null } |
   { 'corporateTaxFiling' : null } |
   { 'payrollAdmin' : null } |
@@ -166,6 +169,7 @@ export interface _SERVICE {
     Array<ComplianceDeliverable>
   >,
   'getUserProfile' : ActorMethod<[Principal], [] | [UserProfile]>,
+  'getUserProfileByPrincipal' : ActorMethod<[Principal], [] | [UserProfile]>,
   'isCallerAdmin' : ActorMethod<[], boolean>,
   'isCallerApproved' : ActorMethod<[], boolean>,
   'listApprovals' : ActorMethod<[], Array<UserApprovalInfo>>,

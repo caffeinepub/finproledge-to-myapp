@@ -100,6 +100,7 @@ export interface ServiceRequest {
     deadline: Time;
     email?: string;
     company?: string;
+    phone?: string;
 }
 export interface ComplianceDeliverable {
     id: bigint;
@@ -156,6 +157,7 @@ export interface ServiceRequestInput {
     deadline: Time;
     email: string;
     company: string;
+    phone: string;
 }
 export interface UserProfile {
     name: string;
@@ -210,6 +212,7 @@ export enum RequestStatus {
 export enum ServiceType {
     bankReconciliation = "bankReconciliation",
     incomeTaxFiling = "incomeTaxFiling",
+    other = "other",
     audits = "audits",
     corporateTaxFiling = "corporateTaxFiling",
     payrollAdmin = "payrollAdmin",
@@ -251,6 +254,7 @@ export interface backendInterface {
     getMyRequests(): Promise<Array<ServiceRequest>>;
     getPendingDeliverables(client: Principal): Promise<Array<ComplianceDeliverable>>;
     getUserProfile(user: Principal): Promise<UserProfile | null>;
+    getUserProfileByPrincipal(user: Principal): Promise<UserProfile | null>;
     isCallerAdmin(): Promise<boolean>;
     isCallerApproved(): Promise<boolean>;
     listApprovals(): Promise<Array<UserApprovalInfo>>;
@@ -687,6 +691,20 @@ export class Backend implements backendInterface {
             return from_candid_opt_n53(this._uploadFile, this._downloadFile, result);
         }
     }
+    async getUserProfileByPrincipal(arg0: Principal): Promise<UserProfile | null> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getUserProfileByPrincipal(arg0);
+                return from_candid_opt_n53(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getUserProfileByPrincipal(arg0);
+            return from_candid_opt_n53(this._uploadFile, this._downloadFile, result);
+        }
+    }
     async isCallerAdmin(): Promise<boolean> {
         if (this.processError) {
             try {
@@ -1023,6 +1041,7 @@ function from_candid_record_n48(_uploadFile: (file: ExternalBlob) => Promise<Uin
     deadline: _Time;
     email: [] | [string];
     company: [] | [string];
+    phone: [] | [string];
 }): {
     id: bigint;
     status: RequestStatus;
@@ -1034,6 +1053,7 @@ function from_candid_record_n48(_uploadFile: (file: ExternalBlob) => Promise<Uin
     deadline: Time;
     email?: string;
     company?: string;
+    phone?: string;
 } {
     return {
         id: value.id,
@@ -1045,7 +1065,8 @@ function from_candid_record_n48(_uploadFile: (file: ExternalBlob) => Promise<Uin
         description: value.description,
         deadline: value.deadline,
         email: record_opt_to_undefined(from_candid_opt_n40(_uploadFile, _downloadFile, value.email)),
-        company: record_opt_to_undefined(from_candid_opt_n40(_uploadFile, _downloadFile, value.company))
+        company: record_opt_to_undefined(from_candid_opt_n40(_uploadFile, _downloadFile, value.company)),
+        phone: record_opt_to_undefined(from_candid_opt_n40(_uploadFile, _downloadFile, value.phone))
     };
 }
 function from_candid_record_n5(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
@@ -1140,6 +1161,8 @@ function from_candid_variant_n52(_uploadFile: (file: ExternalBlob) => Promise<Ui
 } | {
     incomeTaxFiling: null;
 } | {
+    other: null;
+} | {
     audits: null;
 } | {
     corporateTaxFiling: null;
@@ -1148,7 +1171,7 @@ function from_candid_variant_n52(_uploadFile: (file: ExternalBlob) => Promise<Ui
 } | {
     ledgerMaintenance: null;
 }): ServiceType {
-    return "bankReconciliation" in value ? ServiceType.bankReconciliation : "incomeTaxFiling" in value ? ServiceType.incomeTaxFiling : "audits" in value ? ServiceType.audits : "corporateTaxFiling" in value ? ServiceType.corporateTaxFiling : "payrollAdmin" in value ? ServiceType.payrollAdmin : "ledgerMaintenance" in value ? ServiceType.ledgerMaintenance : value;
+    return "bankReconciliation" in value ? ServiceType.bankReconciliation : "incomeTaxFiling" in value ? ServiceType.incomeTaxFiling : "other" in value ? ServiceType.other : "audits" in value ? ServiceType.audits : "corporateTaxFiling" in value ? ServiceType.corporateTaxFiling : "payrollAdmin" in value ? ServiceType.payrollAdmin : "ledgerMaintenance" in value ? ServiceType.ledgerMaintenance : value;
 }
 function from_candid_variant_n55(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
     admin: null;
@@ -1242,6 +1265,7 @@ function to_candid_record_n18(_uploadFile: (file: ExternalBlob) => Promise<Uint8
     deadline: Time;
     email: string;
     company: string;
+    phone: string;
 }): {
     serviceType: _ServiceType;
     name: string;
@@ -1249,6 +1273,7 @@ function to_candid_record_n18(_uploadFile: (file: ExternalBlob) => Promise<Uint8
     deadline: _Time;
     email: string;
     company: string;
+    phone: string;
 } {
     return {
         serviceType: to_candid_ServiceType_n15(_uploadFile, _downloadFile, value.serviceType),
@@ -1256,7 +1281,8 @@ function to_candid_record_n18(_uploadFile: (file: ExternalBlob) => Promise<Uint8
         description: value.description,
         deadline: value.deadline,
         email: value.email,
-        company: value.company
+        company: value.company,
+        phone: value.phone
     };
 }
 function to_candid_record_n3(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
@@ -1315,6 +1341,8 @@ function to_candid_variant_n16(_uploadFile: (file: ExternalBlob) => Promise<Uint
 } | {
     incomeTaxFiling: null;
 } | {
+    other: null;
+} | {
     audits: null;
 } | {
     corporateTaxFiling: null;
@@ -1327,6 +1355,8 @@ function to_candid_variant_n16(_uploadFile: (file: ExternalBlob) => Promise<Uint
         bankReconciliation: null
     } : value == ServiceType.incomeTaxFiling ? {
         incomeTaxFiling: null
+    } : value == ServiceType.other ? {
+        other: null
     } : value == ServiceType.audits ? {
         audits: null
     } : value == ServiceType.corporateTaxFiling ? {

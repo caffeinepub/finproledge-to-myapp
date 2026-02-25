@@ -65,16 +65,15 @@ export default function AdminPaymentTable() {
         <div className="flex items-center gap-3 bg-blue-50 border border-blue-200 rounded-lg px-4 py-3">
           <Mail className="h-4 w-4 text-blue-600 shrink-0" />
           <p className="text-sm text-blue-800">
-            <span className="font-medium">Payments are received at:</span>{' '}
+            <span className="font-medium">PayPal:</span>{' '}
             <span className="font-semibold">{paymentSettings.paypalEmail}</span>
-            <span className="text-blue-600 ml-1">(PayPal)</span>
           </p>
         </div>
       ) : (
         <Alert className="border-amber-200 bg-amber-50">
           <AlertCircle className="h-4 w-4 text-amber-700" />
           <AlertDescription className="text-amber-800 text-sm">
-            No PayPal receiving account configured. Go to the <strong>Settings</strong> tab to add your PayPal email address.
+            No PayPal account configured. Go to <strong>Settings</strong> tab to add your PayPal email.
           </AlertDescription>
         </Alert>
       )}
@@ -139,26 +138,27 @@ export default function AdminPaymentTable() {
                         <TableCell className="py-3 px-4">
                           <PaymentStatusBadge status={payment.status} />
                         </TableCell>
-                        <TableCell className="py-3 px-4 text-sm text-muted-foreground whitespace-nowrap">
+                        <TableCell className="py-3 px-4 text-xs text-muted-foreground whitespace-nowrap">
                           {formatDate(payment.timestamp)}
                         </TableCell>
                         <TableCell className="py-3 px-4">
                           <Select
                             value={payment.status}
-                            onValueChange={(val) =>
-                              updateStatus.mutate({
+                            onValueChange={async (val) => {
+                              await updateStatus.mutateAsync({
                                 paymentId: payment.id,
                                 status: val as PaymentStatus,
-                              })
-                            }
+                              });
+                            }}
+                            disabled={updateStatus.isPending}
                           >
                             <SelectTrigger className="h-8 text-xs w-32 border-border">
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value={PaymentStatus.pending}>Pending</SelectItem>
-                              <SelectItem value={PaymentStatus.completed}>Completed</SelectItem>
-                              <SelectItem value={PaymentStatus.failed}>Failed</SelectItem>
+                              <SelectItem value={PaymentStatus.pending} className="text-xs">Pending</SelectItem>
+                              <SelectItem value={PaymentStatus.completed} className="text-xs">Completed</SelectItem>
+                              <SelectItem value={PaymentStatus.failed} className="text-xs">Failed</SelectItem>
                             </SelectContent>
                           </Select>
                         </TableCell>

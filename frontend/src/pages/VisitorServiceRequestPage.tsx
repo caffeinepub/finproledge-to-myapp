@@ -20,12 +20,14 @@ const SERVICE_TYPES = [
   { value: ServiceType.payrollAdmin, label: 'Payroll Administration' },
   { value: ServiceType.ledgerMaintenance, label: 'Ledger Maintenance' },
   { value: ServiceType.bankReconciliation, label: 'Bank Reconciliation' },
+  { value: ServiceType.other, label: 'Any Other Service' },
 ];
 
 export default function VisitorServiceRequestPage() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [company, setCompany] = useState('');
+  const [phone, setPhone] = useState('');
   const [serviceType, setServiceType] = useState<ServiceType | ''>('');
   const [description, setDescription] = useState('');
   const [deadline, setDeadline] = useState<Date>();
@@ -36,7 +38,7 @@ export default function VisitorServiceRequestPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!name.trim() || !email.trim() || !company.trim() || !serviceType || !description.trim() || !deadline) {
+    if (!name.trim() || !email.trim() || !company.trim() || !serviceType || !deadline) {
       toast.error('Please fill in all required fields');
       return;
     }
@@ -53,6 +55,7 @@ export default function VisitorServiceRequestPage() {
         name: name.trim(),
         email: email.trim(),
         company: company.trim(),
+        phone: phone.trim(),
         serviceType: serviceType as ServiceType,
         description: description.trim(),
         deadline: deadlineNanos,
@@ -69,6 +72,7 @@ export default function VisitorServiceRequestPage() {
     setName('');
     setEmail('');
     setCompany('');
+    setPhone('');
     setServiceType('');
     setDescription('');
     setDeadline(undefined);
@@ -150,15 +154,27 @@ export default function VisitorServiceRequestPage() {
                     />
                   </div>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="company">Company / Organisation <span className="text-destructive">*</span></Label>
-                  <Input
-                    id="company"
-                    value={company}
-                    onChange={(e) => setCompany(e.target.value)}
-                    placeholder="Your company name"
-                    required
-                  />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="company">Company / Organisation <span className="text-destructive">*</span></Label>
+                    <Input
+                      id="company"
+                      value={company}
+                      onChange={(e) => setCompany(e.target.value)}
+                      placeholder="Your company name"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="phone">Phone No.</Label>
+                    <Input
+                      id="phone"
+                      type="tel"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      placeholder="+1 (555) 000-0000"
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -184,14 +200,15 @@ export default function VisitorServiceRequestPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="description">Description <span className="text-destructive">*</span></Label>
+                  <Label htmlFor="description">
+                    Description <span className="text-muted-foreground font-normal">(optional)</span>
+                  </Label>
                   <Textarea
                     id="description"
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                     placeholder="Describe your requirements in detail — the more context you provide, the better we can assist you."
                     rows={5}
-                    required
                   />
                 </div>
 

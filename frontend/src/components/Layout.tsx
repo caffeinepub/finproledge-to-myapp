@@ -23,7 +23,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                 <span className="font-serif font-bold text-sm tracking-wide text-white">FINPROLEDGE</span>
               </div>
               <p className="text-white/60 text-xs leading-relaxed">
-                Chartered Accountants & Financial Advisors. Delivering rigorous financial services with integrity and precision since 1994.
+                Delivering rigorous financial services with integrity and precision since 1994.
               </p>
             </div>
             <div>

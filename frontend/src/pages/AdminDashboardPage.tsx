@@ -3,7 +3,8 @@ import { useInternetIdentity } from '../hooks/useInternetIdentity';
 import { useGetAllRequests, useUpdateRequestStatus } from '../hooks/useServiceRequests';
 import { useGetAllDocuments } from '../hooks/useDocuments';
 import { useListApprovals, useSetApproval } from '../hooks/useApprovals';
-import { RequestStatus, ServiceType, DocumentType, ApprovalStatus, UserApprovalInfo } from '../backend';
+import { useGetUserProfileByPrincipal } from '../hooks/useUserProfile';
+import { RequestStatus, ServiceType, DocumentType, ApprovalStatus, UserApprovalInfo, UserProfile } from '../backend';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -11,7 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { CheckCircle, XCircle, Download, FileText, Users, ClipboardList, AlertCircle, Loader2, CreditCard } from 'lucide-react';
+import { CheckCircle, XCircle, Download, FileText, Users, ClipboardList, AlertCircle, Loader2, CreditCard, Mail, KeyRound } from 'lucide-react';
 import AdminGuard from '../components/AdminGuard';
 import AdminPaymentTable from '../components/AdminPaymentTable';
 import AdminPaymentSettings from '../components/AdminPaymentSettings';
@@ -78,22 +79,71 @@ function RequestStatusBadge({ status }: { status: RequestStatus }) {
   );
 }
 
+// Sub-component that fetches and displays login details for a single approval entry
+function ClientLoginDetails({ principal }: { principal: Principal }) {
+  const { data: profile, isLoading } = useGetUserProfileByPrincipal(principal);
+  const principalStr = principal.toString();
+
+  return (
+    <div className="space-y-1.5">
+      {/* Principal ID */}
+      <div className="flex items-start gap-1.5">
+        <KeyRound className="h-3 w-3 text-muted-foreground mt-0.5 flex-shrink-0" />
+        <div>
+          <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium leading-none mb-0.5">Principal ID</p>
+          <p className="font-mono text-xs text-foreground break-all leading-snug">{principalStr}</p>
+        </div>
+      </div>
+
+      {/* Name & Email */}
+      {isLoading ? (
+        <div className="flex items-center gap-1.5">
+          <Mail className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+          <Skeleton className="h-3 w-32" />
+        </div>
+      ) : profile ? (
+        <div className="space-y-1">
+          {profile.name && (
+            <div className="flex items-center gap-1.5">
+              <Users className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+              <p className="text-xs text-foreground font-medium">{profile.name}</p>
+            </div>
+          )}
+          <div className="flex items-center gap-1.5">
+            <Mail className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+            <p className="text-xs text-muted-foreground">
+              {profile.email || <span className="italic">No email on record</span>}
+            </p>
+          </div>
+          {profile.company && (
+            <p className="text-xs text-muted-foreground pl-4">{profile.company}</p>
+          )}
+        </div>
+      ) : (
+        <div className="flex items-center gap-1.5">
+          <Mail className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+          <p className="text-xs text-muted-foreground italic">No profile on record</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ClientApprovalRow({ info, onApprove, onReject, isLoading }: {
   info: UserApprovalInfo;
   onApprove: () => void;
   onReject: () => void;
   isLoading: boolean;
 }) {
-  const principalStr = info.principal.toString();
-  const truncated = principalStr.length > 20 ? `${principalStr.slice(0, 10)}...${principalStr.slice(-8)}` : principalStr;
-
   return (
-    <TableRow className="border-b border-border hover:bg-muted/30 transition-colors">
-      <TableCell className="font-mono text-xs text-muted-foreground py-3">{truncated}</TableCell>
-      <TableCell className="py-3">
+    <TableRow className="border-b border-border hover:bg-muted/30 transition-colors align-top">
+      <TableCell className="py-4 px-4">
+        <ClientLoginDetails principal={info.principal} />
+      </TableCell>
+      <TableCell className="py-4 px-4">
         <ApprovalStatusBadge status={info.status} />
       </TableCell>
-      <TableCell className="py-3">
+      <TableCell className="py-4 px-4">
         {info.status === ApprovalStatus.pending && (
           <div className="flex gap-2">
             <Button
@@ -255,7 +305,7 @@ function AdminDashboardContent() {
               <CardContent className="p-0">
                 {approvalsLoading ? (
                   <div className="p-6 space-y-3">
-                    {[1, 2, 3].map(i => <Skeleton key={i} className="h-10 w-full" />)}
+                    {[1, 2, 3].map(i => <Skeleton key={i} className="h-16 w-full" />)}
                   </div>
                 ) : !approvals || approvals.length === 0 ? (
                   <div className="p-8 text-center text-muted-foreground text-sm">
@@ -265,7 +315,7 @@ function AdminDashboardContent() {
                   <Table>
                     <TableHeader>
                       <TableRow className="border-b border-border bg-muted/20">
-                        <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground py-3 px-4">Client Principal</TableHead>
+                        <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground py-3 px-4">Login Details</TableHead>
                         <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground py-3 px-4">Status</TableHead>
                         <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground py-3 px-4">Actions</TableHead>
                       </TableRow>
@@ -370,7 +420,7 @@ function AdminDashboardContent() {
               <CardHeader className="border-b border-border bg-muted/30 px-6 py-4">
                 <CardTitle className="text-base font-serif font-semibold text-foreground flex items-center gap-2">
                   <FileText className="h-4 w-4 text-primary" />
-                  Client Document Ledger
+                  Client Documents
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-0">
@@ -380,7 +430,7 @@ function AdminDashboardContent() {
                   </div>
                 ) : !documents || documents.length === 0 ? (
                   <div className="p-8 text-center text-muted-foreground text-sm">
-                    No documents have been submitted by clients.
+                    No documents on record.
                   </div>
                 ) : (
                   <div className="overflow-x-auto">
@@ -388,10 +438,10 @@ function AdminDashboardContent() {
                       <TableHeader>
                         <TableRow className="border-b border-border bg-muted/20">
                           <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground py-3 px-4">Document Name</TableHead>
-                          <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground py-3 px-4">Document Type</TableHead>
+                          <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground py-3 px-4">Type</TableHead>
                           <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground py-3 px-4">Client</TableHead>
-                          <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground py-3 px-4">Submission Date</TableHead>
-                          <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground py-3 px-4">Retrieve</TableHead>
+                          <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground py-3 px-4">Uploaded</TableHead>
+                          <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground py-3 px-4">Download</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -403,7 +453,7 @@ function AdminDashboardContent() {
                                 {docTypeLabel(doc.docType)}
                               </span>
                             </TableCell>
-                            <TableCell className="py-3 px-4 text-xs font-mono text-muted-foreground">
+                            <TableCell className="py-3 px-4 font-mono text-xs text-muted-foreground">
                               {doc.client.toString().slice(0, 12)}...
                             </TableCell>
                             <TableCell className="py-3 px-4 text-sm text-muted-foreground">{formatDate(doc.uploadedAt)}</TableCell>
@@ -412,7 +462,7 @@ function AdminDashboardContent() {
                                 href={doc.file.getDirectURL()}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:text-primary/80 transition-colors"
+                                className="inline-flex items-center gap-1 text-xs text-primary hover:underline font-medium"
                               >
                                 <Download className="h-3.5 w-3.5" />
                                 Download
@@ -429,9 +479,11 @@ function AdminDashboardContent() {
           </TabsContent>
 
           {/* Payments Tab */}
-          <TabsContent value="payments" className="space-y-6">
-            <AdminPaymentTable />
-            <AdminPaymentSettings />
+          <TabsContent value="payments">
+            <div className="space-y-6">
+              <AdminPaymentSettings />
+              <AdminPaymentTable />
+            </div>
           </TabsContent>
         </Tabs>
       </div>

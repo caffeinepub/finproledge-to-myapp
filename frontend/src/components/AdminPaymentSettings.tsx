@@ -36,18 +36,18 @@ export default function AdminPaymentSettings() {
     if (!paypalEmail.trim()) {
       setEmailError('PayPal email address is required.');
       return;
-    }
-
-    if (!validateEmail(paypalEmail.trim())) {
+    } else if (!validateEmail(paypalEmail.trim())) {
       setEmailError('Please enter a valid email address.');
       return;
     }
 
     try {
-      await setSettings.mutateAsync({ paypalEmail: paypalEmail.trim() });
+      await setSettings.mutateAsync({
+        paypalEmail: paypalEmail.trim(),
+      });
       setSuccess(true);
     } catch (err: any) {
-      setError(err?.message ?? 'Failed to save PayPal account settings.');
+      setError(err?.message ?? 'Failed to save payment settings.');
     }
   };
 
@@ -66,7 +66,7 @@ export default function AdminPaymentSettings() {
         </div>
       </CardHeader>
       <CardContent className="p-6">
-        {/* Info banner */}
+        {/* PayPal Info banner */}
         <div className="mb-5 flex items-start gap-3 bg-blue-50 border border-blue-200 rounded-lg p-4">
           <Mail className="h-5 w-5 text-blue-600 mt-0.5 shrink-0" />
           <div>
@@ -81,7 +81,7 @@ export default function AdminPaymentSettings() {
           <Alert className="mb-4 border-emerald-200 bg-emerald-50">
             <CheckCircle className="h-4 w-4 text-emerald-700" />
             <AlertDescription className="text-emerald-800 text-sm">
-              PayPal receiving account saved successfully. Clients will now be directed to send payments to <strong>{paypalEmail}</strong>.
+              Payment settings saved successfully. PayPal account: <strong>{paypalEmail}</strong>.
             </AlertDescription>
           </Alert>
         )}
@@ -99,6 +99,7 @@ export default function AdminPaymentSettings() {
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-5">
+            {/* PayPal Email */}
             <div className="space-y-1.5">
               <Label htmlFor="paypalEmail" className="text-sm font-semibold text-foreground">
                 PayPal Receiving Email Address <span className="text-red-500">*</span>
@@ -118,7 +119,6 @@ export default function AdminPaymentSettings() {
                   }}
                   placeholder="your-paypal@business.com"
                   className={`pl-9 border-border text-sm ${emailError ? 'border-red-400 focus-visible:ring-red-400' : ''}`}
-                  pattern="[^\s@]+@[^\s@]+\.[^\s@]+"
                   required
                 />
               </div>
@@ -130,11 +130,13 @@ export default function AdminPaymentSettings() {
               )}
             </div>
 
-            {/* Current saved account display */}
+            {/* Currently saved settings display */}
             {settings?.paypalEmail && (
-              <div className="rounded-lg border border-border bg-muted/30 p-3">
-                <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-1">Currently Saved Account</p>
+              <div className="rounded-lg border border-border bg-muted/30 p-3 space-y-2">
+                <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Currently Saved Settings</p>
                 <p className="text-sm font-semibold text-foreground flex items-center gap-2">
+                  <Mail className="h-3.5 w-3.5 text-blue-500" />
+                  <span className="text-muted-foreground font-normal text-xs">PayPal:</span>
                   <span className="inline-block w-2 h-2 rounded-full bg-emerald-500" />
                   {settings.paypalEmail}
                 </p>
@@ -149,7 +151,7 @@ export default function AdminPaymentSettings() {
               {setSettings.isPending ? (
                 <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Saving…</>
               ) : (
-                <><Settings className="h-4 w-4 mr-2" />Save PayPal Account</>
+                <><Settings className="h-4 w-4 mr-2" />Save Payment Settings</>
               )}
             </Button>
           </form>

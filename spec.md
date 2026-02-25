@@ -1,13 +1,13 @@
 # Specification
 
 ## Summary
-**Goal:** Add multi-currency and card type selection to the client payment form, store these fields in payment records, and allow the admin to configure a PayPal receiving account through the admin portal.
+**Goal:** Allow authenticated clients to upload their own documents in the Client Portal, and display login details (principal ID and email) for each approval requester in the Admin Dashboard's Client Approval tab.
 
 **Planned changes:**
-- Update `PaymentForm` to include a currency selector dropdown (USD, EUR, GBP, CAD, AUD, JPY, CHF, and more) and card type options (Visa, Mastercard, Amex, Discover, etc.)
-- Update the backend `Payment` data type and `createPayment` function to store `currency` and `paymentMethod` fields
-- Update `AdminPaymentSettings` to include a clearly labeled "PayPal Receiving Account" email field that is validated, saved to the backend, and pre-populated on revisit
-- Update `AdminPaymentTable` to display the currency code alongside each payment amount and show the card/payment method used
-- Update `PaymentHistoryTable` on the client side to also show currency and payment method per record
+- Add a document upload form (file selector + document type selector + submit button) to the Client Portal's documents tab, using the existing `uploadDocument` mutation from `useDocuments`
+- Display upload errors in the client portal upload UI
+- Extend the backend to accept caller-initiated document uploads (name, type, blob), storing them associated with the caller's principal
+- In the Admin Dashboard's Client Approval tab, show each requester's principal ID and registered email address alongside existing approve/reject controls
+- Add or expose a backend query function to fetch a `UserProfile` by principal, callable by the admin
 
-**User-visible outcome:** Clients can select their preferred currency and card type when submitting a payment. Admins can configure their PayPal receiving account in the admin portal and see each payment's currency and card type in the payment table.
+**User-visible outcome:** Clients can upload documents directly from their portal and see them appear immediately in their documents list. Admins can see the principal ID and email of each client requesting approval in the Client Approval tab.

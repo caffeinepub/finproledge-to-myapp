@@ -2,18 +2,18 @@ import Array "mo:core/Array";
 import Map "mo:core/Map";
 import Nat "mo:core/Nat";
 import Time "mo:core/Time";
-import Text "mo:core/Text";
 import Principal "mo:core/Principal";
 import Iter "mo:core/Iter";
+import Text "mo:core/Text";
 import Runtime "mo:core/Runtime";
 import MixinAuthorization "authorization/MixinAuthorization";
 import MixinStorage "blob-storage/Mixin";
 import AccessControl "authorization/access-control";
 import UserApproval "user-approval/approval";
 import Storage "blob-storage/Storage";
-import Migration "migration";
 
-(with migration = Migration.run)
+
+
 actor {
   let accessControlState = AccessControl.initState();
 
@@ -29,6 +29,7 @@ actor {
     #payrollAdmin;
     #ledgerMaintenance;
     #bankReconciliation;
+    #other;
   };
 
   public type ServiceRequest = {
@@ -42,6 +43,7 @@ actor {
     name : ?Text;
     email : ?Text;
     company : ?Text;
+    phone : ?Text;
   };
 
   public type RequestStatus = {
@@ -100,6 +102,7 @@ actor {
     name : Text;
     email : Text;
     company : Text;
+    phone : Text;
     serviceType : ServiceType;
     description : Text;
     deadline : Time.Time;
@@ -128,9 +131,9 @@ actor {
     id : Nat;
     client : Principal;
     amount : Nat;
-    currencyCode : Text; // ISO currency code (e.g., USD, EUR)
+    currencyCode : Text;
     paymentMethod : PaymentMethod;
-    cardType : ?Text; // e.g., VISA, MasterCard (only for card payments)
+    cardType : ?Text;
     status : PaymentStatus;
     timestamp : Time.Time;
   };
@@ -167,6 +170,14 @@ actor {
     userProfiles.get(user);
   };
 
+  // Admin-only function to fetch any user's profile by principal
+  public query ({ caller }) func getUserProfileByPrincipal(user : Principal) : async ?UserProfile {
+    if (not AccessControl.isAdmin(accessControlState, caller)) {
+      Runtime.trap("Unauthorized: Only admins can view any user profile");
+    };
+    userProfiles.get(user);
+  };
+
   public shared ({ caller }) func saveCallerUserProfile(profile : UserProfile) : async () {
     if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
       Runtime.trap("Unauthorized: Only users can save profiles");
@@ -191,6 +202,7 @@ actor {
       name = null;
       email = null;
       company = null;
+      phone = null;
     };
 
     serviceRequests.add(requestId, newRequest);
@@ -212,6 +224,7 @@ actor {
       name = ?input.name;
       email = ?input.email;
       company = ?input.company;
+      phone = ?input.phone;
     };
 
     serviceRequests.add(requestId, newRequest);
@@ -391,9 +404,7 @@ actor {
     };
   };
 
-  //
   // Payment Management
-  //
   public shared ({ caller }) func createPayment(amount : Nat, currencyCode : Text, paymentMethod : PaymentMethod, cardType : ?Text) : async Nat {
     if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
       Runtime.trap("Unauthorized: Only users can create payments");
@@ -461,16 +472,10 @@ actor {
   };
 
   public query ({ caller }) func getAdminPaymentSettings() : async ?AdminPaymentSettings {
-    if (not AccessControl.isAdmin(accessControlState, caller)) {
-      Runtime.trap("Unauthorized: Only admins can view payment settings");
-    };
-
     adminPaymentSettings;
   };
 
-  //
   // Admin-only functions
-  //
   public query ({ caller }) func getAllRequests() : async [ServiceRequest] {
     if (not AccessControl.isAdmin(accessControlState, caller)) {
       Runtime.trap("Unauthorized: Only admins can view all requests");
@@ -495,9 +500,7 @@ actor {
     complianceDeliverables.values().toArray();
   };
 
-  //
   // User Approval Functions
-  //
   public query ({ caller }) func isCallerApproved() : async Bool {
     AccessControl.hasPermission(accessControlState, caller, #admin) or UserApproval.isApproved(userApprovalState, caller);
   };

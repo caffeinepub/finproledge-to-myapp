@@ -36,6 +36,20 @@ export function useGetUserProfile(user: Principal) {
   });
 }
 
+export function useGetUserProfileByPrincipal(user: Principal | null) {
+  const { actor, isFetching } = useActor();
+
+  return useQuery<UserProfile | null>({
+    queryKey: ['userProfileByPrincipal', user?.toString() ?? ''],
+    queryFn: async () => {
+      if (!actor || !user) return null;
+      return actor.getUserProfileByPrincipal(user);
+    },
+    enabled: !!actor && !isFetching && !!user,
+    retry: false,
+  });
+}
+
 export function useSaveCallerUserProfile() {
   const { actor } = useActor();
   const queryClient = useQueryClient();

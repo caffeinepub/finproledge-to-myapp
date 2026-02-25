@@ -1,34 +1,24 @@
 {
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
-  "summary": "Project includes a payment system where clients can pay using any card with multi-currency support, and admins receive payments via a PayPal account configured through the Admin portal.",
-  "architectural_notes": [
-    "Payment flow: client pays via card (multi-currency) → admin receives funds in PayPal account set in Admin portal"
-  ],
+  "summary": "Project includes client document upload functionality and administration panel with client approval login details.",
+  "architectural_notes": [],
   "known_issues": [],
   "isFixRequest": false,
   "existing_features": [
     {
-      "id": "feature-update-the-paymentform-component-to-support-all-major-card-payment-methods-visa-mastercard-amex-discover-etc-and-allow-clients-to-select-their-preferred-currency-from-a-list-of-common-currencies-usd-eur-gbp-cad-aud-jpy-chf-etc-before-submitting-a-payment-the-selected-currency-and-card-type-must-be-stored-with-the-payment-record",
-      "title": "Update the PaymentForm component to support all major card payment methods (Visa, Mastercard, Amex, Discover, etc.) and allow clients to select their preferred currency from a list of common currencies (USD, EUR, GBP, CAD, AUD, JPY, CHF, etc.) before submitting a payment. The selected currency and card type must be stored with the payment record.",
+      "id": "feature-add-a-document-upload-section-to-the-client-portal-page-so-that-authenticated-clients-can-upload-their-own-documents-the-upload-ui-should-allow-the-client-to-select-a-file-and-a-document-type-then-submit-it-via-the-existing-usedocuments-hook-uploaddocument-mutation-the-uploaded-document-should-appear-in-the-client-s-documents-tab-after-a-successful-upload",
+      "title": "Add a document upload section to the Client Portal page so that authenticated clients can upload their own documents. The upload UI should allow the client to select a file and a document type, then submit it via the existing useDocuments hook (uploadDocument mutation). The uploaded document should appear in the client's documents tab after a successful upload.",
       "reqIds": [
         "REQ-1"
       ],
       "version": 1
     },
     {
-      "id": "feature-update-adminpaymentsettings-component-and-the-admin-payment-configuration-backend-to-allow-the-admin-to-save-a-paypal-email-account-for-receiving-payments-the-paypal-account-field-should-be-clearly-labeled-validated-as-an-email-and-persisted-in-the-backend-remove-or-demote-stripe-as-the-primary-receiving-method-if-currently-presented-as-equal-to-paypal",
-      "title": "Update AdminPaymentSettings component and the admin payment configuration backend to allow the admin to save a PayPal email/account for receiving payments. The PayPal account field should be clearly labeled, validated as an email, and persisted in the backend. Remove or demote Stripe as the primary receiving method if currently presented as equal to PayPal.",
+      "id": "feature-in-the-admin-dashboard-page-under-the-client-approval-tab-display-the-login-details-principal-id-and-email-address-from-their-user-profile-of-each-person-who-has-requested-approval-for-each-approval-entry-show-the-requester-s-principal-id-and-their-registered-email-fetched-from-userprofile-alongside-the-existing-approval-rejection-controls",
+      "title": "In the Admin Dashboard page, under the 'Client Approval' tab, display the login details (principal ID and email address from their user profile) of each person who has requested approval. For each approval entry, show the requester's principal ID and their registered email (fetched from UserProfile) alongside the existing approval/rejection controls.",
       "reqIds": [
         "REQ-3"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-update-the-adminpaymenttable-component-to-display-the-currency-of-each-payment-alongside-the-amount-e-g-150-00-eur-and-show-the-payment-method-card-type-used-by-the-client",
-      "title": "Update the AdminPaymentTable component to display the currency of each payment alongside the amount (e.g., '150.00 EUR') and show the payment method / card type used by the client.",
-      "reqIds": [
-        "REQ-4"
       ],
       "version": 1
     }
@@ -36,21 +26,29 @@
   "new_feature_requests": [
     {
       "id": "AR-1",
-      "summary": "Client-facing payment support for all card types with multi-currency selection",
+      "summary": "Provide clients with a way to upload their documents",
       "reqIds": [],
       "status": "pending"
     },
     {
       "id": "AR-2",
-      "summary": "Admin receives payments via PayPal account configured through the Admin portal",
+      "summary": "In Administration under Client Approval, add login details of the person for approval",
       "reqIds": [],
       "status": "pending"
     },
     {
       "id": "AR-4",
-      "summary": "Update the backend Payment data type and createPayment function to store the client-selected currency code (e.g., 'USD', 'EUR') and card/payment method type alongside the existing payment fields.",
+      "summary": "In the backend, ensure the uploadDocument function accepts a caller-initiated document upload (with file blob, type, and name) and persists it associated with the caller's principal, returning a success or error result. If this capability already exists in the actor, verify it is exposed correctly; if not, add it.",
       "reqIds": [
         "REQ-2"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-6",
+      "summary": "In the backend, expose a query function that allows the admin to fetch the UserProfile for a given principal, so the Admin Dashboard can retrieve login details (email, name) for each approval requester. If this function already exists (getUserProfileByPrincipal or similar), ensure it is accessible to the admin caller without restriction.",
+      "reqIds": [
+        "REQ-4"
       ],
       "status": "pending"
     }

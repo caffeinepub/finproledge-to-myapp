@@ -2,11 +2,11 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-update-the-paymentform-component-to-support-all-major-card-payment-methods-visa-mastercard-amex-discover-etc-and-allow-clients-to-select-their-preferred-currency-from-a-list-of-common-currencies-usd-eur-gbp-cad-aud-jpy-chf-etc-before-submitting-a-payment-the-selected-currency-and-card-type-must-be-stored-with-the-payment-record",
-      "featureTitle": "Update the PaymentForm component to support all major card payment methods (Visa, Mastercard, Amex, Discover, etc.) and allow clients to select their preferred currency from a list of common currencies (USD, EUR, GBP, CAD, AUD, JPY, CHF, etc.) before submitting a payment. The selected currency and card type must be stored with the payment record.",
+      "featureId": "feature-add-a-document-upload-section-to-the-client-portal-page-so-that-authenticated-clients-can-upload-their-own-documents-the-upload-ui-should-allow-the-client-to-select-a-file-and-a-document-type-then-submit-it-via-the-existing-usedocuments-hook-uploaddocument-mutation-the-uploaded-document-should-appear-in-the-client-s-documents-tab-after-a-successful-upload",
+      "featureTitle": "Add a document upload section to the Client Portal page so that authenticated clients can upload their own documents. The upload UI should allow the client to select a file and a document type, then submit it via the existing useDocuments hook (uploadDocument mutation). The uploaded document should appear in the client's documents tab after a successful upload.",
       "files": [
-        "frontend/src/components/PaymentForm.tsx",
-        "frontend/src/hooks/usePayments.ts"
+        "frontend/src/components/DocumentUploadForm.tsx",
+        "frontend/src/pages/ClientPortalPage.tsx"
       ],
       "components": [
         "authorization@4.0.0",
@@ -24,12 +24,11 @@
       "confidence": "high"
     },
     {
-      "featureId": "feature-update-adminpaymentsettings-component-and-the-admin-payment-configuration-backend-to-allow-the-admin-to-save-a-paypal-email-account-for-receiving-payments-the-paypal-account-field-should-be-clearly-labeled-validated-as-an-email-and-persisted-in-the-backend-remove-or-demote-stripe-as-the-primary-receiving-method-if-currently-presented-as-equal-to-paypal",
-      "featureTitle": "Update AdminPaymentSettings component and the admin payment configuration backend to allow the admin to save a PayPal email/account for receiving payments. The PayPal account field should be clearly labeled, validated as an email, and persisted in the backend. Remove or demote Stripe as the primary receiving method if currently presented as equal to PayPal.",
+      "featureId": "feature-in-the-admin-dashboard-page-under-the-client-approval-tab-display-the-login-details-principal-id-and-email-address-from-their-user-profile-of-each-person-who-has-requested-approval-for-each-approval-entry-show-the-requester-s-principal-id-and-their-registered-email-fetched-from-userprofile-alongside-the-existing-approval-rejection-controls",
+      "featureTitle": "In the Admin Dashboard page, under the 'Client Approval' tab, display the login details (principal ID and email address from their user profile) of each person who has requested approval. For each approval entry, show the requester's principal ID and their registered email (fetched from UserProfile) alongside the existing approval/rejection controls.",
       "files": [
-        "frontend/src/components/AdminPaymentSettings.tsx",
-        "frontend/src/components/AdminPaymentTable.tsx",
-        "frontend/src/hooks/usePayments.ts"
+        "frontend/src/hooks/useUserProfile.ts",
+        "frontend/src/pages/AdminDashboardPage.tsx"
       ],
       "components": [
         "authorization@4.0.0",
@@ -43,28 +42,6 @@
       ],
       "testIds": [
         "REQ-3"
-      ],
-      "confidence": "high"
-    },
-    {
-      "featureId": "feature-update-the-adminpaymenttable-component-to-display-the-currency-of-each-payment-alongside-the-amount-e-g-150-00-eur-and-show-the-payment-method-card-type-used-by-the-client",
-      "featureTitle": "Update the AdminPaymentTable component to display the currency of each payment alongside the amount (e.g., '150.00 EUR') and show the payment method / card type used by the client.",
-      "files": [
-        "frontend/src/components/AdminPaymentTable.tsx",
-        "frontend/src/components/PaymentHistoryTable.tsx"
-      ],
-      "components": [
-        "authorization@4.0.0",
-        "blob-storage@4.0.0",
-        "core-infrastructure@1.0.2",
-        "shadcn-ui@1.0.0",
-        "build-template-react@1.0.0",
-        "initial-app@1.0.0",
-        "github-export-icp-cli@1.0.0",
-        "user-approval@3.0.0"
-      ],
-      "testIds": [
-        "REQ-4"
       ],
       "confidence": "high"
     }

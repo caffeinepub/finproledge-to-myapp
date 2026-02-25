@@ -48,9 +48,6 @@ export default function HomePage() {
           <div className="flex flex-col lg:flex-row items-stretch min-h-[420px]">
             {/* Text column */}
             <div className="flex-1 flex flex-col justify-center py-16 sm:py-20 lg:pr-12">
-              <p className="text-accent text-xs font-semibold uppercase tracking-widest mb-4">
-                Chartered Accountants & Financial Advisors
-              </p>
               <h1 className="text-4xl sm:text-5xl font-serif font-bold text-white leading-tight mb-6">
                 Trusted Financial<br />Stewardship
               </h1>

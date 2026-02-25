@@ -25,6 +25,7 @@ export interface ServiceRequest {
     deadline: Time;
     email?: string;
     company?: string;
+    phone?: string;
 }
 export interface ComplianceDeliverable {
     id: bigint;
@@ -74,6 +75,7 @@ export interface ServiceRequestInput {
     deadline: Time;
     email: string;
     company: string;
+    phone: string;
 }
 export interface UserProfile {
     name: string;
@@ -124,6 +126,7 @@ export enum RequestStatus {
 export enum ServiceType {
     bankReconciliation = "bankReconciliation",
     incomeTaxFiling = "incomeTaxFiling",
+    other = "other",
     audits = "audits",
     corporateTaxFiling = "corporateTaxFiling",
     payrollAdmin = "payrollAdmin",
@@ -158,6 +161,7 @@ export interface backendInterface {
     getMyRequests(): Promise<Array<ServiceRequest>>;
     getPendingDeliverables(client: Principal): Promise<Array<ComplianceDeliverable>>;
     getUserProfile(user: Principal): Promise<UserProfile | null>;
+    getUserProfileByPrincipal(user: Principal): Promise<UserProfile | null>;
     isCallerAdmin(): Promise<boolean>;
     isCallerApproved(): Promise<boolean>;
     listApprovals(): Promise<Array<UserApprovalInfo>>;

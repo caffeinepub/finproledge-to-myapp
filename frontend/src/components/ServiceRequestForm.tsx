@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useCreateRequest } from '../hooks/useServiceRequests';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -15,6 +16,7 @@ export default function ServiceRequestForm() {
   const [serviceType, setServiceType] = useState<ServiceType | ''>('');
   const [description, setDescription] = useState('');
   const [deadline, setDeadline] = useState<Date>();
+  const [phone, setPhone] = useState('');
 
   const createRequest = useCreateRequest();
 
@@ -25,13 +27,14 @@ export default function ServiceRequestForm() {
     { value: ServiceType.payrollAdmin, label: 'Payroll Administration' },
     { value: ServiceType.ledgerMaintenance, label: 'Ledger Maintenance' },
     { value: ServiceType.bankReconciliation, label: 'Bank Reconciliation' },
+    { value: ServiceType.other, label: 'Any Other Service' },
   ];
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!serviceType || !description.trim() || !deadline) {
-      toast.error('Please fill in all fields');
+    if (!serviceType || !deadline) {
+      toast.error('Please fill in all required fields');
       return;
     }
 
@@ -47,6 +50,7 @@ export default function ServiceRequestForm() {
       setServiceType('');
       setDescription('');
       setDeadline(undefined);
+      setPhone('');
     } catch (error) {
       toast.error('Failed to submit service request');
       console.error('Service request error:', error);
@@ -55,6 +59,17 @@ export default function ServiceRequestForm() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      <div className="space-y-2">
+        <Label htmlFor="phone">Phone No.</Label>
+        <Input
+          id="phone"
+          type="tel"
+          value={phone}
+          onChange={(e) => setPhone(e.target.value)}
+          placeholder="+1 (555) 000-0000"
+        />
+      </div>
+
       <div className="space-y-2">
         <Label htmlFor="serviceType">Service Type</Label>
         <Select value={serviceType} onValueChange={(value) => setServiceType(value as ServiceType)}>
@@ -72,14 +87,13 @@ export default function ServiceRequestForm() {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="description">Description</Label>
+        <Label htmlFor="description">Description <span className="text-muted-foreground font-normal">(optional)</span></Label>
         <Textarea
           id="description"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           placeholder="Describe your requirements in detail..."
           rows={5}
-          required
         />
       </div>
 

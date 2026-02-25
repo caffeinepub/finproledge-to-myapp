@@ -1,98 +1,94 @@
 {
   "kind": "build_request",
-  "title": "Multi-currency card payments for clients with admin PayPal configuration",
+  "title": "Client Document Upload & Approval Login Details in Admin",
   "projectName": "FINPROLEDGE",
   "priority": "normal",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Update the PaymentForm component to support all major card payment methods (Visa, Mastercard, Amex, Discover, etc.) and allow clients to select their preferred currency from a list of common currencies (USD, EUR, GBP, CAD, AUD, JPY, CHF, etc.) before submitting a payment. The selected currency and card type must be stored with the payment record.",
+      "text": "Add a document upload section to the Client Portal page so that authenticated clients can upload their own documents. The upload UI should allow the client to select a file and a document type, then submit it via the existing useDocuments hook (uploadDocument mutation). The uploaded document should appear in the client's documents tab after a successful upload.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-6"
+          "msg-1"
         ],
         "quotes": [
-          "provide all kinds of way to make payment like through any card and let them choose their Currencies"
+          "Provide Client - A way to upload his Documents"
         ]
       },
       "acceptanceCriteria": [
-        "PaymentForm displays a currency selector dropdown with at least 10 major currencies",
-        "PaymentForm displays card type options covering Visa, Mastercard, Amex, Discover, and other major card brands",
-        "Selected currency is shown alongside the payment amount in the form",
-        "Currency and card type selections are submitted with the payment request"
+        "An upload form or button is visible in the client portal documents tab for authenticated clients.",
+        "The client can select a file and a document type before submitting.",
+        "On successful upload, the new document appears in the documents list without a full page reload.",
+        "Upload errors are displayed clearly to the client.",
+        "The upload calls the existing uploadDocument mutation from useDocuments.ts."
       ]
     },
     {
       "id": "REQ-2",
-      "text": "Update the backend Payment data type and createPayment function to store the client-selected currency code (e.g., 'USD', 'EUR') and card/payment method type alongside the existing payment fields.",
+      "text": "In the backend, ensure the uploadDocument function accepts a caller-initiated document upload (with file blob, type, and name) and persists it associated with the caller's principal, returning a success or error result. If this capability already exists in the actor, verify it is exposed correctly; if not, add it.",
       "target": "backend",
       "source": {
         "messageIds": [
-          "msg-6"
+          "msg-1"
         ],
         "quotes": [
-          "let them choose their Currencies"
+          "Provide Client - A way to upload his Documents"
         ]
       },
       "acceptanceCriteria": [
-        "Payment record type includes a currency field (Text) and paymentMethod field (Text)",
-        "createPayment accepts currency and paymentMethod parameters",
-        "Existing payment queries return the currency and paymentMethod fields",
-        "Admin payment table displays the currency alongside the amount"
+        "A backend function allows authenticated callers to upload a document with a name, type, and blob.",
+        "The document is stored and associated with the caller's principal.",
+        "The function returns a success variant on success and an error variant on failure."
       ]
     },
     {
       "id": "REQ-3",
-      "text": "Update AdminPaymentSettings component and the admin payment configuration backend to allow the admin to save a PayPal email/account for receiving payments. The PayPal account field should be clearly labeled, validated as an email, and persisted in the backend. Remove or demote Stripe as the primary receiving method if currently presented as equal to PayPal.",
-      "target": "both",
+      "text": "In the Admin Dashboard page, under the 'Client Approval' tab, display the login details (principal ID and email address from their user profile) of each person who has requested approval. For each approval entry, show the requester's principal ID and their registered email (fetched from UserProfile) alongside the existing approval/rejection controls.",
+      "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-6"
+          "msg-1"
         ],
         "quotes": [
-          "Admin is going to receive in the PayPal account that admin has to add through Admin portal"
+          "In Administration - under Client Approval add the login details of the person for the approval"
         ]
       },
       "acceptanceCriteria": [
-        "Admin portal has a clearly labeled 'PayPal Receiving Account' input field under payment settings",
-        "Submitting the form saves the PayPal email to the backend",
-        "Saved PayPal email is pre-populated when the admin revisits the settings",
-        "Invalid email format is rejected with a validation message",
-        "The saved PayPal account email is displayed in the AdminPaymentTable or payment detail views so admins know which account will receive funds"
+        "Each entry in the Client Approval tab shows the requester's principal ID.",
+        "Each entry shows the requester's registered email address from their user profile.",
+        "The existing approve/reject action controls remain functional.",
+        "If the profile cannot be fetched, a fallback (e.g., 'Unknown') is displayed gracefully."
       ]
     },
     {
       "id": "REQ-4",
-      "text": "Update the AdminPaymentTable component to display the currency of each payment alongside the amount (e.g., '150.00 EUR') and show the payment method / card type used by the client.",
-      "target": "frontend",
+      "text": "In the backend, expose a query function that allows the admin to fetch the UserProfile for a given principal, so the Admin Dashboard can retrieve login details (email, name) for each approval requester. If this function already exists (getUserProfileByPrincipal or similar), ensure it is accessible to the admin caller without restriction.",
+      "target": "backend",
       "source": {
         "messageIds": [
-          "msg-6"
+          "msg-1"
         ],
         "quotes": [
-          "provide all kinds of way to make payment like through any card and let them choose their Currencies"
+          "In Administration - under Client Approval add the login details of the person for the approval"
         ]
       },
       "acceptanceCriteria": [
-        "Amount column in AdminPaymentTable shows the currency code next to the numeric amount",
-        "A 'Card / Method' column displays the card type or payment method chosen by the client",
-        "PaymentHistoryTable on the client side also shows the currency and payment method"
+        "A query function exists that accepts a principal and returns the corresponding UserProfile.",
+        "The function can be called by the authenticated admin without access errors.",
+        "Returns a null/option result if no profile exists for that principal."
       ]
     }
   ],
   "constraints": [
-    "All Motoko logic must remain in backend/main.mo (single-actor architecture)",
-    "Do not modify files under frontend/src/hooks/useInternetIdentity.ts, frontend/src/hooks/useActor.ts, frontend/src/main.tsx, or frontend/src/components/ui",
-    "Actual payment processing (charging cards) is out of scope — only the UI selection and data storage of currency/card type is required",
-    "Admin PayPal account must be configured exclusively through the Admin portal, not hardcoded"
+    "Do not modify files under frontend/src/hooks/useActor.ts, frontend/src/hooks/useInternetIdentity.ts, frontend/src/main.tsx, or frontend/src/components/ui.",
+    "All Motoko logic must remain in the single actor file backend/main.mo.",
+    "Use the existing useDocuments and useApprovals hooks as the primary interface layer; extend only if necessary."
   ],
   "nonGoals": [
-    "Real-time payment gateway or card-charging integration (Stripe SDK, PayPal SDK, etc.)",
-    "Cryptocurrency or blockchain payment support",
-    "Automatic currency conversion or exchange rate calculation",
-    "Client-side PayPal checkout flow",
-    "SMS or email payment confirmations"
+    "Do not add a new user role or change the existing admin authorization logic.",
+    "Do not change the visual theme or redesign any pages beyond the two targeted areas.",
+    "Do not add email notification or external messaging on document upload or approval."
   ],
   "imageRequirements": {
     "required": [],

@@ -41,6 +41,7 @@ export const PaymentMethod = IDL.Variant({
 export const ServiceType = IDL.Variant({
   'bankReconciliation' : IDL.Null,
   'incomeTaxFiling' : IDL.Null,
+  'other' : IDL.Null,
   'audits' : IDL.Null,
   'corporateTaxFiling' : IDL.Null,
   'payrollAdmin' : IDL.Null,
@@ -53,6 +54,7 @@ export const ServiceRequestInput = IDL.Record({
   'deadline' : Time,
   'email' : IDL.Text,
   'company' : IDL.Text,
+  'phone' : IDL.Text,
 });
 export const AdminPaymentSettings = IDL.Record({ 'paypalEmail' : IDL.Text });
 export const DeliverableStatus = IDL.Variant({
@@ -125,6 +127,7 @@ export const ServiceRequest = IDL.Record({
   'deadline' : Time,
   'email' : IDL.Opt(IDL.Text),
   'company' : IDL.Opt(IDL.Text),
+  'phone' : IDL.Opt(IDL.Text),
 });
 export const UserProfile = IDL.Record({
   'name' : IDL.Text,
@@ -227,6 +230,11 @@ export const idlService = IDL.Service({
       [IDL.Opt(UserProfile)],
       ['query'],
     ),
+  'getUserProfileByPrincipal' : IDL.Func(
+      [IDL.Principal],
+      [IDL.Opt(UserProfile)],
+      ['query'],
+    ),
   'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
   'isCallerApproved' : IDL.Func([], [IDL.Bool], ['query']),
   'listApprovals' : IDL.Func([], [IDL.Vec(UserApprovalInfo)], ['query']),
@@ -281,6 +289,7 @@ export const idlFactory = ({ IDL }) => {
   const ServiceType = IDL.Variant({
     'bankReconciliation' : IDL.Null,
     'incomeTaxFiling' : IDL.Null,
+    'other' : IDL.Null,
     'audits' : IDL.Null,
     'corporateTaxFiling' : IDL.Null,
     'payrollAdmin' : IDL.Null,
@@ -293,6 +302,7 @@ export const idlFactory = ({ IDL }) => {
     'deadline' : Time,
     'email' : IDL.Text,
     'company' : IDL.Text,
+    'phone' : IDL.Text,
   });
   const AdminPaymentSettings = IDL.Record({ 'paypalEmail' : IDL.Text });
   const DeliverableStatus = IDL.Variant({
@@ -365,6 +375,7 @@ export const idlFactory = ({ IDL }) => {
     'deadline' : Time,
     'email' : IDL.Opt(IDL.Text),
     'company' : IDL.Opt(IDL.Text),
+    'phone' : IDL.Opt(IDL.Text),
   });
   const UserProfile = IDL.Record({
     'name' : IDL.Text,
@@ -471,6 +482,11 @@ export const idlFactory = ({ IDL }) => {
         ['query'],
       ),
     'getUserProfile' : IDL.Func(
+        [IDL.Principal],
+        [IDL.Opt(UserProfile)],
+        ['query'],
+      ),
+    'getUserProfileByPrincipal' : IDL.Func(
         [IDL.Principal],
         [IDL.Opt(UserProfile)],
         ['query'],
