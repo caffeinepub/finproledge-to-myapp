@@ -5,14 +5,23 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { ListTodo, Search, ArrowUpDown } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
+import { ListTodo, Search, ArrowUpDown, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useGetAllComplianceDeliverables } from '../hooks/useDeliverables';
+import { useGetAllToDos, ToDoPriority } from '../hooks/useComplianceAdmin';
 import { useGetUserProfileByPrincipal } from '../hooks/useUserProfile';
-import { ComplianceDeliverable, DeliverableStatus, DeliverableType } from '../backend';
+import { DeliverableStatus, DeliverableType, ToDoStatus } from '../backend';
 import { calculateDaysRemaining } from '../utils/dateHelpers';
+import CreateToDoForm from './CreateToDoForm';
 
-function getStatusLabel(status: DeliverableStatus): string {
+function getDeliverableStatusLabel(status: DeliverableStatus): string {
   switch (status) {
     case DeliverableStatus.drafting: return 'Drafting';
     case DeliverableStatus.inReview: return 'In Review';
@@ -23,7 +32,7 @@ function getStatusLabel(status: DeliverableStatus): string {
   }
 }
 
-function getStatusColor(status: DeliverableStatus): string {
+function getDeliverableStatusColor(status: DeliverableStatus): string {
   switch (status) {
     case DeliverableStatus.drafting: return 'bg-gray-100 text-gray-700 border-gray-200';
     case DeliverableStatus.inReview: return 'bg-blue-100 text-blue-700 border-blue-200';
@@ -44,6 +53,42 @@ function getTypeLabel(type: DeliverableType): string {
   }
 }
 
+function getToDoStatusLabel(status: ToDoStatus): string {
+  switch (status) {
+    case ToDoStatus.pending: return 'Pending';
+    case ToDoStatus.inProgress: return 'In Progress';
+    case ToDoStatus.completed: return 'Completed';
+    default: return 'Unknown';
+  }
+}
+
+function getToDoStatusColor(status: ToDoStatus): string {
+  switch (status) {
+    case ToDoStatus.pending: return 'bg-gray-100 text-gray-700 border-gray-200';
+    case ToDoStatus.inProgress: return 'bg-blue-100 text-blue-700 border-blue-200';
+    case ToDoStatus.completed: return 'bg-green-100 text-green-700 border-green-200';
+    default: return 'bg-gray-100 text-gray-700 border-gray-200';
+  }
+}
+
+function getToDoPriorityColor(priority: ToDoPriority): string {
+  switch (priority) {
+    case 'high': return 'bg-red-100 text-red-700 border-red-200';
+    case 'medium': return 'bg-amber-100 text-amber-700 border-amber-200';
+    case 'low': return 'bg-green-100 text-green-700 border-green-200';
+    default: return 'bg-gray-100 text-gray-700 border-gray-200';
+  }
+}
+
+function getToDoPriorityLabel(priority: ToDoPriority): string {
+  switch (priority) {
+    case 'high': return 'High';
+    case 'medium': return 'Medium';
+    case 'low': return 'Low';
+    default: return 'Unknown';
+  }
+}
+
 function ClientName({ principal }: { principal: string }) {
   const { data: profile, isLoading } = useGetUserProfileByPrincipal(principal);
   if (isLoading) return <span className="text-muted-foreground text-xs">Loading...</span>;
@@ -55,13 +100,17 @@ type SortField = 'dueDate' | 'status' | 'title';
 type SortDir = 'asc' | 'desc';
 
 export default function ComplianceAdminToDoList() {
-  const { data: deliverables, isLoading } = useGetAllComplianceDeliverables();
+  const { data: deliverables, isLoading: delivLoading } = useGetAllComplianceDeliverables();
+  const { data: todos, isLoading: todoLoading } = useGetAllToDos();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [sortField, setSortField] = useState<SortField>('dueDate');
   const [sortDir, setSortDir] = useState<SortDir>('asc');
+  const [dialogOpen, setDialogOpen] = useState(false);
 
-  const filtered = useMemo(() => {
+  const isLoading = delivLoading || todoLoading;
+
+  const filteredDeliverables = useMemo(() => {
     if (!deliverables) return [];
     let result = [...deliverables];
 
@@ -79,7 +128,7 @@ export default function ComplianceAdminToDoList() {
       if (sortField === 'dueDate') {
         cmp = Number(a.dueDate) - Number(b.dueDate);
       } else if (sortField === 'status') {
-        cmp = getStatusLabel(a.status).localeCompare(getStatusLabel(b.status));
+        cmp = getDeliverableStatusLabel(a.status).localeCompare(getDeliverableStatusLabel(b.status));
       } else if (sortField === 'title') {
         cmp = a.title.localeCompare(b.title);
       }
@@ -88,6 +137,16 @@ export default function ComplianceAdminToDoList() {
 
     return result;
   }, [deliverables, search, statusFilter, sortField, sortDir]);
+
+  const filteredTodos = useMemo(() => {
+    if (!todos) return [];
+    let result = [...todos];
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      result = result.filter(t => t.title.toLowerCase().includes(q) || t.description.toLowerCase().includes(q));
+    }
+    return result;
+  }, [todos, search]);
 
   const toggleSort = (field: SortField) => {
     if (sortField === field) {
@@ -99,117 +158,224 @@ export default function ComplianceAdminToDoList() {
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <ListTodo className="h-5 w-5 text-primary" />
-          All Client Tasks
-        </CardTitle>
-        <CardDescription>
-          Every compliance task across all clients in one place. Sort and filter to prioritize your work.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        {/* Filters */}
-        <div className="flex flex-col sm:flex-row gap-3 mb-5">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search tasks..."
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              className="pl-9"
-            />
-          </div>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-full sm:w-44">
-              <SelectValue placeholder="Filter by status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Statuses</SelectItem>
-              <SelectItem value={DeliverableStatus.drafting}>Drafting</SelectItem>
-              <SelectItem value={DeliverableStatus.inReview}>In Review</SelectItem>
-              <SelectItem value={DeliverableStatus.completed}>Completed</SelectItem>
-              <SelectItem value={DeliverableStatus.approved}>Approved</SelectItem>
-              <SelectItem value={DeliverableStatus.rejected}>Rejected</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+    <>
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Add New To-Do</DialogTitle>
+            <DialogDescription>
+              Create a new to-do item to track compliance tasks.
+            </DialogDescription>
+          </DialogHeader>
+          <CreateToDoForm onSuccess={() => setDialogOpen(false)} />
+        </DialogContent>
+      </Dialog>
 
-        {isLoading ? (
-          <div className="space-y-3">
-            {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-12 w-full" />)}
-          </div>
-        ) : filtered.length === 0 ? (
-          <div className="text-center py-10 text-muted-foreground">
-            <ListTodo className="h-10 w-10 mx-auto mb-3 opacity-30" />
-            <p>No tasks found.</p>
-          </div>
-        ) : (
-          <div className="rounded-md border overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Client</TableHead>
-                  <TableHead>
-                    <Button variant="ghost" size="sm" className="h-auto p-0 font-semibold" onClick={() => toggleSort('title')}>
-                      Task <ArrowUpDown className="ml-1 h-3 w-3 inline" />
-                    </Button>
-                  </TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>
-                    <Button variant="ghost" size="sm" className="h-auto p-0 font-semibold" onClick={() => toggleSort('status')}>
-                      Status <ArrowUpDown className="ml-1 h-3 w-3 inline" />
-                    </Button>
-                  </TableHead>
-                  <TableHead>
-                    <Button variant="ghost" size="sm" className="h-auto p-0 font-semibold" onClick={() => toggleSort('dueDate')}>
-                      Due Date <ArrowUpDown className="ml-1 h-3 w-3 inline" />
-                    </Button>
-                  </TableHead>
-                  <TableHead>Days Left</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filtered.map(d => {
-                  const days = calculateDaysRemaining(d.dueDate);
-                  const dueDateMs = Number(d.dueDate) / 1_000_000;
-                  const dueDateStr = new Date(dueDateMs).toLocaleDateString('en-GB', {
-                    day: 'numeric', month: 'short', year: 'numeric',
-                  });
-                  return (
-                    <TableRow key={d.id.toString()} className={days < 0 ? 'bg-red-50/40 dark:bg-red-950/10' : days <= 5 ? 'bg-amber-50/40 dark:bg-amber-950/10' : ''}>
-                      <TableCell className="font-medium text-sm">
-                        <ClientName principal={d.client.toString()} />
-                      </TableCell>
-                      <TableCell className="font-medium">{d.title}</TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className="text-xs">{getTypeLabel(d.deliverableType)}</Badge>
-                      </TableCell>
-                      <TableCell>
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(d.status)}`}>
-                          {getStatusLabel(d.status)}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-sm">{dueDateStr}</TableCell>
-                      <TableCell>
-                        {days < 0 ? (
-                          <span className="text-xs font-bold text-red-600">Overdue</span>
-                        ) : days <= 5 ? (
-                          <span className="text-xs font-bold text-amber-600">{days}d ⚠️</span>
-                        ) : (
-                          <span className="text-xs text-muted-foreground">{days}d</span>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </div>
+      <div className="space-y-6">
+        {/* Admin To-Do Items */}
+        {(todos && todos.length > 0) && (
+          <Card>
+            <CardHeader>
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <ListTodo className="h-5 w-5 text-primary" />
+                    Admin To-Do Items
+                  </CardTitle>
+                  <CardDescription>
+                    Tasks created directly by the admin.
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {todoLoading ? (
+                <div className="space-y-3">
+                  {[1, 2, 3].map(i => <Skeleton key={i} className="h-12 w-full" />)}
+                </div>
+              ) : (
+                <div className="rounded-md border overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Title</TableHead>
+                        <TableHead>Priority</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Assigned Client</TableHead>
+                        <TableHead>Created</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredTodos.map(todo => {
+                        const createdMs = Number(todo.createdAt) / 1_000_000;
+                        const createdStr = new Date(createdMs).toLocaleDateString('en-GB', {
+                          day: 'numeric', month: 'short', year: 'numeric',
+                        });
+                        const priority = todo.priority as unknown as ToDoPriority;
+                        return (
+                          <TableRow key={todo.id.toString()}>
+                            <TableCell>
+                              <div>
+                                <p className="font-medium text-sm">{todo.title}</p>
+                                {todo.description && (
+                                  <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{todo.description}</p>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${getToDoPriorityColor(priority)}`}>
+                                {getToDoPriorityLabel(priority)}
+                              </span>
+                            </TableCell>
+                            <TableCell>
+                              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${getToDoStatusColor(todo.status)}`}>
+                                {getToDoStatusLabel(todo.status)}
+                              </span>
+                            </TableCell>
+                            <TableCell className="text-sm">
+                              {todo.assignedClient
+                                ? <ClientName principal={todo.assignedClient.toString()} />
+                                : <span className="text-muted-foreground text-xs">—</span>
+                              }
+                            </TableCell>
+                            <TableCell className="text-sm text-muted-foreground">{createdStr}</TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         )}
-        <p className="text-xs text-muted-foreground mt-3">{filtered.length} task{filtered.length !== 1 ? 's' : ''} shown</p>
-      </CardContent>
-    </Card>
+
+        {/* Client Compliance Tasks */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <ListTodo className="h-5 w-5 text-primary" />
+                  All Client Tasks
+                </CardTitle>
+                <CardDescription>
+                  Every compliance task across all clients in one place. Sort and filter to prioritize your work.
+                </CardDescription>
+              </div>
+              <Button
+                onClick={() => setDialogOpen(true)}
+                size="sm"
+                className="shrink-0 flex items-center gap-1.5"
+              >
+                <Plus className="h-4 w-4" />
+                Add To-Do
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {/* Filters */}
+            <div className="flex flex-col sm:flex-row gap-3 mb-5">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search tasks..."
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-full sm:w-44">
+                  <SelectValue placeholder="Filter by status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Statuses</SelectItem>
+                  <SelectItem value={DeliverableStatus.drafting}>Drafting</SelectItem>
+                  <SelectItem value={DeliverableStatus.inReview}>In Review</SelectItem>
+                  <SelectItem value={DeliverableStatus.completed}>Completed</SelectItem>
+                  <SelectItem value={DeliverableStatus.approved}>Approved</SelectItem>
+                  <SelectItem value={DeliverableStatus.rejected}>Rejected</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {isLoading ? (
+              <div className="space-y-3">
+                {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-12 w-full" />)}
+              </div>
+            ) : filteredDeliverables.length === 0 ? (
+              <div className="text-center py-10 text-muted-foreground">
+                <ListTodo className="h-10 w-10 mx-auto mb-3 opacity-30" />
+                <p>No tasks found.</p>
+              </div>
+            ) : (
+              <div className="rounded-md border overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Client</TableHead>
+                      <TableHead>
+                        <Button variant="ghost" size="sm" className="h-auto p-0 font-semibold" onClick={() => toggleSort('title')}>
+                          Task <ArrowUpDown className="ml-1 h-3 w-3 inline" />
+                        </Button>
+                      </TableHead>
+                      <TableHead>Type</TableHead>
+                      <TableHead>
+                        <Button variant="ghost" size="sm" className="h-auto p-0 font-semibold" onClick={() => toggleSort('status')}>
+                          Status <ArrowUpDown className="ml-1 h-3 w-3 inline" />
+                        </Button>
+                      </TableHead>
+                      <TableHead>
+                        <Button variant="ghost" size="sm" className="h-auto p-0 font-semibold" onClick={() => toggleSort('dueDate')}>
+                          Due Date <ArrowUpDown className="ml-1 h-3 w-3 inline" />
+                        </Button>
+                      </TableHead>
+                      <TableHead>Days Left</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredDeliverables.map(d => {
+                      const days = calculateDaysRemaining(d.dueDate);
+                      const dueDateMs = Number(d.dueDate) / 1_000_000;
+                      const dueDateStr = new Date(dueDateMs).toLocaleDateString('en-GB', {
+                        day: 'numeric', month: 'short', year: 'numeric',
+                      });
+                      return (
+                        <TableRow key={d.id.toString()} className={days < 0 ? 'bg-red-50/40 dark:bg-red-950/10' : days <= 5 ? 'bg-amber-50/40 dark:bg-amber-950/10' : ''}>
+                          <TableCell className="font-medium text-sm">
+                            <ClientName principal={d.client.toString()} />
+                          </TableCell>
+                          <TableCell className="font-medium">{d.title}</TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="text-xs">{getTypeLabel(d.deliverableType)}</Badge>
+                          </TableCell>
+                          <TableCell>
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${getDeliverableStatusColor(d.status)}`}>
+                              {getDeliverableStatusLabel(d.status)}
+                            </span>
+                          </TableCell>
+                          <TableCell className="text-sm">{dueDateStr}</TableCell>
+                          <TableCell>
+                            {days < 0 ? (
+                              <span className="text-xs font-bold text-red-600">Overdue</span>
+                            ) : days <= 5 ? (
+                              <span className="text-xs font-bold text-amber-600">{days}d ⚠️</span>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">{days}d</span>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+            <p className="text-xs text-muted-foreground mt-3">{filteredDeliverables.length} task{filteredDeliverables.length !== 1 ? 's' : ''} shown</p>
+          </CardContent>
+        </Card>
+      </div>
+    </>
   );
 }

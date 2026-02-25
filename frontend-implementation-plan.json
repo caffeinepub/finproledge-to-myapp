@@ -1,33 +1,116 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Restrict Admin Access to finproledge@gmail.com Only",
+  "title": "Client visibility and self-service for To-Dos, Timelines, Follow-Ups, and Deadlines",
   "requirements": [
     {
-      "id": "REQ-1",
-      "summary": "Update AdminGuard component to restrict admin access exclusively to finproledge@gmail.com email address",
+      "id": "REQ-4",
+      "summary": "Expose React Query hooks for client-facing queries and mutations for To-Dos, Timelines, Follow-Ups, and Deadlines",
       "acceptanceCriteria": [
-        "AdminGuard in frontend/src/components/AdminGuard.tsx only grants access when the authenticated user's email is exactly 'finproledge@gmail.com'.",
-        "Any other authenticated user visiting an admin-protected route sees an 'Access Denied' message.",
-        "Unauthenticated users are still redirected to log in before the email check occurs.",
-        "The admin navigation links in Navigation.tsx are only visible to the user with email finproledge@gmail.com.",
-        "The isCallerAdmin check used in Navigation.tsx and other components is consistent with the finproledge@gmail.com restriction."
+        "A new or updated hook file exports useGetMyToDos, useGetMyTimelines, useGetMyFollowUps, useGetMyDeadlines query hooks",
+        "The hook file also exports useCreateClientToDo, useCreateClientTimeline, useCreateClientFollowUp, useCreateClientDeadline mutation hooks",
+        "On mutation success, the corresponding 'getMyX' query is invalidated and refetched"
       ],
       "file_operations": [
         {
-          "path": "frontend/src/components/AdminGuard.tsx",
+          "path": "frontend/src/hooks/useComplianceAdmin.ts",
           "operation": "modify",
-          "description": "Update the AdminGuard component to check the authenticated user's profile email and only grant admin access when the email exactly matches 'finproledge@gmail.com'. Fetch the user profile via getCallerUserProfile() after authentication succeeds and before the isCallerAdmin check. Show appropriate loading states while fetching the profile. Display an 'Access Denied' message with clear explanation when the authenticated user's email does not match finproledge@gmail.com. Maintain existing behavior for unauthenticated users (redirect to login)."
+          "description": "Add React Query hooks for client-facing queries (useGetMyToDos, useGetMyTimelines, useGetMyFollowUps, useGetMyDeadlines) and client-create mutations (useCreateClientToDo, useCreateClientTimeline, useCreateClientFollowUp, useCreateClientDeadline). Each query hook should call the corresponding backend method (getMyToDos, getMyTimelines, etc.) and be enabled only when the actor is available. Each mutation hook should invalidate the related 'myX' query key on success."
+        }
+      ]
+    },
+    {
+      "id": "REQ-5",
+      "summary": "Add a 'Tasks & Deadlines' tab to the client-facing compliance dashboard displaying four sections for To-Dos, Timeline, Follow-Ups, and Deadlines",
+      "acceptanceCriteria": [
+        "Client can navigate to the Tasks & Deadlines tab on the compliance dashboard",
+        "To-Dos section shows all to-dos assigned to this client by admin plus ones the client created",
+        "Timeline section shows timeline entries assigned to or created by this client",
+        "Follow-Ups section shows follow-up items assigned to or created by this client",
+        "Deadlines section shows deadline records assigned to or created by this client",
+        "Each section shows a meaningful empty state when no items exist",
+        "Loading skeletons are shown while data is fetching"
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/components/ClientTasksTab.tsx",
+          "operation": "create",
+          "description": "Create a new component that renders four collapsible sections or sub-tabs: To-Dos, Timeline, Follow-Ups, and Deadlines. Each section uses the corresponding useGetMyX hook (from useComplianceAdmin.ts) to fetch data and displays items in a table or card layout showing title, description, due date, status, and priority where applicable. Include loading skeletons during data fetch and an empty state message for each section when no items exist."
         },
         {
-          "path": "frontend/src/components/Navigation.tsx",
+          "path": "frontend/src/pages/ComplianceDashboardPage.tsx",
           "operation": "modify",
-          "description": "Update the Navigation component to ensure admin navigation links (Admin Dashboard, Compliance Admin) are only displayed when both isCallerAdmin returns true AND the authenticated user's email is exactly 'finproledge@gmail.com'. Fetch the user profile using getCallerUserProfile() and verify the email matches before showing admin links. This ensures visual consistency with the AdminGuard access restriction."
+          "description": "Add a new 'Tasks & Deadlines' tab to the existing Tabs component. Wire the tab to render the ClientTasksTab component when selected. Ensure the tab is positioned logically alongside the existing 'Deliverables' and 'Documents' tabs."
+        }
+      ]
+    },
+    {
+      "id": "REQ-6",
+      "summary": "Add client-facing 'Add' buttons and form dialogs for creating To-Dos, Timeline entries, Follow-Ups, and Deadlines",
+      "acceptanceCriteria": [
+        "Client can open an 'Add To-Do' dialog and successfully submit a new to-do",
+        "Client can open an 'Add Timeline Entry' dialog and successfully submit a new timeline entry",
+        "Client can open an 'Add Follow-Up' dialog and successfully submit a new follow-up",
+        "Client can open an 'Add Deadline' dialog and successfully submit a new deadline",
+        "After submission the new item appears immediately in the respective list without a full page reload",
+        "The client principal selector (assign-to-client field) is not shown in client-facing forms"
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/components/ClientCreateToDoForm.tsx",
+          "operation": "create",
+          "description": "Create a client-facing To-Do creation form with fields for title, description, priority, and status (excluding the assignedClient field). Use the useCreateClientToDo mutation hook from useComplianceAdmin.ts. On successful submission, show a success toast and close the dialog."
         },
         {
-          "path": "frontend/src/hooks/useUserProfile.ts",
+          "path": "frontend/src/components/ClientCreateTimelineForm.tsx",
+          "operation": "create",
+          "description": "Create a client-facing Timeline entry creation form with fields for title, description, start date, end date, and status (excluding the taskReference field). Use the useCreateClientTimeline mutation hook from useComplianceAdmin.ts. On successful submission, show a success toast and close the dialog."
+        },
+        {
+          "path": "frontend/src/components/ClientCreateFollowUpForm.tsx",
+          "operation": "create",
+          "description": "Create a client-facing Follow-Up item creation form with fields for title, description, due date, status, and notes (excluding the clientReference field). Use the useCreateClientFollowUp mutation hook from useComplianceAdmin.ts. On successful submission, show a success toast and close the dialog."
+        },
+        {
+          "path": "frontend/src/components/ClientCreateDeadlineForm.tsx",
+          "operation": "create",
+          "description": "Create a client-facing Deadline record creation form with fields for title, description, due date, urgency level, and status (excluding the deliverableReference field). Use the useCreateClientDeadline mutation hook from useComplianceAdmin.ts. On successful submission, show a success toast and close the dialog."
+        },
+        {
+          "path": "frontend/src/components/ClientTasksTab.tsx",
           "operation": "modify",
-          "description": "Ensure the useGetCallerUserProfile hook properly handles loading states and returns the user profile with email field. Verify the hook does not cache stale profile data across authentication sessions. This hook will be used by both AdminGuard and Navigation to check the email restriction."
+          "description": "Add an 'Add' button to each of the four sections (To-Dos, Timeline, Follow-Ups, Deadlines). Each button opens a Dialog containing the corresponding client-facing creation form component (ClientCreateToDoForm, ClientCreateTimelineForm, ClientCreateFollowUpForm, ClientCreateDeadlineForm). Manage dialog open/close state for each section independently."
+        }
+      ]
+    },
+    {
+      "id": "REQ-7",
+      "summary": "Ensure admin creation forms include an optional client principal assignment field for To-Dos, Timeline entries, Follow-Ups, and Deadlines",
+      "acceptanceCriteria": [
+        "All four admin create forms (ToDoForm, TimelineForm, FollowUpForm, DeadlineForm) have an optional 'Assign to Client (Principal)' input field",
+        "When an admin creates an item with a client principal filled in, that item appears in the respective client's getMyX list",
+        "When the client principal field is left empty, the item is admin-only and does not appear in any client's list"
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/components/CreateToDoForm.tsx",
+          "operation": "modify",
+          "description": "Add an optional 'Assign to Client (Principal)' text input field to the form. This field should accept a principal ID string. When the form is submitted, pass the assignedClient value (or null if empty) to the createToDo mutation. Include helper text explaining this field is optional and only for assigning tasks to specific clients."
+        },
+        {
+          "path": "frontend/src/components/CreateTimelineForm.tsx",
+          "operation": "modify",
+          "description": "Add an optional 'Assign to Client (Principal)' text input field to the form. Update the form submission to pass this clientPrincipal value (converted to Principal or null) when calling the backend. Note: The current backend interface for createTimelineEntry does not expose a clientPrincipal parameter, so verify this field is wired correctly once the backend is updated per REQ-1."
+        },
+        {
+          "path": "frontend/src/components/CreateFollowUpForm.tsx",
+          "operation": "modify",
+          "description": "Verify that the existing clientReference field in CreateFollowUpForm matches the new clientPrincipal semantics from the backend. If the field is already present and correctly named, ensure it accepts a principal ID string and is clearly labeled as 'Assign to Client (Principal)'. If not present, add it as an optional text input."
+        },
+        {
+          "path": "frontend/src/components/CreateDeadlineForm.tsx",
+          "operation": "modify",
+          "description": "Add an optional 'Assign to Client (Principal)' text input field to the form. Update the form submission to pass this clientPrincipal value (converted to Principal or null) when calling the backend. Note: The current backend interface for createDeadline does not expose a clientPrincipal parameter, so verify this field is wired correctly once the backend is updated per REQ-1."
         }
       ]
     }

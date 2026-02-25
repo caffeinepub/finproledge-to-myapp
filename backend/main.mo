@@ -1,18 +1,19 @@
 import Map "mo:core/Map";
 import Nat "mo:core/Nat";
 import Time "mo:core/Time";
-import Text "mo:core/Text";
 import Array "mo:core/Array";
+import Principal "mo:core/Principal";
 import Iter "mo:core/Iter";
 import Runtime "mo:core/Runtime";
-import Principal "mo:core/Principal";
 import MixinAuthorization "authorization/MixinAuthorization";
 import MixinStorage "blob-storage/Mixin";
 import Storage "blob-storage/Storage";
-import AccessControl "authorization/access-control";
-import UserApproval "user-approval/approval";
 import Migration "migration";
 
+import AccessControl "authorization/access-control";
+import UserApproval "user-approval/approval";
+
+// Data migration in with clause
 (with migration = Migration.run)
 actor {
   let accessControlState = AccessControl.initState();
@@ -238,11 +239,95 @@ actor {
     conversionRate : ConversionRate;
   };
 
+  // --- New Compliance Admin Types ---
+  public type ToDoItem = {
+    id : Nat;
+    title : Text;
+    description : Text;
+    status : ToDoStatus;
+    priority : ToDoPriority;
+    assignedClient : ?Principal;
+    createdAt : Time.Time;
+    clientPrincipal : ?Principal;
+  };
+
+  public type ToDoStatus = {
+    #pending;
+    #inProgress;
+    #completed;
+  };
+
+  public type ToDoPriority = {
+    #low;
+    #medium;
+    #high;
+  };
+
+  public type TimelineEntry = {
+    id : Nat;
+    title : Text;
+    description : Text;
+    startDate : Time.Time;
+    endDate : Time.Time;
+    taskReference : ?Nat;
+    status : TimelineStatus;
+    clientPrincipal : ?Principal;
+  };
+
+  public type TimelineStatus = {
+    #planned;
+    #inProgress;
+    #completed;
+  };
+
+  public type FollowUpItem = {
+    id : Nat;
+    title : Text;
+    description : Text;
+    dueDate : Time.Time;
+    clientReference : ?Principal;
+    status : FollowUpStatus;
+    notes : Text;
+    clientPrincipal : ?Principal;
+  };
+
+  public type FollowUpStatus = {
+    #pending;
+    #completed;
+  };
+
+  public type DeadlineRecord = {
+    id : Nat;
+    title : Text;
+    description : Text;
+    dueDate : Time.Time;
+    deliverableReference : ?Nat;
+    urgencyLevel : UrgencyLevel;
+    status : DeadlineStatus;
+    clientPrincipal : ?Principal;
+  };
+
+  public type UrgencyLevel = {
+    #high;
+    #medium;
+    #low;
+  };
+
+  public type DeadlineStatus = {
+    #active;
+    #completed;
+    #missed;
+  };
+
   var nextRequestId = 0;
   var nextDocumentId = 0;
   var nextDeliverableId = 0;
   var nextPaymentId = 0;
   var nextClientDeliverableId = 0;
+  var nextToDoId = 0;
+  var nextTimelineId = 0;
+  var nextFollowUpId = 0;
+  var nextDeadlineId = 0;
 
   let serviceRequests = Map.empty<Nat, ServiceRequest>();
   let clientDocuments = Map.empty<Nat, ClientDocument>();
@@ -250,6 +335,12 @@ actor {
   let paymentRecords = Map.empty<Nat, PaymentRecord>();
   let userProfiles = Map.empty<Principal, UserProfile>();
   let clientDeliverables = Map.empty<Nat, ClientDeliverable>();
+
+  // New maps for ToDos, Timelines, FollowUps, Deadlines
+  let toDoItems = Map.empty<Nat, ToDoItem>();
+  let timelineEntries = Map.empty<Nat, TimelineEntry>();
+  let followUpItems = Map.empty<Nat, FollowUpItem>();
+  let deadlineRecords = Map.empty<Nat, DeadlineRecord>();
 
   var adminPaymentSettings : ?AdminPaymentSettings = null;
   var analyticsSummary : ?AnalyticsSummary = null;
@@ -364,6 +455,7 @@ actor {
   };
 
   public shared ({ caller }) func createVisitorRequest(input : ServiceRequestInput) : async Nat {
+    // Open to all callers including guests/visitors — no auth check required
     let requestId = nextRequestId;
     let newRequest : ServiceRequest = {
       id = requestId;
@@ -426,7 +518,11 @@ actor {
     deliverableId;
   };
 
+  // Admin or the client themselves can query a specific client's requests
   public query ({ caller }) func getClientRequests(client : Principal) : async [ServiceRequest] {
+    if (caller != client and not (AccessControl.isAdmin(accessControlState, caller))) {
+      Runtime.trap("Unauthorized: Can only view your own requests");
+    };
     let values = serviceRequests.values().toArray();
     values.filter(func(request) { request.client == client });
   };
@@ -436,7 +532,11 @@ actor {
     values.filter(func(request) { request.client == caller });
   };
 
+  // Admin or the client themselves can query a specific client's deliverables
   public query ({ caller }) func getClientDeliverables(client : Principal) : async [ComplianceDeliverable] {
+    if (caller != client and not (AccessControl.isAdmin(accessControlState, caller))) {
+      Runtime.trap("Unauthorized: Can only view your own deliverables");
+    };
     let values = complianceDeliverables.values().toArray();
     values.filter(func(deliverable) { deliverable.client == client });
   };
@@ -446,7 +546,11 @@ actor {
     values.filter(func(deliverable) { deliverable.client == caller });
   };
 
+  // Admin or the client themselves can query a specific client's pending deliverables
   public query ({ caller }) func getPendingDeliverables(client : Principal) : async [ComplianceDeliverable] {
+    if (caller != client and not (AccessControl.isAdmin(accessControlState, caller))) {
+      Runtime.trap("Unauthorized: Can only view your own pending deliverables");
+    };
     let values = complianceDeliverables.values().toArray();
     values.filter(func(deliverable) {
       deliverable.client == client and (Time.now() < deliverable.dueDate)
@@ -460,8 +564,11 @@ actor {
     });
   };
 
-  // Update service request status
+  // Update service request status — only the owning approved user can update their own request
   public shared ({ caller }) func updateStatus(requestId : Nat, status : RequestStatus) : async () {
+    if (not UserApproval.isApproved(userApprovalState, caller)) {
+      Runtime.trap("Unauthorized: Only approved users can update request status");
+    };
     switch (serviceRequests.get(requestId)) {
       case (null) { Runtime.trap("Request not found") };
       case (?request) {
@@ -661,5 +768,285 @@ actor {
       Runtime.trap("Unauthorized: Only admins can perform this action");
     };
     UserApproval.listApprovals(userApprovalState);
+  };
+
+  // ---------- New Compliance Admin Functions ----------
+
+  // Create To-Do — admin only
+  public shared ({ caller }) func createToDo(title : Text, description : Text, priority : ToDoPriority, status : ToDoStatus, assignedClient : ?Principal) : async Nat {
+    if (not (AccessControl.isAdmin(accessControlState, caller))) {
+      Runtime.trap("Unauthorized: Only admins can create to-dos");
+    };
+    let toDoId = nextToDoId;
+    let newToDo : ToDoItem = {
+      id = toDoId;
+      title;
+      description;
+      status;
+      priority;
+      assignedClient;
+      createdAt = Time.now();
+      clientPrincipal = assignedClient;
+    };
+
+    toDoItems.add(toDoId, newToDo);
+    nextToDoId += 1;
+
+    toDoId;
+  };
+
+  // Create Timeline Entry — admin only
+  public shared ({ caller }) func createTimelineEntry(title : Text, description : Text, startDate : Time.Time, endDate : Time.Time, status : TimelineStatus, taskReference : ?Nat) : async Nat {
+    if (not (AccessControl.isAdmin(accessControlState, caller))) {
+      Runtime.trap("Unauthorized: Only admins can create timeline entries");
+    };
+    let timelineId = nextTimelineId;
+    let newTimelineEntry : TimelineEntry = {
+      id = timelineId;
+      title;
+      description;
+      startDate;
+      endDate;
+      status;
+      taskReference;
+      clientPrincipal = null;
+    };
+
+    timelineEntries.add(timelineId, newTimelineEntry);
+    nextTimelineId += 1;
+
+    timelineId;
+  };
+
+  // Create Follow-Up — admin only
+  public shared ({ caller }) func createFollowUp(title : Text, description : Text, dueDate : Time.Time, clientReference : ?Principal, status : FollowUpStatus, notes : Text) : async Nat {
+    if (not (AccessControl.isAdmin(accessControlState, caller))) {
+      Runtime.trap("Unauthorized: Only admins can create follow-ups");
+    };
+    let followUpId = nextFollowUpId;
+    let newFollowUp : FollowUpItem = {
+      id = followUpId;
+      title;
+      description;
+      dueDate;
+      clientReference;
+      status;
+      notes;
+      clientPrincipal = clientReference;
+    };
+
+    followUpItems.add(followUpId, newFollowUp);
+    nextFollowUpId += 1;
+
+    followUpId;
+  };
+
+  // Create Deadline Record — admin only
+  public shared ({ caller }) func createDeadline(title : Text, description : Text, dueDate : Time.Time, urgencyLevel : UrgencyLevel, status : DeadlineStatus, deliverableReference : ?Nat) : async Nat {
+    if (not (AccessControl.isAdmin(accessControlState, caller))) {
+      Runtime.trap("Unauthorized: Only admins can create deadlines");
+    };
+    let deadlineId = nextDeadlineId;
+    let newDeadline : DeadlineRecord = {
+      id = deadlineId;
+      title;
+      description;
+      dueDate;
+      urgencyLevel;
+      status;
+      deliverableReference;
+      clientPrincipal = null;
+    };
+
+    deadlineRecords.add(deadlineId, newDeadline);
+    nextDeadlineId += 1;
+
+    deadlineId;
+  };
+
+  // ------------ Getters for Compliance Admin Functions -----------
+
+  public query ({ caller }) func getAllToDos() : async [ToDoItem] {
+    if (not (AccessControl.isAdmin(accessControlState, caller))) {
+      Runtime.trap("Unauthorized: Only admins can access all to-dos");
+    };
+    toDoItems.values().toArray();
+  };
+
+  public query ({ caller }) func getAllTimelines() : async [TimelineEntry] {
+    if (not (AccessControl.isAdmin(accessControlState, caller))) {
+      Runtime.trap("Unauthorized: Only admins can access all timelines");
+    };
+    timelineEntries.values().toArray();
+  };
+
+  public query ({ caller }) func getAllFollowUps() : async [FollowUpItem] {
+    if (not (AccessControl.isAdmin(accessControlState, caller))) {
+      Runtime.trap("Unauthorized: Only admins can access all follow-ups");
+    };
+    followUpItems.values().toArray();
+  };
+
+  public query ({ caller }) func getAllDeadlines() : async [DeadlineRecord] {
+    if (not (AccessControl.isAdmin(accessControlState, caller))) {
+      Runtime.trap("Unauthorized: Only admins can access all deadlines");
+    };
+    deadlineRecords.values().toArray();
+  };
+
+  // -------------- Client-Specific Query Endpoints -------------------
+  // These are callable by any authenticated (approved) user and return only
+  // records belonging to the caller (where clientPrincipal == caller).
+
+  public query ({ caller }) func getMyToDos() : async [ToDoItem] {
+    if (not (UserApproval.isApproved(userApprovalState, caller) or AccessControl.isAdmin(accessControlState, caller))) {
+      Runtime.trap("Unauthorized: Only approved users can access their to-dos");
+    };
+    let toDos = toDoItems.values().toArray();
+    toDos.filter(
+      func(toDo) {
+        switch (toDo.clientPrincipal) {
+          case (?client) { client == caller };
+          case (null) { false };
+        };
+      }
+    );
+  };
+
+  public query ({ caller }) func getMyTimelines() : async [TimelineEntry] {
+    if (not (UserApproval.isApproved(userApprovalState, caller) or AccessControl.isAdmin(accessControlState, caller))) {
+      Runtime.trap("Unauthorized: Only approved users can access their timelines");
+    };
+    let timelines = timelineEntries.values().toArray();
+    timelines.filter(
+      func(timeline) {
+        switch (timeline.clientPrincipal) {
+          case (?client) { client == caller };
+          case (null) { false };
+        };
+      }
+    );
+  };
+
+  public query ({ caller }) func getMyFollowUps() : async [FollowUpItem] {
+    if (not (UserApproval.isApproved(userApprovalState, caller) or AccessControl.isAdmin(accessControlState, caller))) {
+      Runtime.trap("Unauthorized: Only approved users can access their follow-ups");
+    };
+    let followUps = followUpItems.values().toArray();
+    followUps.filter(
+      func(followUp) {
+        switch (followUp.clientPrincipal) {
+          case (?client) { client == caller };
+          case (null) { false };
+        };
+      }
+    );
+  };
+
+  public query ({ caller }) func getMyDeadlines() : async [DeadlineRecord] {
+    if (not (UserApproval.isApproved(userApprovalState, caller) or AccessControl.isAdmin(accessControlState, caller))) {
+      Runtime.trap("Unauthorized: Only approved users can access their deadlines");
+    };
+    let deadlines = deadlineRecords.values().toArray();
+    deadlines.filter(
+      func(deadline) {
+        switch (deadline.clientPrincipal) {
+          case (?client) { client == caller };
+          case (null) { false };
+        };
+      }
+    );
+  };
+
+  // -------------- Client Record Creation Functions ------------
+  // Approved clients can create their own items; clientPrincipal is automatically
+  // set to the caller so the items appear in the caller's filtered queries.
+
+  public shared ({ caller }) func createClientToDo(title : Text, description : Text, priority : ToDoPriority, status : ToDoStatus) : async Nat {
+    if (not UserApproval.isApproved(userApprovalState, caller)) {
+      Runtime.trap("Unauthorized: Only approved users can create to-dos");
+    };
+    let toDoId = nextToDoId;
+    let newToDo : ToDoItem = {
+      id = toDoId;
+      title;
+      description;
+      status;
+      priority;
+      assignedClient = ?caller;
+      createdAt = Time.now();
+      clientPrincipal = ?caller;
+    };
+
+    toDoItems.add(toDoId, newToDo);
+    nextToDoId += 1;
+
+    toDoId;
+  };
+
+  public shared ({ caller }) func createClientTimeline(title : Text, description : Text, startDate : Time.Time, endDate : Time.Time, status : TimelineStatus) : async Nat {
+    if (not UserApproval.isApproved(userApprovalState, caller)) {
+      Runtime.trap("Unauthorized: Only approved users can create timelines");
+    };
+    let timelineId = nextTimelineId;
+    let newTimelineEntry : TimelineEntry = {
+      id = timelineId;
+      title;
+      description;
+      startDate;
+      endDate;
+      status;
+      taskReference = null;
+      clientPrincipal = ?caller;
+    };
+
+    timelineEntries.add(timelineId, newTimelineEntry);
+    nextTimelineId += 1;
+
+    timelineId;
+  };
+
+  public shared ({ caller }) func createClientFollowUp(title : Text, description : Text, dueDate : Time.Time, status : FollowUpStatus, notes : Text) : async Nat {
+    if (not UserApproval.isApproved(userApprovalState, caller)) {
+      Runtime.trap("Unauthorized: Only approved users can create follow-ups");
+    };
+    let followUpId = nextFollowUpId;
+    let newFollowUp : FollowUpItem = {
+      id = followUpId;
+      title;
+      description;
+      dueDate;
+      clientReference = ?caller;
+      status;
+      notes;
+      clientPrincipal = ?caller;
+    };
+
+    followUpItems.add(followUpId, newFollowUp);
+    nextFollowUpId += 1;
+
+    followUpId;
+  };
+
+  public shared ({ caller }) func createClientDeadline(title : Text, description : Text, dueDate : Time.Time, urgencyLevel : UrgencyLevel, status : DeadlineStatus) : async Nat {
+    if (not UserApproval.isApproved(userApprovalState, caller)) {
+      Runtime.trap("Unauthorized: Only approved users can create deadlines");
+    };
+    let deadlineId = nextDeadlineId;
+    let newDeadline : DeadlineRecord = {
+      id = deadlineId;
+      title;
+      description;
+      dueDate;
+      urgencyLevel;
+      status;
+      deliverableReference = null;
+      clientPrincipal = ?caller;
+    };
+
+    deadlineRecords.add(deadlineId, newDeadline);
+    nextDeadlineId += 1;
+
+    deadlineId;
   };
 };

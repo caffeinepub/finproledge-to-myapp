@@ -27,11 +27,6 @@ export interface ServiceRequest {
     company?: string;
     phone?: string;
 }
-export interface ClientDeliverableInput {
-    title: string;
-    file: ExternalBlob;
-    description: string;
-}
 export type Time = bigint;
 export interface TechnicalReliabilityMetrics {
     pageLoadMs: bigint;
@@ -57,6 +52,39 @@ export interface LeadGenerationMetrics {
     formSubmissions: bigint;
     clickToCallCount: bigint;
 }
+export interface TimelineEntry {
+    id: bigint;
+    status: TimelineStatus;
+    title: string;
+    endDate: Time;
+    description: string;
+    clientPrincipal?: Principal;
+    taskReference?: bigint;
+    startDate: Time;
+}
+export interface TrustMetrics {
+    testimonialClicks: bigint;
+    blogEngagement: bigint;
+    aboutPageAvgTime: bigint;
+}
+export interface DeadlineRecord {
+    id: bigint;
+    status: DeadlineStatus;
+    title: string;
+    urgencyLevel: UrgencyLevel;
+    dueDate: Time;
+    description: string;
+    clientPrincipal?: Principal;
+    deliverableReference?: bigint;
+}
+export interface ClientDocument {
+    id: bigint;
+    client: Principal;
+    file: ExternalBlob;
+    name: string;
+    docType: DocumentType;
+    uploadedAt: Time;
+}
 export interface ClientDeliverable {
     id: bigint;
     status: ClientDeliverableStatus;
@@ -66,18 +94,32 @@ export interface ClientDeliverable {
     createdAt: Time;
     description: string;
 }
-export interface TrustMetrics {
-    testimonialClicks: bigint;
-    blogEngagement: bigint;
-    aboutPageAvgTime: bigint;
+export interface ClientRetentionMetrics {
+    portalFunnelDropoffs: bigint;
+    returningUserRatio: number;
 }
-export interface ClientDocument {
+export interface ComplianceDeliverable {
     id: bigint;
+    status: DeliverableStatus;
     client: Principal;
+    title: string;
+    dueDate: Time;
+    deliverableType: DeliverableType;
+}
+export interface ClientDeliverableInput {
+    title: string;
     file: ExternalBlob;
-    name: string;
-    docType: DocumentType;
-    uploadedAt: Time;
+    description: string;
+}
+export interface FollowUpItem {
+    id: bigint;
+    status: FollowUpStatus;
+    title: string;
+    dueDate: Time;
+    description: string;
+    clientPrincipal?: Principal;
+    notes: string;
+    clientReference?: Principal;
 }
 export type UploadDocumentResult = {
     __kind__: "ok";
@@ -88,6 +130,16 @@ export type UploadDocumentResult = {
 };
 export interface AdminPaymentSettings {
     paypalEmail: string;
+}
+export interface ToDoItem {
+    id: bigint;
+    status: ToDoStatus;
+    title: string;
+    createdAt: Time;
+    description: string;
+    clientPrincipal?: Principal;
+    assignedClient?: Principal;
+    priority: ToDoPriority;
 }
 export interface UserApprovalInfo {
     status: ApprovalStatus;
@@ -107,22 +159,10 @@ export interface ServiceRequestInput {
     company: string;
     phone: string;
 }
-export interface ClientRetentionMetrics {
-    portalFunnelDropoffs: bigint;
-    returningUserRatio: number;
-}
 export interface UserProfile {
     name: string;
     email: string;
     company: string;
-}
-export interface ComplianceDeliverable {
-    id: bigint;
-    status: DeliverableStatus;
-    client: Principal;
-    title: string;
-    dueDate: Time;
-    deliverableType: DeliverableType;
 }
 export enum ApprovalStatus {
     pending = "pending",
@@ -133,6 +173,11 @@ export enum ClientDeliverableStatus {
     pending = "pending",
     rejected = "rejected",
     accepted = "accepted"
+}
+export enum DeadlineStatus {
+    active = "active",
+    completed = "completed",
+    missed = "missed"
 }
 export enum DeliverableStatus {
     completed = "completed",
@@ -151,6 +196,10 @@ export enum DocumentType {
     payrollReport = "payrollReport",
     auditDoc = "auditDoc",
     taxFiling = "taxFiling"
+}
+export enum FollowUpStatus {
+    pending = "pending",
+    completed = "completed"
 }
 export enum PaymentMethod {
     creditCard = "creditCard",
@@ -179,6 +228,21 @@ export enum ServiceType {
     payrollAdmin = "payrollAdmin",
     ledgerMaintenance = "ledgerMaintenance"
 }
+export enum TimelineStatus {
+    completed = "completed",
+    planned = "planned",
+    inProgress = "inProgress"
+}
+export enum ToDoStatus {
+    pending = "pending",
+    completed = "completed",
+    inProgress = "inProgress"
+}
+export enum UrgencyLevel {
+    low = "low",
+    high = "high",
+    medium = "medium"
+}
 export enum UserRole {
     admin = "admin",
     user = "user",
@@ -186,27 +250,43 @@ export enum UserRole {
 }
 export interface backendInterface {
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
+    createClientDeadline(title: string, description: string, dueDate: Time, urgencyLevel: UrgencyLevel, status: DeadlineStatus): Promise<bigint>;
+    createClientFollowUp(title: string, description: string, dueDate: Time, status: FollowUpStatus, notes: string): Promise<bigint>;
+    createClientTimeline(title: string, description: string, startDate: Time, endDate: Time, status: TimelineStatus): Promise<bigint>;
+    createClientToDo(title: string, description: string, priority: ToDoPriority, status: ToDoStatus): Promise<bigint>;
+    createDeadline(title: string, description: string, dueDate: Time, urgencyLevel: UrgencyLevel, status: DeadlineStatus, deliverableReference: bigint | null): Promise<bigint>;
     createDeliverable(clientPrincipal: Principal, title: string, dueDate: Time, deliverableType: DeliverableType): Promise<bigint>;
+    createFollowUp(title: string, description: string, dueDate: Time, clientReference: Principal | null, status: FollowUpStatus, notes: string): Promise<bigint>;
     createPayment(amount: bigint, currencyCode: string, paymentMethod: PaymentMethod, cardType: string | null): Promise<bigint>;
     createRequest(serviceType: ServiceType, description: string, deadline: Time): Promise<bigint>;
+    createTimelineEntry(title: string, description: string, startDate: Time, endDate: Time, status: TimelineStatus, taskReference: bigint | null): Promise<bigint>;
+    createToDo(title: string, description: string, priority: ToDoPriority, status: ToDoStatus, assignedClient: Principal | null): Promise<bigint>;
     createVisitorRequest(input: ServiceRequestInput): Promise<bigint>;
     getAdminPaymentSettings(): Promise<AdminPaymentSettings | null>;
     getAllComplianceDeliverables(): Promise<Array<ComplianceDeliverable>>;
+    getAllDeadlines(): Promise<Array<DeadlineRecord>>;
     getAllDeliverables(): Promise<Array<ComplianceDeliverable>>;
     getAllDocuments(): Promise<Array<ClientDocument>>;
+    getAllFollowUps(): Promise<Array<FollowUpItem>>;
     getAllPayments(): Promise<Array<PaymentRecord>>;
     getAllRequests(): Promise<Array<ServiceRequest>>;
     getAllSubmittedDeliverables(): Promise<Array<ClientDeliverable>>;
+    getAllTimelines(): Promise<Array<TimelineEntry>>;
+    getAllToDos(): Promise<Array<ToDoItem>>;
     getCallerUserProfile(): Promise<UserProfile | null>;
     getCallerUserRole(): Promise<UserRole>;
     getClientDeliverables(client: Principal): Promise<Array<ComplianceDeliverable>>;
     getClientRequests(client: Principal): Promise<Array<ServiceRequest>>;
     getClientSubmissions(owner: Principal): Promise<Array<ClientDeliverable>>;
+    getMyDeadlines(): Promise<Array<DeadlineRecord>>;
     getMyDeliverables(): Promise<Array<ComplianceDeliverable>>;
+    getMyFollowUps(): Promise<Array<FollowUpItem>>;
     getMyPayments(): Promise<Array<PaymentRecord>>;
     getMyPendingDeliverables(): Promise<Array<ComplianceDeliverable>>;
     getMyRequests(): Promise<Array<ServiceRequest>>;
     getMySubmittedDeliverables(): Promise<Array<ClientDeliverable>>;
+    getMyTimelines(): Promise<Array<TimelineEntry>>;
+    getMyToDos(): Promise<Array<ToDoItem>>;
     getNewAnalyticsSummary(): Promise<{
         searchIntent: SearchIntentMetrics;
         trust: TrustMetrics;

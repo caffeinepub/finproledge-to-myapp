@@ -2,10 +2,10 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-update-the-adminguard-component-to-allow-admin-access-exclusively-to-the-email-address-finproledge-gmail-com-any-authenticated-user-whose-profile-email-does-not-exactly-match-finproledge-gmail-com-must-be-shown-an-access-denied-state-and-prevented-from-viewing-any-admin-only-pages-or-content",
-      "featureTitle": "Update the AdminGuard component to allow admin access exclusively to the email address finproledge@gmail.com. Any authenticated user whose profile email does not exactly match finproledge@gmail.com must be shown an 'Access Denied' state and prevented from viewing any admin-only pages or content.",
+      "featureId": "feature-update-the-usecomplianceadmin-hook-or-create-a-new-useclientcompliance-hook-to-expose-react-query-hooks-for-getmytodos-getmytimelines-getmyfollowups-getmydeadlines-and-the-four-new-client-create-mutations-these-hooks-must-be-usable-from-client-facing-pages",
+      "featureTitle": "Update the `useComplianceAdmin` hook (or create a new `useClientCompliance` hook) to expose React Query hooks for `getMyToDos`, `getMyTimelines`, `getMyFollowUps`, `getMyDeadlines`, and the four new client-create mutations. These hooks must be usable from client-facing pages.",
       "files": [
-        "frontend/src/components/Navigation.tsx"
+        "frontend/src/hooks/useComplianceAdmin.ts"
       ],
       "components": [
         "authorization@4.0.0",
@@ -18,7 +18,54 @@
         "user-approval@3.0.0"
       ],
       "testIds": [
-        "REQ-1"
+        "REQ-4"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-add-a-new-tasks-deadlines-or-my-tasks-tab-to-the-compliancedashboardpage-the-client-facing-compliance-page-that-displays-four-sub-tabs-or-sections-to-dos-timeline-follow-ups-and-deadlines-each-section-must-list-items-returned-by-the-corresponding-getmyx-query-showing-title-description-due-date-status-and-priority-where-applicable",
+      "featureTitle": "Add a new 'Tasks & Deadlines' (or 'My Tasks') tab to the ComplianceDashboardPage (the client-facing compliance page) that displays four sub-tabs or sections: To-Dos, Timeline, Follow-Ups, and Deadlines. Each section must list items returned by the corresponding `getMyX` query, showing title, description, due date, status, and priority where applicable.",
+      "files": [
+        "frontend/src/components/ClientTasksTab.tsx",
+        "frontend/src/pages/ComplianceDashboardPage.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "blob-storage@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "user-approval@3.0.0"
+      ],
+      "testIds": [
+        "REQ-5"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-within-each-section-of-the-client-facing-tasks-deadlines-tab-to-dos-timeline-follow-ups-deadlines-add-an-add-button-that-opens-a-form-dialog-allowing-the-client-to-create-their-own-item-of-that-type-the-form-fields-should-be-consistent-with-the-existing-createtodoform-createtimelineform-createfollowupform-and-createdeadlineform-components-but-should-not-expose-admin-only-fields-e-g-assigned-client-principal-selector",
+      "featureTitle": "Within each section of the client-facing Tasks & Deadlines tab (To-Dos, Timeline, Follow-Ups, Deadlines), add an 'Add' button that opens a form dialog allowing the client to create their own item of that type. The form fields should be consistent with the existing CreateToDoForm, CreateTimelineForm, CreateFollowUpForm, and CreateDeadlineForm components but should not expose admin-only fields (e.g., assigned client principal selector).",
+      "files": [
+        "frontend/src/components/ClientCreateDeadlineForm.tsx",
+        "frontend/src/components/ClientCreateFollowUpForm.tsx",
+        "frontend/src/components/ClientCreateTimelineForm.tsx",
+        "frontend/src/components/ClientCreateToDoForm.tsx",
+        "frontend/src/components/ClientTasksTab.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "blob-storage@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "user-approval@3.0.0"
+      ],
+      "testIds": [
+        "REQ-6"
       ],
       "confidence": "high"
     }

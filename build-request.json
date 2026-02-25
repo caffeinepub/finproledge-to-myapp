@@ -1,56 +1,174 @@
 {
   "kind": "build_request",
-  "title": "Restrict Admin Access to finproledge@gmail.com Only",
-  "projectName": "FINPROLEDGE Portal",
+  "title": "Client visibility and self-service for To-Dos, Timelines, Follow-Ups, and Deadlines",
+  "projectName": "FINPROLEDGE",
   "priority": "high",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Update the AdminGuard component to allow admin access exclusively to the email address finproledge@gmail.com. Any authenticated user whose profile email does not exactly match finproledge@gmail.com must be shown an 'Access Denied' state and prevented from viewing any admin-only pages or content.",
-      "target": "frontend",
+      "text": "Extend the backend data models for ToDoItem, TimelineEntry, FollowUpItem, and DeadlineRecord to include an optional `clientPrincipal` field (already present on some models per CreateToDoForm and CreateFollowUpForm). Ensure all four types consistently store the assigned client principal so items can be filtered per client.",
+      "target": "backend",
       "source": {
         "messageIds": [
-          "msg-4"
+          "msg-6"
         ],
         "quotes": [
-          "Provide Admin Access only to this Email finproledge@gmail.com"
+          "Any To do Added by the Admin for a Client would be shown to the Respective Client"
         ]
       },
       "acceptanceCriteria": [
-        "AdminGuard in frontend/src/components/AdminGuard.tsx only grants access when the authenticated user's email is exactly 'finproledge@gmail.com'.",
-        "Any other authenticated user visiting an admin-protected route sees an 'Access Denied' message.",
-        "Unauthenticated users are still redirected to log in before the email check occurs.",
-        "The admin navigation links in Navigation.tsx are only visible to the user with email finproledge@gmail.com.",
-        "The isCallerAdmin check used in Navigation.tsx and other components is consistent with the finproledge@gmail.com restriction."
+        "ToDoItem, TimelineEntry, FollowUpItem, and DeadlineRecord each have an optional clientPrincipal field",
+        "Existing records without a clientPrincipal remain accessible to admins without regression"
       ]
     },
     {
       "id": "REQ-2",
-      "text": "Ensure the backend isCallerAdmin authorization logic recognizes only the principal associated with the Internet Identity linked to finproledge@gmail.com as an admin. All admin-gated backend methods must reject calls from any other principal.",
+      "text": "Add backend query functions `getMyToDos`, `getMyTimelines`, `getMyFollowUps`, and `getMyDeadlines` that return only the records where `clientPrincipal` matches the caller's principal OR where the record was created by the caller themselves (client-self-created items). These functions must be callable by any authenticated user (not admin-only).",
       "target": "backend",
       "source": {
         "messageIds": [
-          "msg-4"
+          "msg-6"
         ],
         "quotes": [
-          "Provide Admin Access only to this Email finproledge@gmail.com"
+          "Any To do Added by the Admin for a Client would be shown to the Respective Client",
+          "Any Client itself can add a to do"
         ]
       },
       "acceptanceCriteria": [
-        "The backend admin authorization mixin or actor exposes an isCallerAdmin query that returns true only for the designated admin principal.",
-        "All admin-only update/query methods return an authorization error for non-admin callers.",
-        "No other email or principal is granted admin privileges."
+        "getMyToDos returns to-dos assigned to the caller by admin plus to-dos the caller created themselves",
+        "getMyTimelines, getMyFollowUps, getMyDeadlines behave identically for their respective types",
+        "A client cannot see items assigned to a different client principal",
+        "Admin can still query all items via existing admin-only functions"
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "text": "Add backend mutation functions `createClientToDo`, `createClientTimeline`, `createClientFollowUp`, and `createClientDeadline` that allow any authenticated client to create their own items. These records must automatically set `clientPrincipal` to the caller's principal so they appear in the caller's own filtered queries.",
+      "target": "backend",
+      "source": {
+        "messageIds": [
+          "msg-6"
+        ],
+        "quotes": [
+          "Any Client itself can add a to do. This applies Similarly for Timeline, Follow-Up, Deadlines."
+        ]
+      },
+      "acceptanceCriteria": [
+        "An authenticated non-admin user can successfully call createClientToDo and the item appears in their getMyToDos result",
+        "Same applies for Timeline, FollowUp, and Deadline client creation functions",
+        "The created item is visible to the admin in the existing admin list queries"
+      ]
+    },
+    {
+      "id": "REQ-4",
+      "text": "Update the `useComplianceAdmin` hook (or create a new `useClientCompliance` hook) to expose React Query hooks for `getMyToDos`, `getMyTimelines`, `getMyFollowUps`, `getMyDeadlines`, and the four new client-create mutations. These hooks must be usable from client-facing pages.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-6"
+        ],
+        "quotes": [
+          "Any To do Added by the Admin for a Client would be shown to the Respective Client"
+        ]
+      },
+      "acceptanceCriteria": [
+        "A new or updated hook file exports useGetMyToDos, useGetMyTimelines, useGetMyFollowUps, useGetMyDeadlines query hooks",
+        "The hook file also exports useCreateClientToDo, useCreateClientTimeline, useCreateClientFollowUp, useCreateClientDeadline mutation hooks",
+        "On mutation success, the corresponding 'getMyX' query is invalidated and refetched"
+      ]
+    },
+    {
+      "id": "REQ-5",
+      "text": "Add a new 'Tasks & Deadlines' (or 'My Tasks') tab to the ComplianceDashboardPage (the client-facing compliance page) that displays four sub-tabs or sections: To-Dos, Timeline, Follow-Ups, and Deadlines. Each section must list items returned by the corresponding `getMyX` query, showing title, description, due date, status, and priority where applicable.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-6"
+        ],
+        "quotes": [
+          "Any To do Added by the Admin for a Client would be shown to the Respective Client",
+          "This applies Similarly for Timeline, Follow-Up, Deadlines."
+        ]
+      },
+      "acceptanceCriteria": [
+        "Client can navigate to the Tasks & Deadlines tab on the compliance dashboard",
+        "To-Dos section shows all to-dos assigned to this client by admin plus ones the client created",
+        "Timeline section shows timeline entries assigned to or created by this client",
+        "Follow-Ups section shows follow-up items assigned to or created by this client",
+        "Deadlines section shows deadline records assigned to or created by this client",
+        "Each section shows a meaningful empty state when no items exist",
+        "Loading skeletons are shown while data is fetching"
+      ]
+    },
+    {
+      "id": "REQ-6",
+      "text": "Within each section of the client-facing Tasks & Deadlines tab (To-Dos, Timeline, Follow-Ups, Deadlines), add an 'Add' button that opens a form dialog allowing the client to create their own item of that type. The form fields should be consistent with the existing CreateToDoForm, CreateTimelineForm, CreateFollowUpForm, and CreateDeadlineForm components but should not expose admin-only fields (e.g., assigned client principal selector).",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-6"
+        ],
+        "quotes": [
+          "Any Client itself can add a to do. This applies Similarly for Timeline, Follow-Up, Deadlines."
+        ]
+      },
+      "acceptanceCriteria": [
+        "Client can open an 'Add To-Do' dialog and successfully submit a new to-do",
+        "Client can open an 'Add Timeline Entry' dialog and successfully submit a new timeline entry",
+        "Client can open an 'Add Follow-Up' dialog and successfully submit a new follow-up",
+        "Client can open an 'Add Deadline' dialog and successfully submit a new deadline",
+        "After submission the new item appears immediately in the respective list without a full page reload",
+        "The client principal selector (assign-to-client field) is not shown in client-facing forms"
+      ]
+    },
+    {
+      "id": "REQ-7",
+      "text": "In the admin-facing ComplianceAdminDashboardPage, when an admin creates a To-Do, Timeline, Follow-Up, or Deadline using the existing create forms, the admin must be able to optionally assign the item to a specific client by selecting or entering a client principal. Items assigned to a client must appear in that client's `getMyX` queries. This assignment field should be present in the CreateToDoForm, CreateTimelineForm, CreateFollowUpForm, and CreateDeadlineForm (some already have it; ensure all four have it consistently).",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-6"
+        ],
+        "quotes": [
+          "Any To do Added by the Admin for a Client would be shown to the Respective Client"
+        ]
+      },
+      "acceptanceCriteria": [
+        "All four admin create forms (ToDoForm, TimelineForm, FollowUpForm, DeadlineForm) have an optional 'Assign to Client (Principal)' input field",
+        "When an admin creates an item with a client principal filled in, that item appears in the respective client's getMyX list",
+        "When the client principal field is left empty, the item is admin-only and does not appear in any client's list"
+      ]
+    },
+    {
+      "id": "REQ-8",
+      "text": "Generate a migration module (`backend/migration.mo`) to safely migrate existing state, adding the `clientPrincipal` optional field to any existing ToDoItem, TimelineEntry, FollowUpItem, and DeadlineRecord records that do not already have it, defaulting to `null`.",
+      "target": "backend",
+      "source": {
+        "messageIds": [
+          "msg-6"
+        ],
+        "quotes": [
+          "Any To do Added by the Admin for a Client would be shown to the Respective Client"
+        ]
+      },
+      "acceptanceCriteria": [
+        "The migration.mo run function successfully upgrades old state without data loss",
+        "All pre-existing records have clientPrincipal set to null after migration",
+        "No existing admin-visible records are removed or corrupted by the migration"
       ]
     }
   ],
   "constraints": [
-    "Do not modify any files listed under frontend.immutablePaths.",
-    "The only permitted admin email is finproledge@gmail.com — no other emails or principals should receive admin access."
+    "Do not break existing admin CRUD operations for To-Dos, Timelines, Follow-Ups, and Deadlines",
+    "Do not edit files under frontend/src/hooks/useInternetIdentity.ts, frontend/src/hooks/useActor.ts, frontend/src/main.tsx, or frontend/src/components/ui",
+    "Client-facing query functions must only return records belonging to the authenticated caller — never expose other clients' data",
+    "Keep all Motoko logic in the single main actor (backend/main.mo)"
   ],
   "nonGoals": [
-    "Adding support for multiple admin accounts or roles.",
-    "Building an admin management UI to add/remove admins dynamically.",
-    "Changing any non-admin-related functionality or UI."
+    "Redesigning the admin compliance dashboard UI",
+    "Adding real-time notifications when admin assigns an item to a client",
+    "Allowing clients to edit or delete admin-created items assigned to them",
+    "Role management or new user permission levels beyond existing admin/client distinction"
   ],
   "imageRequirements": {
     "required": [],

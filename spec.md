@@ -1,12 +1,16 @@
 # Specification
 
 ## Summary
-**Goal:** Restrict admin access in both the frontend and backend exclusively to the email address finproledge@gmail.com.
+**Goal:** Enable clients to view and self-create To-Dos, Timeline entries, Follow-Ups, and Deadlines assigned to them by admins or created by themselves, while admins retain the ability to assign items to specific clients.
 
 **Planned changes:**
-- Update `AdminGuard` component to only grant admin access when the authenticated user's email exactly matches `finproledge@gmail.com`, showing an "Access Denied" state for all other users.
-- Update `Navigation.tsx` so admin navigation links are only visible to the user with email `finproledge@gmail.com`.
-- Ensure the `isCallerAdmin` check across frontend components is consistent with the `finproledge@gmail.com` restriction.
-- Update backend admin authorization logic so that only the principal associated with `finproledge@gmail.com` is recognized as admin, and all admin-gated methods reject any other caller.
+- Extend backend data models (ToDoItem, TimelineEntry, FollowUpItem, DeadlineRecord) to consistently include an optional `clientPrincipal` field
+- Add backend query functions `getMyToDos`, `getMyTimelines`, `getMyFollowUps`, and `getMyDeadlines` that return only records belonging to the authenticated caller
+- Add backend mutation functions `createClientToDo`, `createClientTimeline`, `createClientFollowUp`, and `createClientDeadline` for authenticated clients to create their own items
+- Create a `useClientCompliance` hook exposing React Query hooks for the new query and mutation functions, with cache invalidation on mutation success
+- Add a "Tasks & Deadlines" tab to the client-facing ComplianceDashboardPage with four sections (To-Dos, Timeline, Follow-Ups, Deadlines), each showing assigned/self-created items with loading skeletons and empty states
+- Add an "Add" button in each section of the client-facing tab that opens a simplified form dialog (without the client principal selector) for self-creating items
+- Ensure all four admin create forms (ToDoForm, TimelineForm, FollowUpForm, DeadlineForm) have an optional "Assign to Client (Principal)" input field
+- Add a migration module (`backend/migration.mo`) to set `clientPrincipal` to null on all pre-existing records
 
-**User-visible outcome:** Only the user logged in with finproledge@gmail.com can access admin pages and see admin navigation links; all other authenticated users see an "Access Denied" message on admin routes.
+**User-visible outcome:** Clients can log in and see a "Tasks & Deadlines" tab on their compliance dashboard showing items assigned to them by admins as well as items they created themselves, and can add new To-Dos, Timeline entries, Follow-Ups, and Deadlines directly. Admins can optionally assign any newly created item to a specific client principal.

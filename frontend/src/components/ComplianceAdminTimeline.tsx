@@ -1,11 +1,23 @@
-import { useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { BarChart2 } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { BarChart2, Plus, Calendar } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { useGetAllComplianceDeliverables } from '../hooks/useDeliverables';
-import { DeliverableStatus } from '../backend';
+import { useGetAllTimelines } from '../hooks/useComplianceAdmin';
+import { DeliverableStatus, TimelineStatus } from '../backend';
+import CreateTimelineForm from './CreateTimelineForm';
 
-function getStatusColor(status: DeliverableStatus): string {
+function getDeliverableStatusColor(status: DeliverableStatus): string {
   switch (status) {
     case DeliverableStatus.drafting: return '#94a3b8';
     case DeliverableStatus.inReview: return '#3b82f6';
@@ -16,7 +28,7 @@ function getStatusColor(status: DeliverableStatus): string {
   }
 }
 
-function getStatusLabel(status: DeliverableStatus): string {
+function getDeliverableStatusLabel(status: DeliverableStatus): string {
   switch (status) {
     case DeliverableStatus.drafting: return 'Drafting';
     case DeliverableStatus.inReview: return 'In Review';
@@ -27,8 +39,30 @@ function getStatusLabel(status: DeliverableStatus): string {
   }
 }
 
+function getTimelineStatusLabel(status: TimelineStatus): string {
+  switch (status) {
+    case TimelineStatus.planned: return 'Planned';
+    case TimelineStatus.inProgress: return 'In Progress';
+    case TimelineStatus.completed: return 'Completed';
+    default: return 'Unknown';
+  }
+}
+
+function getTimelineStatusColor(status: TimelineStatus): string {
+  switch (status) {
+    case TimelineStatus.planned: return 'bg-gray-100 text-gray-700 border-gray-200';
+    case TimelineStatus.inProgress: return 'bg-blue-100 text-blue-700 border-blue-200';
+    case TimelineStatus.completed: return 'bg-green-100 text-green-700 border-green-200';
+    default: return 'bg-gray-100 text-gray-700 border-gray-200';
+  }
+}
+
 export default function ComplianceAdminTimeline() {
-  const { data: deliverables, isLoading } = useGetAllComplianceDeliverables();
+  const { data: deliverables, isLoading: delivLoading } = useGetAllComplianceDeliverables();
+  const { data: timelines, isLoading: timelineLoading } = useGetAllTimelines();
+  const [dialogOpen, setDialogOpen] = useState(false);
+
+  const isLoading = delivLoading || timelineLoading;
 
   // Group deliverables by month
   const monthlyData = useMemo(() => {
@@ -56,7 +90,7 @@ export default function ComplianceAdminTimeline() {
 
       const byStatus: Record<string, number> = {};
       tasks.forEach(t => {
-        const label = getStatusLabel(t.status);
+        const label = getDeliverableStatusLabel(t.status);
         byStatus[label] = (byStatus[label] || 0) + 1;
       });
 
@@ -103,151 +137,249 @@ export default function ComplianceAdminTimeline() {
     return Math.max(0, Math.min(100, ((due.getTime() - timelineStart.getTime()) / totalMs) * 100));
   }
 
+  // Sort admin timeline entries by start date
+  const sortedTimelines = useMemo(() => {
+    if (!timelines) return [];
+    return [...timelines].sort((a, b) => Number(a.startDate) - Number(b.startDate));
+  }, [timelines]);
+
   return (
-    <div className="space-y-6">
-      {/* Monthly Workload Chart */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <BarChart2 className="h-5 w-5 text-primary" />
-            Monthly Workload Overview
-          </CardTitle>
-          <CardDescription>
-            Number of tasks due each month. Taller bars indicate busier periods.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <Skeleton className="h-48 w-full" />
-          ) : (
-            <div className="space-y-4">
-              {/* Bar Chart */}
-              <div className="flex items-end gap-3 h-48 px-2">
-                {monthlyData.map(month => {
-                  const heightPct = maxTasks > 0 ? (month.total / maxTasks) * 100 : 0;
-                  const isCurrentMonth = month.date.getMonth() === new Date().getMonth() &&
-                    month.date.getFullYear() === new Date().getFullYear();
-                  return (
-                    <div key={month.key} className="flex-1 flex flex-col items-center gap-1">
-                      <span className="text-xs font-medium text-foreground">{month.total > 0 ? month.total : ''}</span>
-                      <div className="w-full flex flex-col justify-end" style={{ height: '160px' }}>
-                        <div
-                          className={`w-full rounded-t-md transition-all ${isCurrentMonth ? 'bg-primary' : 'bg-primary/40'}`}
-                          style={{ height: `${Math.max(heightPct, month.total > 0 ? 8 : 0)}%` }}
-                          title={`${month.total} tasks`}
-                        />
-                      </div>
-                      <span className={`text-xs ${isCurrentMonth ? 'font-bold text-primary' : 'text-muted-foreground'}`}>
-                        {month.label}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
+    <>
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Add Timeline Entry</DialogTitle>
+            <DialogDescription>
+              Create a new timeline entry to track project phases and milestones.
+            </DialogDescription>
+          </DialogHeader>
+          <CreateTimelineForm onSuccess={() => setDialogOpen(false)} />
+        </DialogContent>
+      </Dialog>
 
-              {/* Legend */}
-              <div className="flex items-center gap-4 text-xs text-muted-foreground pt-2 border-t">
-                <div className="flex items-center gap-1.5">
-                  <div className="w-3 h-3 rounded bg-primary" />
-                  <span>Current month</span>
+      <div className="space-y-6">
+        {/* Admin Timeline Entries */}
+        {(timelines && timelines.length > 0) && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Calendar className="h-5 w-5 text-primary" />
+                Admin Timeline Entries
+              </CardTitle>
+              <CardDescription>
+                Timeline entries created by the admin for project tracking.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {timelineLoading ? (
+                <div className="space-y-3">
+                  {[1, 2, 3].map(i => <Skeleton key={i} className="h-12 w-full" />)}
                 </div>
-                <div className="flex items-center gap-1.5">
-                  <div className="w-3 h-3 rounded bg-primary/40" />
-                  <span>Other months</span>
+              ) : (
+                <div className="rounded-md border overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Title</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Start Date</TableHead>
+                        <TableHead>End Date</TableHead>
+                        <TableHead>Task Ref</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {sortedTimelines.map(entry => {
+                        const startMs = Number(entry.startDate) / 1_000_000;
+                        const endMs = Number(entry.endDate) / 1_000_000;
+                        const startStr = new Date(startMs).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+                        const endStr = new Date(endMs).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+                        return (
+                          <TableRow key={entry.id.toString()}>
+                            <TableCell>
+                              <div>
+                                <p className="font-medium text-sm">{entry.title}</p>
+                                {entry.description && (
+                                  <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{entry.description}</p>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${getTimelineStatusColor(entry.status)}`}>
+                                {getTimelineStatusLabel(entry.status)}
+                              </span>
+                            </TableCell>
+                            <TableCell className="text-sm">{startStr}</TableCell>
+                            <TableCell className="text-sm">{endStr}</TableCell>
+                            <TableCell className="text-sm text-muted-foreground">
+                              {entry.taskReference != null ? `#${entry.taskReference}` : '—'}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
                 </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Monthly Workload Chart */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <BarChart2 className="h-5 w-5 text-primary" />
+                  Monthly Workload Overview
+                </CardTitle>
+                <CardDescription>
+                  Number of tasks due each month. Taller bars indicate busier periods.
+                </CardDescription>
               </div>
+              <Button
+                onClick={() => setDialogOpen(true)}
+                size="sm"
+                className="shrink-0 flex items-center gap-1.5"
+              >
+                <Plus className="h-4 w-4" />
+                Add Timeline Entry
+              </Button>
             </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Gantt-style Timeline */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <BarChart2 className="h-5 w-5 text-primary" />
-            Task Timeline
-          </CardTitle>
-          <CardDescription>
-            Visual timeline of all tasks plotted by due date. Identify busy periods at a glance.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="space-y-3">
-              {[1, 2, 3].map(i => <Skeleton key={i} className="h-8 w-full" />)}
-            </div>
-          ) : sortedTasks.length === 0 ? (
-            <div className="text-center py-10 text-muted-foreground">
-              <BarChart2 className="h-10 w-10 mx-auto mb-3 opacity-30" />
-              <p>No tasks to display on the timeline.</p>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {/* Timeline header */}
-              <div className="relative h-6 mb-4">
-                <div className="absolute left-0 text-xs text-muted-foreground">
-                  {timelineStart.toLocaleDateString('en-GB', { month: 'short', year: '2-digit' })}
-                </div>
-                <div className="absolute right-0 text-xs text-muted-foreground">
-                  {timelineEnd.toLocaleDateString('en-GB', { month: 'short', year: '2-digit' })}
-                </div>
-                {/* Today marker */}
-                <div
-                  className="absolute top-0 bottom-0 w-0.5 bg-red-400"
-                  style={{ left: `${getBarLeft(BigInt(new Date().getTime() * 1_000_000))}%` }}
-                >
-                  <span className="absolute -top-5 -translate-x-1/2 text-xs text-red-500 font-medium whitespace-nowrap">Today</span>
-                </div>
-              </div>
-
-              {/* Task rows */}
-              <div className="space-y-1.5 max-h-80 overflow-y-auto pr-1">
-                {sortedTasks.map(task => {
-                  const left = getBarLeft(task.dueDate);
-                  const dueDateStr = new Date(Number(task.dueDate) / 1_000_000).toLocaleDateString('en-GB', {
-                    day: 'numeric', month: 'short',
-                  });
-                  return (
-                    <div key={task.id.toString()} className="flex items-center gap-2">
-                      <div className="w-32 shrink-0 text-xs text-muted-foreground truncate" title={task.title}>
-                        {task.title}
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <Skeleton className="h-48 w-full" />
+            ) : (
+              <div className="space-y-4">
+                {/* Bar Chart */}
+                <div className="flex items-end gap-3 h-48 px-2">
+                  {monthlyData.map(month => {
+                    const heightPct = maxTasks > 0 ? (month.total / maxTasks) * 100 : 0;
+                    const isCurrentMonth = month.date.getMonth() === new Date().getMonth() &&
+                      month.date.getFullYear() === new Date().getFullYear();
+                    return (
+                      <div key={month.key} className="flex-1 flex flex-col items-center gap-1">
+                        <span className="text-xs font-medium text-foreground">{month.total > 0 ? month.total : ''}</span>
+                        <div className="w-full flex flex-col justify-end" style={{ height: '160px' }}>
+                          <div
+                            className={`w-full rounded-t-md transition-all ${isCurrentMonth ? 'bg-primary' : 'bg-primary/40'}`}
+                            style={{ height: `${Math.max(heightPct, month.total > 0 ? 8 : 0)}%` }}
+                            title={`${month.total} tasks`}
+                          />
+                        </div>
+                        <span className={`text-xs ${isCurrentMonth ? 'font-bold text-primary' : 'text-muted-foreground'}`}>
+                          {month.label}
+                        </span>
                       </div>
-                      <div className="flex-1 relative h-6 bg-muted rounded">
-                        <div
-                          className="absolute top-1 h-4 w-3 rounded-sm"
-                          style={{
-                            left: `calc(${left}% - 6px)`,
-                            backgroundColor: getStatusColor(task.status),
-                          }}
-                          title={`${task.title} — Due ${dueDateStr}`}
-                        />
-                      </div>
-                      <div className="w-16 shrink-0 text-xs text-muted-foreground text-right">{dueDateStr}</div>
-                    </div>
-                  );
-                })}
-              </div>
+                    );
+                  })}
+                </div>
 
-              {/* Status legend */}
-              <div className="flex flex-wrap gap-3 pt-3 border-t text-xs">
-                {[
-                  { status: DeliverableStatus.drafting, label: 'Drafting' },
-                  { status: DeliverableStatus.inReview, label: 'In Review' },
-                  { status: DeliverableStatus.completed, label: 'Completed' },
-                  { status: DeliverableStatus.approved, label: 'Approved' },
-                  { status: DeliverableStatus.rejected, label: 'Rejected' },
-                ].map(({ status, label }) => (
-                  <div key={status} className="flex items-center gap-1.5">
-                    <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: getStatusColor(status) }} />
-                    <span className="text-muted-foreground">{label}</span>
+                {/* Legend */}
+                <div className="flex items-center gap-4 text-xs text-muted-foreground pt-2 border-t">
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-3 h-3 rounded bg-primary" />
+                    <span>Current month</span>
                   </div>
-                ))}
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-3 h-3 rounded bg-primary/40" />
+                    <span>Other months</span>
+                  </div>
+                </div>
               </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Gantt-style Timeline */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <BarChart2 className="h-5 w-5 text-primary" />
+              Task Timeline
+            </CardTitle>
+            <CardDescription>
+              Visual timeline of all tasks plotted by due date. Identify busy periods at a glance.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <div className="space-y-3">
+                {[1, 2, 3].map(i => <Skeleton key={i} className="h-8 w-full" />)}
+              </div>
+            ) : sortedTasks.length === 0 ? (
+              <div className="text-center py-10 text-muted-foreground">
+                <BarChart2 className="h-10 w-10 mx-auto mb-3 opacity-30" />
+                <p>No tasks to display on the timeline.</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {/* Timeline header */}
+                <div className="relative h-6 mb-4">
+                  <div className="absolute left-0 text-xs text-muted-foreground">
+                    {timelineStart.toLocaleDateString('en-GB', { month: 'short', year: '2-digit' })}
+                  </div>
+                  <div className="absolute right-0 text-xs text-muted-foreground">
+                    {timelineEnd.toLocaleDateString('en-GB', { month: 'short', year: '2-digit' })}
+                  </div>
+                  {/* Today marker */}
+                  <div
+                    className="absolute top-0 bottom-0 w-0.5 bg-red-400"
+                    style={{ left: `${getBarLeft(BigInt(new Date().getTime() * 1_000_000))}%` }}
+                  >
+                    <span className="absolute -top-5 -translate-x-1/2 text-xs text-red-500 font-medium whitespace-nowrap">Today</span>
+                  </div>
+                </div>
+
+                {/* Task rows */}
+                <div className="space-y-1.5 max-h-80 overflow-y-auto pr-1">
+                  {sortedTasks.map(task => {
+                    const left = getBarLeft(task.dueDate);
+                    const dueDateStr = new Date(Number(task.dueDate) / 1_000_000).toLocaleDateString('en-GB', {
+                      day: 'numeric', month: 'short',
+                    });
+                    return (
+                      <div key={task.id.toString()} className="flex items-center gap-2">
+                        <div className="w-32 shrink-0 text-xs text-muted-foreground truncate" title={task.title}>
+                          {task.title}
+                        </div>
+                        <div className="flex-1 relative h-6 bg-muted/30 rounded">
+                          <div
+                            className="absolute top-1/2 -translate-y-1/2 w-3 h-3 rounded-full border-2 border-white shadow-sm"
+                            style={{
+                              left: `calc(${left}% - 6px)`,
+                              backgroundColor: getDeliverableStatusColor(task.status),
+                            }}
+                            title={`${task.title} — ${dueDateStr}`}
+                          />
+                        </div>
+                        <div className="w-16 shrink-0 text-xs text-muted-foreground text-right">{dueDateStr}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Status legend */}
+                <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground pt-3 border-t">
+                  {[
+                    { label: 'Drafting', color: '#94a3b8' },
+                    { label: 'In Review', color: '#3b82f6' },
+                    { label: 'Completed', color: '#22c55e' },
+                    { label: 'Approved', color: '#10b981' },
+                    { label: 'Rejected', color: '#ef4444' },
+                  ].map(s => (
+                    <div key={s.label} className="flex items-center gap-1.5">
+                      <div className="w-3 h-3 rounded-full border-2 border-white shadow-sm" style={{ backgroundColor: s.color }} />
+                      <span>{s.label}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </>
   );
 }

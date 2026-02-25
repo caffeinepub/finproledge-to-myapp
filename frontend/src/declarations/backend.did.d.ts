@@ -51,6 +51,19 @@ export interface ComplianceDeliverable {
   'dueDate' : Time,
   'deliverableType' : DeliverableType,
 }
+export interface DeadlineRecord {
+  'id' : bigint,
+  'status' : DeadlineStatus,
+  'title' : string,
+  'urgencyLevel' : UrgencyLevel,
+  'dueDate' : Time,
+  'description' : string,
+  'clientPrincipal' : [] | [Principal],
+  'deliverableReference' : [] | [bigint],
+}
+export type DeadlineStatus = { 'active' : null } |
+  { 'completed' : null } |
+  { 'missed' : null };
 export type DeliverableStatus = { 'completed' : null } |
   { 'approved' : null } |
   { 'inReview' : null } |
@@ -64,6 +77,18 @@ export type DocumentType = { 'payrollReport' : null } |
   { 'auditDoc' : null } |
   { 'taxFiling' : null };
 export type ExternalBlob = Uint8Array;
+export interface FollowUpItem {
+  'id' : bigint,
+  'status' : FollowUpStatus,
+  'title' : string,
+  'dueDate' : Time,
+  'description' : string,
+  'clientPrincipal' : [] | [Principal],
+  'notes' : string,
+  'clientReference' : [] | [Principal],
+}
+export type FollowUpStatus = { 'pending' : null } |
+  { 'completed' : null };
 export interface LeadGenerationMetrics {
   'leadQualityBreakup' : { 'low' : bigint, 'high' : bigint, 'medium' : bigint },
   'formSubmissions' : bigint,
@@ -131,6 +156,35 @@ export interface TechnicalReliabilityMetrics {
   'mobileScore' : bigint,
 }
 export type Time = bigint;
+export interface TimelineEntry {
+  'id' : bigint,
+  'status' : TimelineStatus,
+  'title' : string,
+  'endDate' : Time,
+  'description' : string,
+  'clientPrincipal' : [] | [Principal],
+  'taskReference' : [] | [bigint],
+  'startDate' : Time,
+}
+export type TimelineStatus = { 'completed' : null } |
+  { 'planned' : null } |
+  { 'inProgress' : null };
+export interface ToDoItem {
+  'id' : bigint,
+  'status' : ToDoStatus,
+  'title' : string,
+  'createdAt' : Time,
+  'description' : string,
+  'clientPrincipal' : [] | [Principal],
+  'assignedClient' : [] | [Principal],
+  'priority' : ToDoPriority,
+}
+export type ToDoPriority = { 'low' : null } |
+  { 'high' : null } |
+  { 'medium' : null };
+export type ToDoStatus = { 'pending' : null } |
+  { 'completed' : null } |
+  { 'inProgress' : null };
 export interface TrustMetrics {
   'testimonialClicks' : bigint,
   'blogEngagement' : bigint,
@@ -138,6 +192,9 @@ export interface TrustMetrics {
 }
 export type UploadDocumentResult = { 'ok' : bigint } |
   { 'notApproved' : null };
+export type UrgencyLevel = { 'low' : null } |
+  { 'high' : null } |
+  { 'medium' : null };
 export interface UserApprovalInfo {
   'status' : ApprovalStatus,
   'principal' : Principal,
@@ -179,8 +236,32 @@ export interface _SERVICE {
   '_caffeineStorageUpdateGatewayPrincipals' : ActorMethod<[], undefined>,
   '_initializeAccessControlWithSecret' : ActorMethod<[string], undefined>,
   'assignCallerUserRole' : ActorMethod<[Principal, UserRole], undefined>,
+  'createClientDeadline' : ActorMethod<
+    [string, string, Time, UrgencyLevel, DeadlineStatus],
+    bigint
+  >,
+  'createClientFollowUp' : ActorMethod<
+    [string, string, Time, FollowUpStatus, string],
+    bigint
+  >,
+  'createClientTimeline' : ActorMethod<
+    [string, string, Time, Time, TimelineStatus],
+    bigint
+  >,
+  'createClientToDo' : ActorMethod<
+    [string, string, ToDoPriority, ToDoStatus],
+    bigint
+  >,
+  'createDeadline' : ActorMethod<
+    [string, string, Time, UrgencyLevel, DeadlineStatus, [] | [bigint]],
+    bigint
+  >,
   'createDeliverable' : ActorMethod<
     [Principal, string, Time, DeliverableType],
+    bigint
+  >,
+  'createFollowUp' : ActorMethod<
+    [string, string, Time, [] | [Principal], FollowUpStatus, string],
     bigint
   >,
   'createPayment' : ActorMethod<
@@ -188,17 +269,29 @@ export interface _SERVICE {
     bigint
   >,
   'createRequest' : ActorMethod<[ServiceType, string, Time], bigint>,
+  'createTimelineEntry' : ActorMethod<
+    [string, string, Time, Time, TimelineStatus, [] | [bigint]],
+    bigint
+  >,
+  'createToDo' : ActorMethod<
+    [string, string, ToDoPriority, ToDoStatus, [] | [Principal]],
+    bigint
+  >,
   'createVisitorRequest' : ActorMethod<[ServiceRequestInput], bigint>,
   'getAdminPaymentSettings' : ActorMethod<[], [] | [AdminPaymentSettings]>,
   'getAllComplianceDeliverables' : ActorMethod<
     [],
     Array<ComplianceDeliverable>
   >,
+  'getAllDeadlines' : ActorMethod<[], Array<DeadlineRecord>>,
   'getAllDeliverables' : ActorMethod<[], Array<ComplianceDeliverable>>,
   'getAllDocuments' : ActorMethod<[], Array<ClientDocument>>,
+  'getAllFollowUps' : ActorMethod<[], Array<FollowUpItem>>,
   'getAllPayments' : ActorMethod<[], Array<PaymentRecord>>,
   'getAllRequests' : ActorMethod<[], Array<ServiceRequest>>,
   'getAllSubmittedDeliverables' : ActorMethod<[], Array<ClientDeliverable>>,
+  'getAllTimelines' : ActorMethod<[], Array<TimelineEntry>>,
+  'getAllToDos' : ActorMethod<[], Array<ToDoItem>>,
   'getCallerUserProfile' : ActorMethod<[], [] | [UserProfile]>,
   'getCallerUserRole' : ActorMethod<[], UserRole>,
   'getClientDeliverables' : ActorMethod<
@@ -207,11 +300,15 @@ export interface _SERVICE {
   >,
   'getClientRequests' : ActorMethod<[Principal], Array<ServiceRequest>>,
   'getClientSubmissions' : ActorMethod<[Principal], Array<ClientDeliverable>>,
+  'getMyDeadlines' : ActorMethod<[], Array<DeadlineRecord>>,
   'getMyDeliverables' : ActorMethod<[], Array<ComplianceDeliverable>>,
+  'getMyFollowUps' : ActorMethod<[], Array<FollowUpItem>>,
   'getMyPayments' : ActorMethod<[], Array<PaymentRecord>>,
   'getMyPendingDeliverables' : ActorMethod<[], Array<ComplianceDeliverable>>,
   'getMyRequests' : ActorMethod<[], Array<ServiceRequest>>,
   'getMySubmittedDeliverables' : ActorMethod<[], Array<ClientDeliverable>>,
+  'getMyTimelines' : ActorMethod<[], Array<TimelineEntry>>,
+  'getMyToDos' : ActorMethod<[], Array<ToDoItem>>,
   'getNewAnalyticsSummary' : ActorMethod<
     [],
     {

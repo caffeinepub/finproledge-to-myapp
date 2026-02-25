@@ -1,37 +1,15 @@
-import { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
-import { AlertTriangle, FileText, FolderOpen, Clock } from 'lucide-react';
+import { AlertTriangle, FileText, FolderOpen, Clock, ListChecks } from 'lucide-react';
 import { useGetMyDeliverables } from '../hooks/useDeliverables';
-import { ComplianceDeliverable, DeliverableStatus } from '../backend';
-import { calculateDaysRemaining, isWithinFiveDays } from '../utils/dateHelpers';
+import { DeliverableStatus } from '../backend';
+import { calculateDaysRemaining } from '../utils/dateHelpers';
 import ComplianceDocumentList from '../components/ComplianceDocumentList';
 import DeliverableCard from '../components/DeliverableCard';
-
-function getStatusLabel(status: DeliverableStatus): string {
-  switch (status) {
-    case DeliverableStatus.drafting: return 'Drafting';
-    case DeliverableStatus.inReview: return 'In Review';
-    case DeliverableStatus.completed: return 'Completed';
-    case DeliverableStatus.approved: return 'Approved';
-    case DeliverableStatus.rejected: return 'Rejected';
-    default: return 'Unknown';
-  }
-}
-
-function getStatusVariant(status: DeliverableStatus): 'default' | 'secondary' | 'destructive' | 'outline' {
-  switch (status) {
-    case DeliverableStatus.drafting: return 'secondary';
-    case DeliverableStatus.inReview: return 'default';
-    case DeliverableStatus.completed: return 'default';
-    case DeliverableStatus.approved: return 'default';
-    case DeliverableStatus.rejected: return 'destructive';
-    default: return 'outline';
-  }
-}
+import ClientTasksTab from '../components/ClientTasksTab';
 
 export default function ComplianceDashboardPage() {
   const { data: deliverables, isLoading } = useGetMyDeliverables();
@@ -47,7 +25,7 @@ export default function ComplianceDashboardPage() {
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-foreground mb-2">Compliance Dashboard</h1>
-          <p className="text-muted-foreground">Track your compliance deliverables, approvals, and documents in one place.</p>
+          <p className="text-muted-foreground">Track your compliance deliverables, tasks, and documents in one place.</p>
         </div>
 
         {/* Urgent Alerts */}
@@ -101,6 +79,10 @@ export default function ComplianceDashboardPage() {
               <Clock className="h-4 w-4" />
               My Deliverables
             </TabsTrigger>
+            <TabsTrigger value="tasks" className="flex items-center gap-2">
+              <ListChecks className="h-4 w-4" />
+              Tasks &amp; Deadlines
+            </TabsTrigger>
             <TabsTrigger value="documents" className="flex items-center gap-2">
               <FolderOpen className="h-4 w-4" />
               Documents
@@ -140,6 +122,10 @@ export default function ComplianceDashboardPage() {
                 )}
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="tasks">
+            <ClientTasksTab />
           </TabsContent>
 
           <TabsContent value="documents">
