@@ -1,35 +1,47 @@
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Download, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Download } from 'lucide-react';
-import { ClientDocument } from '../backend';
-import { formatDeadline } from '../utils/dateHelpers';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { ClientDocument, DocumentType } from '../backend';
 
 interface DocumentTableProps {
   documents: ClientDocument[];
 }
 
-export default function DocumentTable({ documents }: DocumentTableProps) {
-  const getDocTypeLabel = (docType: string) => {
-    switch (docType) {
-      case 'taxFiling':
-        return 'Tax Filing';
-      case 'payrollReport':
-        return 'Payroll Report';
-      case 'auditDoc':
-        return 'Audit Document';
-      default:
-        return docType;
-    }
+function DocTypeBadge({ docType }: { docType: DocumentType }) {
+  const map: Record<string, { label: string; className: string }> = {
+    [DocumentType.taxFiling]: { label: 'Tax Filing', className: 'bg-blue-100 text-blue-700 border-blue-200' },
+    [DocumentType.payrollReport]: { label: 'Payroll Report', className: 'bg-purple-100 text-purple-700 border-purple-200' },
+    [DocumentType.auditDoc]: { label: 'Audit Doc', className: 'bg-orange-100 text-orange-700 border-orange-200' },
   };
+  const config = map[docType as string] ?? { label: String(docType), className: '' };
+  return <Badge variant="outline" className={config.className}>{config.label}</Badge>;
+}
 
+export default function DocumentTable({ documents }: DocumentTableProps) {
   const handleDownload = (doc: ClientDocument) => {
     const url = doc.file.getDirectURL();
-    window.open(url, '_blank');
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = doc.name;
+    a.target = '_blank';
+    a.rel = 'noopener noreferrer';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
   };
 
+  if (documents.length === 0) {
+    return (
+      <div className="text-center py-12 text-muted-foreground">
+        <FileText className="w-12 h-12 mx-auto mb-4 opacity-30" />
+        <p>No documents uploaded yet.</p>
+      </div>
+    );
+  }
+
   return (
-    <div className="rounded-md border">
+    <div className="border border-border rounded-sm overflow-hidden">
       <Table>
         <TableHeader>
           <TableRow>
@@ -41,20 +53,25 @@ export default function DocumentTable({ documents }: DocumentTableProps) {
         </TableHeader>
         <TableBody>
           {documents.map((doc) => (
-            <TableRow key={doc.id.toString()}>
-              <TableCell className="font-medium">{doc.name}</TableCell>
-              <TableCell>
-                <Badge variant="outline">{getDocTypeLabel(doc.docType)}</Badge>
+            <TableRow key={String(doc.id)}>
+              <TableCell className="font-medium flex items-center gap-2">
+                <FileText className="w-4 h-4 text-muted-foreground" />
+                {doc.name}
               </TableCell>
-              <TableCell>{formatDeadline(doc.uploadedAt)}</TableCell>
+              <TableCell>
+                <DocTypeBadge docType={doc.docType} />
+              </TableCell>
+              <TableCell className="text-sm text-muted-foreground">
+                {new Date(Number(doc.uploadedAt) / 1_000_000).toLocaleDateString()}
+              </TableCell>
               <TableCell className="text-right">
                 <Button
                   size="sm"
-                  variant="ghost"
+                  variant="outline"
                   onClick={() => handleDownload(doc)}
-                  className="gap-2"
+                  className="gap-1"
                 >
-                  <Download className="h-4 w-4" />
+                  <Download className="w-3 h-3" />
                   Download
                 </Button>
               </TableCell>

@@ -1,420 +1,201 @@
 import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from '@/components/ui/dialog';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import {
-  CheckSquare,
-  Calendar,
-  Bell,
-  Clock,
-  Plus,
-  AlertTriangle,
-} from 'lucide-react';
-import {
-  useGetMyToDos,
-  useGetMyTimelines,
-  useGetMyFollowUps,
-  useGetMyDeadlines,
-} from '../hooks/useComplianceAdmin';
-import {
-  ToDoItem,
-  TimelineEntry,
-  FollowUpItem,
-  DeadlineRecord,
-  UrgencyLevel,
-} from '../backend';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useGetMyToDos, useGetMyTimelines, useGetMyFollowUps, ToDoPriority } from '../hooks/useComplianceAdmin';
+import { ToDoStatusSelect, TimelineStatusSelect, FollowUpStatusSelect } from './TaskStatusSelect';
 import ClientCreateToDoForm from './ClientCreateToDoForm';
 import ClientCreateTimelineForm from './ClientCreateTimelineForm';
 import ClientCreateFollowUpForm from './ClientCreateFollowUpForm';
-import ClientCreateDeadlineForm from './ClientCreateDeadlineForm';
-import {
-  ToDoStatusSelect,
-  TimelineStatusSelect,
-  FollowUpStatusSelect,
-  DeadlineStatusSelect,
-} from './TaskStatusSelect';
+import { ToDoItem, TimelineEntry, FollowUpItem, ToDoStatus, TimelineStatus, FollowUpStatus } from '../backend';
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-
-function formatDate(ns: bigint): string {
-  const ms = Number(ns) / 1_000_000;
-  return new Date(ms).toLocaleDateString('en-GB', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  });
+function PriorityBadge({ priority }: { priority: unknown }) {
+  const p = priority as unknown as ToDoPriority;
+  const map: Record<string, { label: string; className: string }> = {
+    high: { label: 'High', className: 'bg-red-100 text-red-700 border-red-200' },
+    medium: { label: 'Medium', className: 'bg-yellow-100 text-yellow-700 border-yellow-200' },
+    low: { label: 'Low', className: 'bg-green-100 text-green-700 border-green-200' },
+  };
+  const config = map[p as string] ?? { label: String(p), className: '' };
+  return <Badge variant="outline" className={config.className}>{config.label}</Badge>;
 }
 
-function PriorityBadge({ priority }: { priority: string }) {
-  switch (priority) {
-    case 'high':
-      return <Badge variant="destructive">High</Badge>;
-    case 'medium':
-      return <Badge variant="default" className="bg-amber-500 hover:bg-amber-600">Medium</Badge>;
-    case 'low':
-      return <Badge variant="secondary">Low</Badge>;
-    default:
-      return <Badge variant="outline">{priority}</Badge>;
-  }
+function formatDate(ts: bigint) {
+  return new Date(Number(ts) / 1_000_000).toLocaleDateString();
 }
-
-function UrgencyBadge({ level }: { level: UrgencyLevel }) {
-  switch (level) {
-    case UrgencyLevel.high:
-      return <Badge variant="destructive"><AlertTriangle className="h-3 w-3 mr-1" />High</Badge>;
-    case UrgencyLevel.medium:
-      return <Badge variant="default" className="bg-amber-500 hover:bg-amber-600">Medium</Badge>;
-    case UrgencyLevel.low:
-      return <Badge variant="secondary">Low</Badge>;
-    default:
-      return <Badge variant="outline">{level}</Badge>;
-  }
-}
-
-function LoadingRows({ cols }: { cols: number }) {
-  return (
-    <>
-      {[1, 2, 3].map(i => (
-        <TableRow key={i}>
-          {Array.from({ length: cols }).map((_, j) => (
-            <TableCell key={j}>
-              <Skeleton className="h-4 w-full" />
-            </TableCell>
-          ))}
-        </TableRow>
-      ))}
-    </>
-  );
-}
-
-function EmptyState({ icon: Icon, message }: { icon: React.ElementType; message: string }) {
-  return (
-    <div className="text-center py-10 text-muted-foreground">
-      <Icon className="h-10 w-10 mx-auto mb-3 opacity-30" />
-      <p className="text-sm">{message}</p>
-    </div>
-  );
-}
-
-// ─── Section Components ───────────────────────────────────────────────────────
-
-function ToDoSection() {
-  const { data: todos, isLoading } = useGetMyToDos();
-  const [open, setOpen] = useState(false);
-
-  return (
-    <Card>
-      <CardHeader className="flex flex-row items-start justify-between gap-4">
-        <div>
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <CheckSquare className="h-5 w-5 text-primary" />
-            To-Do List
-          </CardTitle>
-          <CardDescription>Tasks assigned to you or created by you. Use the dropdown to change status.</CardDescription>
-        </div>
-        <Button size="sm" onClick={() => setOpen(true)} className="shrink-0">
-          <Plus className="h-4 w-4 mr-1" />
-          Add To-Do
-        </Button>
-      </CardHeader>
-      <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Title</TableHead>
-              <TableHead className="hidden md:table-cell">Description</TableHead>
-              <TableHead>Priority</TableHead>
-              <TableHead>Change Status</TableHead>
-              <TableHead className="hidden sm:table-cell">Created</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
-              <LoadingRows cols={5} />
-            ) : !todos || todos.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={5}>
-                  <EmptyState icon={CheckSquare} message="No to-do items yet. Add one to get started." />
-                </TableCell>
-              </TableRow>
-            ) : (
-              todos.map((todo: ToDoItem) => (
-                <TableRow key={todo.id.toString()}>
-                  <TableCell className="font-medium">{todo.title}</TableCell>
-                  <TableCell className="text-muted-foreground max-w-xs truncate hidden md:table-cell">
-                    {todo.description || '—'}
-                  </TableCell>
-                  <TableCell>
-                    <PriorityBadge priority={todo.priority as unknown as string} />
-                  </TableCell>
-                  <TableCell>
-                    <ToDoStatusSelect taskId={todo.id} currentStatus={todo.status} />
-                  </TableCell>
-                  <TableCell className="text-muted-foreground text-sm hidden sm:table-cell">
-                    {formatDate(todo.createdAt)}
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </CardContent>
-
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Add To-Do</DialogTitle>
-            <DialogDescription>Create a new to-do item for yourself.</DialogDescription>
-          </DialogHeader>
-          <ClientCreateToDoForm onSuccess={() => setOpen(false)} />
-        </DialogContent>
-      </Dialog>
-    </Card>
-  );
-}
-
-function TimelineSection() {
-  const { data: timelines, isLoading } = useGetMyTimelines();
-  const [open, setOpen] = useState(false);
-
-  return (
-    <Card>
-      <CardHeader className="flex flex-row items-start justify-between gap-4">
-        <div>
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <Calendar className="h-5 w-5 text-primary" />
-            Timeline
-          </CardTitle>
-          <CardDescription>Timeline entries assigned to you or created by you. Use the dropdown to change status.</CardDescription>
-        </div>
-        <Button size="sm" onClick={() => setOpen(true)} className="shrink-0">
-          <Plus className="h-4 w-4 mr-1" />
-          Add Entry
-        </Button>
-      </CardHeader>
-      <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Title</TableHead>
-              <TableHead className="hidden md:table-cell">Description</TableHead>
-              <TableHead className="hidden sm:table-cell">Start Date</TableHead>
-              <TableHead className="hidden sm:table-cell">End Date</TableHead>
-              <TableHead>Change Status</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
-              <LoadingRows cols={5} />
-            ) : !timelines || timelines.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={5}>
-                  <EmptyState icon={Calendar} message="No timeline entries yet. Add one to get started." />
-                </TableCell>
-              </TableRow>
-            ) : (
-              timelines.map((entry: TimelineEntry) => (
-                <TableRow key={entry.id.toString()}>
-                  <TableCell className="font-medium">{entry.title}</TableCell>
-                  <TableCell className="text-muted-foreground max-w-xs truncate hidden md:table-cell">
-                    {entry.description || '—'}
-                  </TableCell>
-                  <TableCell className="text-sm hidden sm:table-cell">{formatDate(entry.startDate)}</TableCell>
-                  <TableCell className="text-sm hidden sm:table-cell">{formatDate(entry.endDate)}</TableCell>
-                  <TableCell>
-                    <TimelineStatusSelect taskId={entry.id} currentStatus={entry.status} />
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </CardContent>
-
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Add Timeline Entry</DialogTitle>
-            <DialogDescription>Create a new timeline entry for yourself.</DialogDescription>
-          </DialogHeader>
-          <ClientCreateTimelineForm onSuccess={() => setOpen(false)} />
-        </DialogContent>
-      </Dialog>
-    </Card>
-  );
-}
-
-function FollowUpSection() {
-  const { data: followUps, isLoading } = useGetMyFollowUps();
-  const [open, setOpen] = useState(false);
-
-  return (
-    <Card>
-      <CardHeader className="flex flex-row items-start justify-between gap-4">
-        <div>
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <Bell className="h-5 w-5 text-primary" />
-            Follow-Ups
-          </CardTitle>
-          <CardDescription>Follow-up items assigned to you or created by you. Use the dropdown to change status.</CardDescription>
-        </div>
-        <Button size="sm" onClick={() => setOpen(true)} className="shrink-0">
-          <Plus className="h-4 w-4 mr-1" />
-          Add Follow-Up
-        </Button>
-      </CardHeader>
-      <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Title</TableHead>
-              <TableHead className="hidden md:table-cell">Description</TableHead>
-              <TableHead className="hidden sm:table-cell">Due Date</TableHead>
-              <TableHead>Change Status</TableHead>
-              <TableHead className="hidden lg:table-cell">Notes</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
-              <LoadingRows cols={5} />
-            ) : !followUps || followUps.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={5}>
-                  <EmptyState icon={Bell} message="No follow-up items yet. Add one to get started." />
-                </TableCell>
-              </TableRow>
-            ) : (
-              followUps.map((item: FollowUpItem) => (
-                <TableRow key={item.id.toString()}>
-                  <TableCell className="font-medium">{item.title}</TableCell>
-                  <TableCell className="text-muted-foreground max-w-xs truncate hidden md:table-cell">
-                    {item.description || '—'}
-                  </TableCell>
-                  <TableCell className="text-sm hidden sm:table-cell">{formatDate(item.dueDate)}</TableCell>
-                  <TableCell>
-                    <FollowUpStatusSelect taskId={item.id} currentStatus={item.status} />
-                  </TableCell>
-                  <TableCell className="text-muted-foreground max-w-xs truncate text-sm hidden lg:table-cell">
-                    {item.notes || '—'}
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </CardContent>
-
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Add Follow-Up</DialogTitle>
-            <DialogDescription>Create a new follow-up item for yourself.</DialogDescription>
-          </DialogHeader>
-          <ClientCreateFollowUpForm onSuccess={() => setOpen(false)} />
-        </DialogContent>
-      </Dialog>
-    </Card>
-  );
-}
-
-function DeadlineSection() {
-  const { data: deadlines, isLoading } = useGetMyDeadlines();
-  const [open, setOpen] = useState(false);
-
-  return (
-    <Card>
-      <CardHeader className="flex flex-row items-start justify-between gap-4">
-        <div>
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <Clock className="h-5 w-5 text-primary" />
-            Deadlines
-          </CardTitle>
-          <CardDescription>Deadlines assigned to you or created by you. Use the dropdown to change status.</CardDescription>
-        </div>
-        <Button size="sm" onClick={() => setOpen(true)} className="shrink-0">
-          <Plus className="h-4 w-4 mr-1" />
-          Add Deadline
-        </Button>
-      </CardHeader>
-      <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Title</TableHead>
-              <TableHead className="hidden md:table-cell">Description</TableHead>
-              <TableHead className="hidden sm:table-cell">Due Date</TableHead>
-              <TableHead>Urgency</TableHead>
-              <TableHead>Change Status</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
-              <LoadingRows cols={5} />
-            ) : !deadlines || deadlines.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={5}>
-                  <EmptyState icon={Clock} message="No deadlines yet. Add one to get started." />
-                </TableCell>
-              </TableRow>
-            ) : (
-              deadlines.map((record: DeadlineRecord) => (
-                <TableRow key={record.id.toString()}>
-                  <TableCell className="font-medium">{record.title}</TableCell>
-                  <TableCell className="text-muted-foreground max-w-xs truncate hidden md:table-cell">
-                    {record.description || '—'}
-                  </TableCell>
-                  <TableCell className="text-sm hidden sm:table-cell">{formatDate(record.dueDate)}</TableCell>
-                  <TableCell>
-                    <UrgencyBadge level={record.urgencyLevel} />
-                  </TableCell>
-                  <TableCell>
-                    <DeadlineStatusSelect taskId={record.id} currentStatus={record.status} />
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </CardContent>
-
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Add Deadline</DialogTitle>
-            <DialogDescription>Create a new deadline for yourself.</DialogDescription>
-          </DialogHeader>
-          <ClientCreateDeadlineForm onSuccess={() => setOpen(false)} />
-        </DialogContent>
-      </Dialog>
-    </Card>
-  );
-}
-
-// ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function ClientTasksTab() {
+  const { data: todos, isLoading: todosLoading } = useGetMyToDos();
+  const { data: timelines, isLoading: timelinesLoading } = useGetMyTimelines();
+  const { data: followUps, isLoading: followUpsLoading } = useGetMyFollowUps();
+
+  const [todoDialogOpen, setTodoDialogOpen] = useState(false);
+  const [timelineDialogOpen, setTimelineDialogOpen] = useState(false);
+  const [followUpDialogOpen, setFollowUpDialogOpen] = useState(false);
+
   return (
-    <div className="space-y-6">
-      <ToDoSection />
-      <TimelineSection />
-      <FollowUpSection />
-      <DeadlineSection />
-    </div>
+    <Tabs defaultValue="todos">
+      <TabsList className="mb-4">
+        <TabsTrigger value="todos">To-Dos</TabsTrigger>
+        <TabsTrigger value="timelines">Timelines</TabsTrigger>
+        <TabsTrigger value="followups">Follow-Ups</TabsTrigger>
+      </TabsList>
+
+      {/* To-Dos Tab */}
+      <TabsContent value="todos">
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="font-semibold text-foreground">My To-Dos</h3>
+            <Dialog open={todoDialogOpen} onOpenChange={setTodoDialogOpen}>
+              <DialogTrigger asChild>
+                <Button size="sm" variant="outline">
+                  <Plus className="w-4 h-4 mr-1" /> Add To-Do
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader><DialogTitle>Create To-Do</DialogTitle></DialogHeader>
+                <ClientCreateToDoForm onSuccess={() => setTodoDialogOpen(false)} />
+              </DialogContent>
+            </Dialog>
+          </div>
+          {todosLoading ? (
+            <div className="space-y-2">{[...Array(3)].map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}</div>
+          ) : !todos || todos.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">No to-dos yet.</div>
+          ) : (
+            <div className="border border-border rounded-sm overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Title</TableHead>
+                    <TableHead>Priority</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Created</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {todos.map((todo: ToDoItem) => (
+                    <TableRow key={String(todo.id)}>
+                      <TableCell className="font-medium">{todo.title}</TableCell>
+                      <TableCell><PriorityBadge priority={todo.priority} /></TableCell>
+                      <TableCell>
+                        <ToDoStatusSelect toDoId={todo.id} currentStatus={todo.status as unknown as ToDoStatus} />
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {new Date(Number(todo.createdAt) / 1_000_000).toLocaleDateString()}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </div>
+      </TabsContent>
+
+      {/* Timelines Tab */}
+      <TabsContent value="timelines">
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="font-semibold text-foreground">My Timelines</h3>
+            <Dialog open={timelineDialogOpen} onOpenChange={setTimelineDialogOpen}>
+              <DialogTrigger asChild>
+                <Button size="sm" variant="outline">
+                  <Plus className="w-4 h-4 mr-1" /> Add Timeline
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader><DialogTitle>Create Timeline Entry</DialogTitle></DialogHeader>
+                <ClientCreateTimelineForm onSuccess={() => setTimelineDialogOpen(false)} />
+              </DialogContent>
+            </Dialog>
+          </div>
+          {timelinesLoading ? (
+            <div className="space-y-2">{[...Array(3)].map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}</div>
+          ) : !timelines || timelines.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">No timelines yet.</div>
+          ) : (
+            <div className="border border-border rounded-sm overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Title</TableHead>
+                    <TableHead>Start Date</TableHead>
+                    <TableHead>End Date</TableHead>
+                    <TableHead>Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {timelines.map((entry: TimelineEntry) => (
+                    <TableRow key={String(entry.id)}>
+                      <TableCell className="font-medium">{entry.title}</TableCell>
+                      <TableCell className="text-sm">{formatDate(entry.startDate)}</TableCell>
+                      <TableCell className="text-sm">{formatDate(entry.endDate)}</TableCell>
+                      <TableCell>
+                        <TimelineStatusSelect timelineId={entry.id} currentStatus={entry.status as unknown as TimelineStatus} />
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </div>
+      </TabsContent>
+
+      {/* Follow-Ups Tab */}
+      <TabsContent value="followups">
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="font-semibold text-foreground">My Follow-Ups</h3>
+            <Dialog open={followUpDialogOpen} onOpenChange={setFollowUpDialogOpen}>
+              <DialogTrigger asChild>
+                <Button size="sm" variant="outline">
+                  <Plus className="w-4 h-4 mr-1" /> Add Follow-Up
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader><DialogTitle>Create Follow-Up</DialogTitle></DialogHeader>
+                <ClientCreateFollowUpForm onSuccess={() => setFollowUpDialogOpen(false)} />
+              </DialogContent>
+            </Dialog>
+          </div>
+          {followUpsLoading ? (
+            <div className="space-y-2">{[...Array(3)].map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}</div>
+          ) : !followUps || followUps.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">No follow-ups yet.</div>
+          ) : (
+            <div className="border border-border rounded-sm overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Title</TableHead>
+                    <TableHead>Due Date</TableHead>
+                    <TableHead>Notes</TableHead>
+                    <TableHead>Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {followUps.map((item: FollowUpItem) => (
+                    <TableRow key={String(item.id)}>
+                      <TableCell className="font-medium">{item.title}</TableCell>
+                      <TableCell className="text-sm">{formatDate(item.dueDate)}</TableCell>
+                      <TableCell className="text-muted-foreground text-sm max-w-xs truncate">{item.notes || '—'}</TableCell>
+                      <TableCell>
+                        <FollowUpStatusSelect followUpId={item.id} currentStatus={item.status as unknown as FollowUpStatus} />
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </div>
+      </TabsContent>
+    </Tabs>
   );
 }

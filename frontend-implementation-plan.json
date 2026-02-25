@@ -1,62 +1,225 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Add status change controls for client-facing task items",
+  "title": "Remove Deadlines, Admin Status Control, Document Downloads, Compliance Deliverables, UI Text & Form Updates",
   "requirements": [
     {
       "id": "REQ-1",
-      "summary": "Add inline status-change controls in MyComplianceTasksSection for To-Dos, Timelines, Follow-Ups, and Deadlines so clients can update task statuses with immediate feedback",
+      "summary": "Remove the Deadline feature entirely from the frontend application",
       "acceptanceCriteria": [
-        "Each task row in the My Compliance Tasks section (To-Dos, Timelines, Follow-Ups, Deadlines tabs) displays a status selector showing the current status.",
-        "Selecting a new status triggers the correct backend mutation for that task type.",
-        "A success toast is shown when the status is updated successfully.",
-        "An error toast is shown if the update fails.",
-        "The status badge/selector updates optimistically or refreshes after mutation completes."
+        "No Deadline tab appears in the client compliance dashboard",
+        "No Deadline tab appears in the admin compliance dashboard",
+        "No deadline creation forms are accessible to clients or admins",
+        "TaskStatusSelect component no longer includes a Deadline status select",
+        "Navigation and all tabbed UIs show no trace of the Deadline section"
       ],
       "file_operations": [
         {
-          "path": "frontend/src/components/MyComplianceTasksSection.tsx",
+          "path": "frontend/src/pages/ComplianceDashboardPage.tsx",
           "operation": "modify",
-          "description": "Add inline status select controls to each task type table (To-Dos, Timelines, Follow-Ups, Deadlines). For To-Dos, use a select dropdown that calls useUpdateClientToDoStatus with the task ID and new status. For Timelines, call useUpdateClientTimelineStatus. For Follow-Ups, call useUpdateClientFollowUpStatus. For Deadlines, call useUpdateClientDeadlineStatus. Each select should display the current status value and show a toast notification on mutation success or failure. Ensure the mutation hooks invalidate the appropriate query keys to refresh the task lists."
+          "description": "Remove the Deadline tab from the client-facing compliance dashboard tabbed interface. Remove any deadline-related state, queries, or UI references from this page."
+        },
+        {
+          "path": "frontend/src/components/ClientTasksTab.tsx",
+          "operation": "modify",
+          "description": "Remove the Deadline section/tab from the ClientTasksTab component. Remove deadline-related queries, state management, and the dialog for creating new deadline entries."
+        },
+        {
+          "path": "frontend/src/pages/ComplianceAdminDashboardPage.tsx",
+          "operation": "modify",
+          "description": "Remove the Deadline tab from the admin compliance dashboard. Remove any deadline-related imports, state, or references from the tabbed navigation."
+        },
+        {
+          "path": "frontend/src/components/ComplianceAdminDeadlineCountdown.tsx",
+          "operation": "delete",
+          "description": "Delete the ComplianceAdminDeadlineCountdown component file as it will no longer be used after deadline removal."
+        },
+        {
+          "path": "frontend/src/components/ClientCreateDeadlineForm.tsx",
+          "operation": "delete",
+          "description": "Delete the ClientCreateDeadlineForm component file as clients will no longer create deadlines."
+        },
+        {
+          "path": "frontend/src/components/CreateDeadlineForm.tsx",
+          "operation": "delete",
+          "description": "Delete the CreateDeadlineForm component file as admins will no longer create deadlines."
+        },
+        {
+          "path": "frontend/src/components/TaskStatusSelect.tsx",
+          "operation": "modify",
+          "description": "Remove the Deadline status select component from this file. Keep only the ToDo, Timeline, and FollowUp status selects."
         },
         {
           "path": "frontend/src/hooks/useComplianceAdmin.ts",
           "operation": "modify",
-          "description": "Add four new mutation hooks for client-facing status updates: useUpdateClientToDoStatus, useUpdateClientTimelineStatus, useUpdateClientFollowUpStatus, and useUpdateClientDeadlineStatus. Each hook should call the corresponding backend method (updateClientToDoStatus, updateClientTimelineStatus, updateClientFollowUpStatus, updateClientDeadlineStatus) and invalidate the query keys ['myToDos'], ['myTimelines'], ['myFollowUps'], ['myDeadlines'] respectively on success to refresh the UI data."
+          "description": "Remove all deadline-related hooks (useGetAllDeadlines, useCreateDeadline, useUpdateDeadlineStatus) from this file. Keep only to-do, timeline, and follow-up hooks."
+        },
+        {
+          "path": "frontend/src/components/MyComplianceTasksSection.tsx",
+          "operation": "modify",
+          "description": "Remove deadline-related queries, state, and UI sections from the client's compliance tasks dashboard. Remove any deadline tab or section from the component."
         }
       ]
     },
     {
       "id": "REQ-2",
-      "summary": "Add inline status-change controls in ClientTasksTab for all four task types, reusing the status select logic from MyComplianceTasksSection for consistency",
+      "summary": "Enable admins to change statuses of To-Dos, Timelines, and Follow-Ups from admin dashboard",
       "acceptanceCriteria": [
-        "Each task table in ClientTasksTab includes a status selector per row for all four task types.",
-        "The status options match the valid statuses defined in the backend types for each task.",
-        "Changing the status calls the correct mutation and shows feedback toasts.",
-        "Newly created tasks show the status control immediately without requiring a page reload."
+        "Admin can change the status of any To-Do item from the admin compliance dashboard",
+        "Admin can change the status of any Timeline entry from the admin compliance dashboard",
+        "Admin can change the status of any Follow-Up item from the admin compliance dashboard",
+        "Status changes made by admin are persisted in the backend",
+        "Status updates reflect immediately in the UI (optimistic update or refetch)"
       ],
       "file_operations": [
         {
-          "path": "frontend/src/components/ClientTasksTab.tsx",
+          "path": "frontend/src/components/ComplianceAdminToDoList.tsx",
           "operation": "modify",
-          "description": "Add inline status select controls to each task type table in the ClientTasksTab component. For the To-Dos table, add a select dropdown that uses useUpdateClientToDoStatus. For Timelines, use useUpdateClientTimelineStatus. For Follow-Ups, use useUpdateClientFollowUpStatus. For Deadlines, use useUpdateClientDeadlineStatus. Each select should mirror the implementation from MyComplianceTasksSection, showing the current status and calling the appropriate mutation hook on change. Display toast notifications for success and failure cases. Ensure the status options match the TypeScript enums: ToDoStatus (pending, inProgress, completed), TimelineStatus (planned, inProgress, completed), FollowUpStatus (pending, completed), DeadlineStatus (active, completed, missed)."
+          "description": "Add inline status selector controls using the TaskStatusSelect component for each To-Do item in the admin list. Wire the status change handler to call the backend updateToDoStatus method via the useUpdateToDoStatus hook."
+        },
+        {
+          "path": "frontend/src/components/ComplianceAdminTimeline.tsx",
+          "operation": "modify",
+          "description": "Add inline status selector controls using the TaskStatusSelect component for each Timeline entry in the admin view. Wire the status change handler to call the backend updateTimelineStatus method via the useUpdateTimelineStatus hook."
+        },
+        {
+          "path": "frontend/src/components/ComplianceAdminFollowUp.tsx",
+          "operation": "modify",
+          "description": "Add inline status selector controls using the TaskStatusSelect component for each Follow-Up item in the admin view. Wire the status change handler to call the backend updateFollowUpStatus method via the useUpdateFollowUpStatus hook."
+        },
+        {
+          "path": "frontend/src/hooks/useComplianceAdmin.ts",
+          "operation": "modify",
+          "description": "Ensure the useUpdateToDoStatus, useUpdateTimelineStatus, and useUpdateFollowUpStatus mutation hooks are properly implemented with optimistic updates and query invalidation on success."
         }
       ]
     },
     {
       "id": "REQ-3",
-      "summary": "Ensure backend mutation hooks exist for all four client task status updates and properly invalidate query cache",
+      "summary": "Ensure documents are downloaded in their original format with correct MIME types",
       "acceptanceCriteria": [
-        "Backend exposes updateClientToDoStatus, updateClientTimelineStatus, updateClientFollowUpStatus, and updateClientDeadlineStatus (or equivalent) methods.",
-        "Each method validates that the calling principal owns the task before allowing the update.",
-        "Frontend mutation hooks exist for each of the four task-type status updates.",
-        "Hooks invalidate the relevant query cache keys upon success so the UI reflects the new status."
+        "A PDF uploaded by a client downloads as a PDF for the admin",
+        "An XLSX uploaded by a client downloads as an XLSX for the admin",
+        "The downloaded filename matches the original upload filename",
+        "No format conversion or data loss occurs during download"
       ],
       "file_operations": [
         {
-          "path": "frontend/src/hooks/useComplianceAdmin.ts",
+          "path": "frontend/src/components/DocumentTable.tsx",
           "operation": "modify",
-          "description": "Verify that the four client-facing status update mutation hooks (useUpdateClientToDoStatus, useUpdateClientTimelineStatus, useUpdateClientFollowUpStatus, useUpdateClientDeadlineStatus) exist and are correctly configured. If any are missing from REQ-1 implementation, add them now. Each hook must call actor.updateClient[TaskType]Status(taskId, newStatus), handle errors, and invalidate the corresponding query keys: ['myToDos'], ['myTimelines'], ['myFollowUps'], ['myDeadlines']. The backend interface already exposes updateClientToDoStatus, updateClientTimelineStatus, updateClientFollowUpStatus, and updateClientDeadlineStatus methods that accept (taskId: bigint, newStatus: [Status]) and validate principal ownership."
+          "description": "Update the download action to use the ExternalBlob's getDirectURL() method, which preserves the original MIME type and filename. Ensure the link opens with proper Content-Disposition headers for download rather than inline preview."
+        },
+        {
+          "path": "frontend/src/pages/AdminDashboardPage.tsx",
+          "operation": "modify",
+          "description": "In the documents tab, ensure the DocumentTable component is configured to download files in their original format. Verify that the download button or link preserves the file's original content type and filename extension."
+        }
+      ]
+    },
+    {
+      "id": "REQ-4",
+      "summary": "Allow both clients and admins to add and approve/reject Compliance Deliverables",
+      "acceptanceCriteria": [
+        "Client can submit a new compliance deliverable from the client portal",
+        "Admin can submit a new compliance deliverable from the admin dashboard",
+        "Client can approve or reject a deliverable",
+        "Admin can approve or reject a deliverable",
+        "Approve and reject actions update the deliverable status in the backend",
+        "Both client and admin UIs reflect the updated status after action"
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/components/ClientDeliverableForm.tsx",
+          "operation": "modify",
+          "description": "Ensure the existing ClientDeliverableForm remains accessible and functional for clients to submit new compliance deliverables with title, description, and file upload."
+        },
+        {
+          "path": "frontend/src/pages/AdminDashboardPage.tsx",
+          "operation": "modify",
+          "description": "In the Client Deliverables tab, add a dialog or form component that allows admins to create a new compliance deliverable on behalf of any client. Include a client principal selector, title, description, and file upload fields. Wire to the useSubmitDeliverableForClient hook."
+        },
+        {
+          "path": "frontend/src/components/AdminClientDeliverableTable.tsx",
+          "operation": "modify",
+          "description": "Update the existing Accept/Reject action buttons to work for both admin and client users. Ensure the updateClientDeliverableStatus mutation properly handles approval and rejection actions from both user types."
+        },
+        {
+          "path": "frontend/src/components/ClientDeliverableTable.tsx",
+          "operation": "modify",
+          "description": "Add approve and reject action buttons to each deliverable row in the client-facing table. Wire these buttons to call the updateClientDeliverableStatus mutation with the appropriate status values (accepted/rejected)."
+        },
+        {
+          "path": "frontend/src/hooks/useClientDeliverables.ts",
+          "operation": "modify",
+          "description": "Ensure the useUpdateClientDeliverableStatus mutation hook accepts both 'accepted' and 'rejected' status values and properly invalidates relevant queries after successful status updates."
+        }
+      ]
+    },
+    {
+      "id": "REQ-5",
+      "summary": "Change text 'Join Us as a Client Today' to 'Contact Us' throughout the frontend",
+      "acceptanceCriteria": [
+        "No instance of 'Join Us as a Client Today' appears anywhere in the UI",
+        "All occurrences are replaced with 'Contact Us'"
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/pages/HomePage.tsx",
+          "operation": "modify",
+          "description": "Search for all instances of the text 'Join Us as a Client Today' in buttons, headings, and labels. Replace each occurrence with 'Contact Us'."
+        },
+        {
+          "path": "frontend/src/components/Layout.tsx",
+          "operation": "modify",
+          "description": "Check the footer and any other layout sections for 'Join Us as a Client Today' text. Replace all occurrences with 'Contact Us'."
+        },
+        {
+          "path": "frontend/src/components/Navigation.tsx",
+          "operation": "modify",
+          "description": "Check navigation links and buttons for 'Join Us as a Client Today' text. Replace all occurrences with 'Contact Us'."
+        }
+      ]
+    },
+    {
+      "id": "REQ-6",
+      "summary": "Make Phone Number field non-mandatory in service request and profile forms",
+      "acceptanceCriteria": [
+        "The phone number field does not show a required indicator",
+        "Submitting a service request or profile setup form without a phone number succeeds",
+        "No validation error is shown when phone number is left blank"
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/components/ServiceRequestForm.tsx",
+          "operation": "modify",
+          "description": "Remove the required validation constraint from the phone number input field. Remove any asterisk or required indicator from the label. Update form submission logic to allow empty phone number values."
+        },
+        {
+          "path": "frontend/src/pages/VisitorServiceRequestPage.tsx",
+          "operation": "modify",
+          "description": "Remove the required validation constraint from the phone number input field in the visitor service request form. Update the form validation schema to make phone number optional."
+        },
+        {
+          "path": "frontend/src/components/UserProfileSetup.tsx",
+          "operation": "modify",
+          "description": "If the user profile setup modal includes a phone number field, remove any required validation constraints and allow the form to be submitted without a phone number."
+        }
+      ]
+    },
+    {
+      "id": "REQ-7",
+      "summary": "Display uploaded document links in Admin Client Submitted Deliverables tab",
+      "acceptanceCriteria": [
+        "Each row in the AdminClientDeliverableTable shows a view/download link or button for the attached document",
+        "Clicking the link opens or downloads the document file",
+        "Rows without an attached document show an appropriate placeholder or no link",
+        "The document is accessible in its original format"
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/components/AdminClientDeliverableTable.tsx",
+          "operation": "modify",
+          "description": "Add a new column to the table that displays a view/download link or button for the uploaded document associated with each deliverable. Use the ExternalBlob's getDirectURL() method to generate the document URL. Show a placeholder or disabled state for rows without an attached document. Ensure the link opens in a new tab or triggers a download with the original file format preserved."
         }
       ]
     }

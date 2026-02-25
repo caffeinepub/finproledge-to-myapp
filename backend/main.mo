@@ -9,12 +9,12 @@ import MixinAuthorization "authorization/MixinAuthorization";
 import MixinStorage "blob-storage/Mixin";
 import Storage "blob-storage/Storage";
 
-
 import AccessControl "authorization/access-control";
 import UserApproval "user-approval/approval";
+import Migration "migration";
 
-// Data migration in with clause
-
+// Use migration to discard deprecated deadline state components
+(with migration = Migration.run)
 actor {
   let accessControlState = AccessControl.initState();
   var userApprovalState : UserApproval.UserApprovalState = UserApproval.initState(accessControlState);
@@ -296,29 +296,6 @@ actor {
     #completed;
   };
 
-  public type DeadlineRecord = {
-    id : Nat;
-    title : Text;
-    description : Text;
-    dueDate : Time.Time;
-    deliverableReference : ?Nat;
-    urgencyLevel : UrgencyLevel;
-    status : DeadlineStatus;
-    clientPrincipal : ?Principal;
-  };
-
-  public type UrgencyLevel = {
-    #high;
-    #medium;
-    #low;
-  };
-
-  public type DeadlineStatus = {
-    #active;
-    #completed;
-    #missed;
-  };
-
   var nextRequestId = 0;
   var nextDocumentId = 0;
   var nextDeliverableId = 0;
@@ -327,7 +304,6 @@ actor {
   var nextToDoId = 0;
   var nextTimelineId = 0;
   var nextFollowUpId = 0;
-  var nextDeadlineId = 0;
 
   let serviceRequests = Map.empty<Nat, ServiceRequest>();
   let clientDocuments = Map.empty<Nat, ClientDocument>();
@@ -336,11 +312,10 @@ actor {
   let userProfiles = Map.empty<Principal, UserProfile>();
   let clientDeliverables = Map.empty<Nat, ClientDeliverable>();
 
-  // New maps for ToDos, Timelines, FollowUps, Deadlines
+  // New maps for ToDos, Timelines, FollowUps
   let toDoItems = Map.empty<Nat, ToDoItem>();
   let timelineEntries = Map.empty<Nat, TimelineEntry>();
   let followUpItems = Map.empty<Nat, FollowUpItem>();
-  let deadlineRecords = Map.empty<Nat, DeadlineRecord>();
 
   var adminPaymentSettings : ?AdminPaymentSettings = null;
   var analyticsSummary : ?AnalyticsSummary = null;
@@ -399,9 +374,10 @@ actor {
   };
 
   // User Profile Management
+  // Admins and approved users can get their own profile
   public query ({ caller }) func getCallerUserProfile() : async ?UserProfile {
-    if (not UserApproval.isApproved(userApprovalState, caller)) {
-      Runtime.trap("Unauthorized: Only approved users can view profiles");
+    if (not UserApproval.isApproved(userApprovalState, caller) and not AccessControl.isAdmin(accessControlState, caller)) {
+      Runtime.trap("Unauthorized: Only approved users or admins can view profiles");
     };
     userProfiles.get(caller);
   };
@@ -421,9 +397,10 @@ actor {
     userProfiles.get(user);
   };
 
+  // Admins and approved users can save their own profile
   public shared ({ caller }) func saveCallerUserProfile(profile : UserProfile) : async () {
-    if (not UserApproval.isApproved(userApprovalState, caller)) {
-      Runtime.trap("Unauthorized: Only approved users can save profiles");
+    if (not UserApproval.isApproved(userApprovalState, caller) and not AccessControl.isAdmin(accessControlState, caller)) {
+      Runtime.trap("Unauthorized: Only approved users or admins can save profiles");
     };
     userProfiles.add(caller, profile);
   };
@@ -564,15 +541,16 @@ actor {
     });
   };
 
-  // Update service request status — only the owning approved user can update their own request
+  // Update service request status — admin can update any request; approved user can only update their own
   public shared ({ caller }) func updateStatus(requestId : Nat, status : RequestStatus) : async () {
-    if (not UserApproval.isApproved(userApprovalState, caller)) {
-      Runtime.trap("Unauthorized: Only approved users can update request status");
+    let isAdmin = AccessControl.isAdmin(accessControlState, caller);
+    if (not isAdmin and not UserApproval.isApproved(userApprovalState, caller)) {
+      Runtime.trap("Unauthorized: Only approved users or admins can update request status");
     };
     switch (serviceRequests.get(requestId)) {
       case (null) { Runtime.trap("Request not found") };
       case (?request) {
-        if (request.client != caller) {
+        if (not isAdmin and request.client != caller) {
           Runtime.trap("Unauthorized: Can only update your own requests");
         };
 
@@ -603,9 +581,19 @@ actor {
     file : Storage.ExternalBlob;
   };
 
+  // Input type for admin submitting a deliverable on behalf of a client
+  public type AdminClientDeliverableInput = {
+    clientPrincipal : Principal;
+    title : Text;
+    description : Text;
+    file : Storage.ExternalBlob;
+  };
+
+  // Approved clients and admins can submit deliverables
   public shared ({ caller }) func submitDeliverable(input : ClientDeliverableInput) : async Nat {
-    if (not UserApproval.isApproved(userApprovalState, caller)) {
-      Runtime.trap("Unauthorized: Only approved users can submit deliverables");
+    let isAdmin = AccessControl.isAdmin(accessControlState, caller);
+    if (not isAdmin and not UserApproval.isApproved(userApprovalState, caller)) {
+      Runtime.trap("Unauthorized: Only approved users or admins can submit deliverables");
     };
     let deliverableId = nextClientDeliverableId;
     let newDeliverable : ClientDeliverable = {
@@ -624,13 +612,41 @@ actor {
     deliverableId;
   };
 
+  // Admin can submit a deliverable on behalf of a specific client
+  public shared ({ caller }) func submitDeliverableForClient(input : AdminClientDeliverableInput) : async Nat {
+    if (not AccessControl.isAdmin(accessControlState, caller)) {
+      Runtime.trap("Unauthorized: Only admins can submit deliverables on behalf of clients");
+    };
+    let deliverableId = nextClientDeliverableId;
+    let newDeliverable : ClientDeliverable = {
+      id = deliverableId;
+      submitter = input.clientPrincipal;
+      title = input.title;
+      description = input.description;
+      file = input.file;
+      createdAt = Time.now();
+      status = #pending;
+    };
+
+    clientDeliverables.add(deliverableId, newDeliverable);
+    nextClientDeliverableId += 1;
+
+    deliverableId;
+  };
+
+  // Both clients (for their own deliverables) and admins can update deliverable status (approve/reject)
   public shared ({ caller }) func updateClientDeliverableStatus(deliverableId : Nat, newStatus : ClientDeliverableStatus) : async () {
-    if (not (AccessControl.isAdmin(accessControlState, caller))) {
-      Runtime.trap("Unauthorized: Only admins can update deliverable status");
+    let isAdmin = AccessControl.isAdmin(accessControlState, caller);
+    if (not isAdmin and not UserApproval.isApproved(userApprovalState, caller)) {
+      Runtime.trap("Unauthorized: Only approved users or admins can update deliverable status");
     };
     switch (clientDeliverables.get(deliverableId)) {
       case (null) { Runtime.trap("Deliverable not found") };
       case (?deliverable) {
+        // Non-admins can only update their own deliverables
+        if (not isAdmin and deliverable.submitter != caller) {
+          Runtime.trap("Unauthorized: Can only update your own deliverables");
+        };
         let updatedDeliverable = {
           deliverable with
           status = newStatus;
@@ -841,29 +857,6 @@ actor {
     followUpId;
   };
 
-  // Create Deadline Record — admin only
-  public shared ({ caller }) func createDeadline(title : Text, description : Text, dueDate : Time.Time, urgencyLevel : UrgencyLevel, status : DeadlineStatus, deliverableReference : ?Nat) : async Nat {
-    if (not (AccessControl.isAdmin(accessControlState, caller))) {
-      Runtime.trap("Unauthorized: Only admins can create deadlines");
-    };
-    let deadlineId = nextDeadlineId;
-    let newDeadline : DeadlineRecord = {
-      id = deadlineId;
-      title;
-      description;
-      dueDate;
-      urgencyLevel;
-      status;
-      deliverableReference;
-      clientPrincipal = null;
-    };
-
-    deadlineRecords.add(deadlineId, newDeadline);
-    nextDeadlineId += 1;
-
-    deadlineId;
-  };
-
   // ------------ Getters for Compliance Admin Functions -----------
 
   public query ({ caller }) func getAllToDos() : async [ToDoItem] {
@@ -885,13 +878,6 @@ actor {
       Runtime.trap("Unauthorized: Only admins can access all follow-ups");
     };
     followUpItems.values().toArray();
-  };
-
-  public query ({ caller }) func getAllDeadlines() : async [DeadlineRecord] {
-    if (not (AccessControl.isAdmin(accessControlState, caller))) {
-      Runtime.trap("Unauthorized: Only admins can access all deadlines");
-    };
-    deadlineRecords.values().toArray();
   };
 
   // -------------- Client-Specific Query Endpoints -------------------
@@ -936,21 +922,6 @@ actor {
     followUps.filter(
       func(followUp) {
         switch (followUp.clientPrincipal) {
-          case (?client) { client == caller };
-          case (null) { false };
-        };
-      }
-    );
-  };
-
-  public query ({ caller }) func getMyDeadlines() : async [DeadlineRecord] {
-    if (not (UserApproval.isApproved(userApprovalState, caller) or AccessControl.isAdmin(accessControlState, caller))) {
-      Runtime.trap("Unauthorized: Only approved users can access their deadlines");
-    };
-    let deadlines = deadlineRecords.values().toArray();
-    deadlines.filter(
-      func(deadline) {
-        switch (deadline.clientPrincipal) {
           case (?client) { client == caller };
           case (null) { false };
         };
@@ -1028,37 +999,11 @@ actor {
     followUpId;
   };
 
-  public shared ({ caller }) func createClientDeadline(title : Text, description : Text, dueDate : Time.Time, urgencyLevel : UrgencyLevel, status : DeadlineStatus) : async Nat {
-    if (not UserApproval.isApproved(userApprovalState, caller)) {
-      Runtime.trap("Unauthorized: Only approved users can create deadlines");
-    };
-    let deadlineId = nextDeadlineId;
-    let newDeadline : DeadlineRecord = {
-      id = deadlineId;
-      title;
-      description;
-      dueDate;
-      urgencyLevel;
-      status;
-      deliverableReference = null;
-      clientPrincipal = ?caller;
-    };
-
-    deadlineRecords.add(deadlineId, newDeadline);
-    nextDeadlineId += 1;
-
-    deadlineId;
-  };
-
-  // ---------- Update Record Status Functions ----------
-  // Clients can only update the status of their own records (where clientPrincipal == caller).
-  // Admins can update any record regardless of clientPrincipal.
-
+  // Update To-Do status — admins can update any to-do; approved users can only update their own
   public shared ({ caller }) func updateToDoStatus(toDoId : Nat, newStatus : ToDoStatus) : async () {
     let isAdmin = AccessControl.isAdmin(accessControlState, caller);
-    let isApproved = UserApproval.isApproved(userApprovalState, caller);
-    if (not isAdmin and not isApproved) {
-      Runtime.trap("Unauthorized: Only approved users or admins can update to-do status");
+    if (not isAdmin and not UserApproval.isApproved(userApprovalState, caller)) {
+      Runtime.trap("Unauthorized: Only approved users or admins can update To-Dos");
     };
     switch (toDoItems.get(toDoId)) {
       case (null) { Runtime.trap("To-Do item not found") };
@@ -1084,11 +1029,11 @@ actor {
     };
   };
 
+  // Update Timeline status — admins can update any timeline; approved users can only update their own
   public shared ({ caller }) func updateTimelineStatus(timelineId : Nat, newStatus : TimelineStatus) : async () {
     let isAdmin = AccessControl.isAdmin(accessControlState, caller);
-    let isApproved = UserApproval.isApproved(userApprovalState, caller);
-    if (not isAdmin and not isApproved) {
-      Runtime.trap("Unauthorized: Only approved users or admins can update timeline status");
+    if (not isAdmin and not UserApproval.isApproved(userApprovalState, caller)) {
+      Runtime.trap("Unauthorized: Only approved users or admins can update Timelines");
     };
     switch (timelineEntries.get(timelineId)) {
       case (null) { Runtime.trap("Timeline entry not found") };
@@ -1114,11 +1059,11 @@ actor {
     };
   };
 
+  // Update Follow-Up status — admins can update any follow-up; approved users can only update their own
   public shared ({ caller }) func updateFollowUpStatus(followUpId : Nat, newStatus : FollowUpStatus) : async () {
     let isAdmin = AccessControl.isAdmin(accessControlState, caller);
-    let isApproved = UserApproval.isApproved(userApprovalState, caller);
-    if (not isAdmin and not isApproved) {
-      Runtime.trap("Unauthorized: Only approved users or admins can update follow-up status");
+    if (not isAdmin and not UserApproval.isApproved(userApprovalState, caller)) {
+      Runtime.trap("Unauthorized: Only approved users or admins can update Follow-Ups");
     };
     switch (followUpItems.get(followUpId)) {
       case (null) { Runtime.trap("Follow-up item not found") };
@@ -1140,145 +1085,6 @@ actor {
           status = newStatus;
         };
         followUpItems.add(followUpId, updatedFollowUp);
-      };
-    };
-  };
-
-  public shared ({ caller }) func updateDeadlineStatus(deadlineId : Nat, newStatus : DeadlineStatus) : async () {
-    let isAdmin = AccessControl.isAdmin(accessControlState, caller);
-    let isApproved = UserApproval.isApproved(userApprovalState, caller);
-    if (not isAdmin and not isApproved) {
-      Runtime.trap("Unauthorized: Only approved users or admins can update deadline status");
-    };
-    switch (deadlineRecords.get(deadlineId)) {
-      case (null) { Runtime.trap("Deadline record not found") };
-      case (?deadline) {
-        if (not isAdmin) {
-          switch (deadline.clientPrincipal) {
-            case (?client) {
-              if (client != caller) {
-                Runtime.trap("Unauthorized: Can only update your own deadlines");
-              };
-            };
-            case (null) {
-              Runtime.trap("Unauthorized: Can only update your own deadlines");
-            };
-          };
-        };
-        let updatedDeadline = {
-          deadline with
-          status = newStatus;
-        };
-        deadlineRecords.add(deadlineId, updatedDeadline);
-      };
-    };
-  };
-
-  // ---------- Client Task Status Update Endpoints ----------
-  // These endpoints are specifically for clients to update the status of their own
-  // task records (clientToDo, clientTimeline, clientFollowUp, clientDeadline).
-  // The caller must be an approved user and must own the record (clientPrincipal == caller).
-
-  public shared ({ caller }) func updateClientToDoStatus(toDoId : Nat, newStatus : ToDoStatus) : async () {
-    if (not UserApproval.isApproved(userApprovalState, caller)) {
-      Runtime.trap("Unauthorized: Only approved users can update their to-do status");
-    };
-    switch (toDoItems.get(toDoId)) {
-      case (null) { Runtime.trap("To-Do item not found") };
-      case (?toDo) {
-        switch (toDo.clientPrincipal) {
-          case (?client) {
-            if (client != caller) {
-              Runtime.trap("Unauthorized: Can only update your own to-dos");
-            };
-          };
-          case (null) {
-            Runtime.trap("Unauthorized: Can only update your own to-dos");
-          };
-        };
-        let updatedToDo = {
-          toDo with
-          status = newStatus;
-        };
-        toDoItems.add(toDoId, updatedToDo);
-      };
-    };
-  };
-
-  public shared ({ caller }) func updateClientTimelineStatus(timelineId : Nat, newStatus : TimelineStatus) : async () {
-    if (not UserApproval.isApproved(userApprovalState, caller)) {
-      Runtime.trap("Unauthorized: Only approved users can update their timeline status");
-    };
-    switch (timelineEntries.get(timelineId)) {
-      case (null) { Runtime.trap("Timeline entry not found") };
-      case (?timeline) {
-        switch (timeline.clientPrincipal) {
-          case (?client) {
-            if (client != caller) {
-              Runtime.trap("Unauthorized: Can only update your own timelines");
-            };
-          };
-          case (null) {
-            Runtime.trap("Unauthorized: Can only update your own timelines");
-          };
-        };
-        let updatedTimeline = {
-          timeline with
-          status = newStatus;
-        };
-        timelineEntries.add(timelineId, updatedTimeline);
-      };
-    };
-  };
-
-  public shared ({ caller }) func updateClientFollowUpStatus(followUpId : Nat, newStatus : FollowUpStatus) : async () {
-    if (not UserApproval.isApproved(userApprovalState, caller)) {
-      Runtime.trap("Unauthorized: Only approved users can update their follow-up status");
-    };
-    switch (followUpItems.get(followUpId)) {
-      case (null) { Runtime.trap("Follow-up item not found") };
-      case (?followUp) {
-        switch (followUp.clientPrincipal) {
-          case (?client) {
-            if (client != caller) {
-              Runtime.trap("Unauthorized: Can only update your own follow-ups");
-            };
-          };
-          case (null) {
-            Runtime.trap("Unauthorized: Can only update your own follow-ups");
-          };
-        };
-        let updatedFollowUp = {
-          followUp with
-          status = newStatus;
-        };
-        followUpItems.add(followUpId, updatedFollowUp);
-      };
-    };
-  };
-
-  public shared ({ caller }) func updateClientDeadlineStatus(deadlineId : Nat, newStatus : DeadlineStatus) : async () {
-    if (not UserApproval.isApproved(userApprovalState, caller)) {
-      Runtime.trap("Unauthorized: Only approved users can update their deadline status");
-    };
-    switch (deadlineRecords.get(deadlineId)) {
-      case (null) { Runtime.trap("Deadline record not found") };
-      case (?deadline) {
-        switch (deadline.clientPrincipal) {
-          case (?client) {
-            if (client != caller) {
-              Runtime.trap("Unauthorized: Can only update your own deadlines");
-            };
-          };
-          case (null) {
-            Runtime.trap("Unauthorized: Can only update your own deadlines");
-          };
-        };
-        let updatedDeadline = {
-          deadline with
-          status = newStatus;
-        };
-        deadlineRecords.add(deadlineId, updatedDeadline);
       };
     };
   };

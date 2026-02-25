@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Progress } from '@/components/ui/progress';
-import { UploadCloud, FileText, CheckCircle, AlertCircle, X, PackageOpen } from 'lucide-react';
+import { UploadCloud, FileText, AlertCircle, X, PackageOpen } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function ClientDeliverableForm() {
@@ -56,7 +56,7 @@ export default function ClientDeliverableForm() {
 
     try {
       const arrayBuffer = await selectedFile.arrayBuffer();
-      const bytes = new Uint8Array(arrayBuffer);
+      const bytes = new Uint8Array(arrayBuffer) as Uint8Array<ArrayBuffer>;
       const blob = ExternalBlob.fromBytes(bytes).withUploadProgress((pct) => {
         setUploadProgress(pct);
       });

@@ -25,16 +25,6 @@ export const UserRole = IDL.Variant({
   'guest' : IDL.Null,
 });
 export const Time = IDL.Int;
-export const UrgencyLevel = IDL.Variant({
-  'low' : IDL.Null,
-  'high' : IDL.Null,
-  'medium' : IDL.Null,
-});
-export const DeadlineStatus = IDL.Variant({
-  'active' : IDL.Null,
-  'completed' : IDL.Null,
-  'missed' : IDL.Null,
-});
 export const FollowUpStatus = IDL.Variant({
   'pending' : IDL.Null,
   'completed' : IDL.Null,
@@ -100,16 +90,6 @@ export const ComplianceDeliverable = IDL.Record({
   'title' : IDL.Text,
   'dueDate' : Time,
   'deliverableType' : DeliverableType,
-});
-export const DeadlineRecord = IDL.Record({
-  'id' : IDL.Nat,
-  'status' : DeadlineStatus,
-  'title' : IDL.Text,
-  'urgencyLevel' : UrgencyLevel,
-  'dueDate' : Time,
-  'description' : IDL.Text,
-  'clientPrincipal' : IDL.Opt(IDL.Principal),
-  'deliverableReference' : IDL.Opt(IDL.Nat),
 });
 export const ExternalBlob = IDL.Vec(IDL.Nat8);
 export const DocumentType = IDL.Variant({
@@ -250,6 +230,12 @@ export const ClientDeliverableInput = IDL.Record({
   'file' : ExternalBlob,
   'description' : IDL.Text,
 });
+export const AdminClientDeliverableInput = IDL.Record({
+  'title' : IDL.Text,
+  'file' : ExternalBlob,
+  'description' : IDL.Text,
+  'clientPrincipal' : IDL.Principal,
+});
 export const UploadDocumentResult = IDL.Variant({
   'ok' : IDL.Nat,
   'notApproved' : IDL.Null,
@@ -284,11 +270,6 @@ export const idlService = IDL.Service({
   '_caffeineStorageUpdateGatewayPrincipals' : IDL.Func([], [], []),
   '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
   'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
-  'createClientDeadline' : IDL.Func(
-      [IDL.Text, IDL.Text, Time, UrgencyLevel, DeadlineStatus],
-      [IDL.Nat],
-      [],
-    ),
   'createClientFollowUp' : IDL.Func(
       [IDL.Text, IDL.Text, Time, FollowUpStatus, IDL.Text],
       [IDL.Nat],
@@ -301,18 +282,6 @@ export const idlService = IDL.Service({
     ),
   'createClientToDo' : IDL.Func(
       [IDL.Text, IDL.Text, ToDoPriority, ToDoStatus],
-      [IDL.Nat],
-      [],
-    ),
-  'createDeadline' : IDL.Func(
-      [
-        IDL.Text,
-        IDL.Text,
-        Time,
-        UrgencyLevel,
-        DeadlineStatus,
-        IDL.Opt(IDL.Nat),
-      ],
       [IDL.Nat],
       [],
     ),
@@ -360,7 +329,6 @@ export const idlService = IDL.Service({
       [IDL.Vec(ComplianceDeliverable)],
       ['query'],
     ),
-  'getAllDeadlines' : IDL.Func([], [IDL.Vec(DeadlineRecord)], ['query']),
   'getAllDeliverables' : IDL.Func(
       [],
       [IDL.Vec(ComplianceDeliverable)],
@@ -394,7 +362,6 @@ export const idlService = IDL.Service({
       [IDL.Vec(ClientDeliverable)],
       ['query'],
     ),
-  'getMyDeadlines' : IDL.Func([], [IDL.Vec(DeadlineRecord)], ['query']),
   'getMyDeliverables' : IDL.Func(
       [],
       [IDL.Vec(ComplianceDeliverable)],
@@ -451,16 +418,16 @@ export const idlService = IDL.Service({
   'setAdminPaymentSettings' : IDL.Func([AdminPaymentSettings], [], []),
   'setApproval' : IDL.Func([IDL.Principal, ApprovalStatus], [], []),
   'submitDeliverable' : IDL.Func([ClientDeliverableInput], [IDL.Nat], []),
-  'updateClientDeadlineStatus' : IDL.Func([IDL.Nat, DeadlineStatus], [], []),
+  'submitDeliverableForClient' : IDL.Func(
+      [AdminClientDeliverableInput],
+      [IDL.Nat],
+      [],
+    ),
   'updateClientDeliverableStatus' : IDL.Func(
       [IDL.Nat, ClientDeliverableStatus],
       [],
       [],
     ),
-  'updateClientFollowUpStatus' : IDL.Func([IDL.Nat, FollowUpStatus], [], []),
-  'updateClientTimelineStatus' : IDL.Func([IDL.Nat, TimelineStatus], [], []),
-  'updateClientToDoStatus' : IDL.Func([IDL.Nat, ToDoStatus], [], []),
-  'updateDeadlineStatus' : IDL.Func([IDL.Nat, DeadlineStatus], [], []),
   'updateFollowUpStatus' : IDL.Func([IDL.Nat, FollowUpStatus], [], []),
   'updatePaymentStatus' : IDL.Func([IDL.Nat, PaymentStatus], [], []),
   'updateStatus' : IDL.Func([IDL.Nat, RequestStatus], [], []),
@@ -493,16 +460,6 @@ export const idlFactory = ({ IDL }) => {
     'guest' : IDL.Null,
   });
   const Time = IDL.Int;
-  const UrgencyLevel = IDL.Variant({
-    'low' : IDL.Null,
-    'high' : IDL.Null,
-    'medium' : IDL.Null,
-  });
-  const DeadlineStatus = IDL.Variant({
-    'active' : IDL.Null,
-    'completed' : IDL.Null,
-    'missed' : IDL.Null,
-  });
   const FollowUpStatus = IDL.Variant({
     'pending' : IDL.Null,
     'completed' : IDL.Null,
@@ -568,16 +525,6 @@ export const idlFactory = ({ IDL }) => {
     'title' : IDL.Text,
     'dueDate' : Time,
     'deliverableType' : DeliverableType,
-  });
-  const DeadlineRecord = IDL.Record({
-    'id' : IDL.Nat,
-    'status' : DeadlineStatus,
-    'title' : IDL.Text,
-    'urgencyLevel' : UrgencyLevel,
-    'dueDate' : Time,
-    'description' : IDL.Text,
-    'clientPrincipal' : IDL.Opt(IDL.Principal),
-    'deliverableReference' : IDL.Opt(IDL.Nat),
   });
   const ExternalBlob = IDL.Vec(IDL.Nat8);
   const DocumentType = IDL.Variant({
@@ -718,6 +665,12 @@ export const idlFactory = ({ IDL }) => {
     'file' : ExternalBlob,
     'description' : IDL.Text,
   });
+  const AdminClientDeliverableInput = IDL.Record({
+    'title' : IDL.Text,
+    'file' : ExternalBlob,
+    'description' : IDL.Text,
+    'clientPrincipal' : IDL.Principal,
+  });
   const UploadDocumentResult = IDL.Variant({
     'ok' : IDL.Nat,
     'notApproved' : IDL.Null,
@@ -752,11 +705,6 @@ export const idlFactory = ({ IDL }) => {
     '_caffeineStorageUpdateGatewayPrincipals' : IDL.Func([], [], []),
     '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
     'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
-    'createClientDeadline' : IDL.Func(
-        [IDL.Text, IDL.Text, Time, UrgencyLevel, DeadlineStatus],
-        [IDL.Nat],
-        [],
-      ),
     'createClientFollowUp' : IDL.Func(
         [IDL.Text, IDL.Text, Time, FollowUpStatus, IDL.Text],
         [IDL.Nat],
@@ -769,18 +717,6 @@ export const idlFactory = ({ IDL }) => {
       ),
     'createClientToDo' : IDL.Func(
         [IDL.Text, IDL.Text, ToDoPriority, ToDoStatus],
-        [IDL.Nat],
-        [],
-      ),
-    'createDeadline' : IDL.Func(
-        [
-          IDL.Text,
-          IDL.Text,
-          Time,
-          UrgencyLevel,
-          DeadlineStatus,
-          IDL.Opt(IDL.Nat),
-        ],
         [IDL.Nat],
         [],
       ),
@@ -828,7 +764,6 @@ export const idlFactory = ({ IDL }) => {
         [IDL.Vec(ComplianceDeliverable)],
         ['query'],
       ),
-    'getAllDeadlines' : IDL.Func([], [IDL.Vec(DeadlineRecord)], ['query']),
     'getAllDeliverables' : IDL.Func(
         [],
         [IDL.Vec(ComplianceDeliverable)],
@@ -862,7 +797,6 @@ export const idlFactory = ({ IDL }) => {
         [IDL.Vec(ClientDeliverable)],
         ['query'],
       ),
-    'getMyDeadlines' : IDL.Func([], [IDL.Vec(DeadlineRecord)], ['query']),
     'getMyDeliverables' : IDL.Func(
         [],
         [IDL.Vec(ComplianceDeliverable)],
@@ -919,16 +853,16 @@ export const idlFactory = ({ IDL }) => {
     'setAdminPaymentSettings' : IDL.Func([AdminPaymentSettings], [], []),
     'setApproval' : IDL.Func([IDL.Principal, ApprovalStatus], [], []),
     'submitDeliverable' : IDL.Func([ClientDeliverableInput], [IDL.Nat], []),
-    'updateClientDeadlineStatus' : IDL.Func([IDL.Nat, DeadlineStatus], [], []),
+    'submitDeliverableForClient' : IDL.Func(
+        [AdminClientDeliverableInput],
+        [IDL.Nat],
+        [],
+      ),
     'updateClientDeliverableStatus' : IDL.Func(
         [IDL.Nat, ClientDeliverableStatus],
         [],
         [],
       ),
-    'updateClientFollowUpStatus' : IDL.Func([IDL.Nat, FollowUpStatus], [], []),
-    'updateClientTimelineStatus' : IDL.Func([IDL.Nat, TimelineStatus], [], []),
-    'updateClientToDoStatus' : IDL.Func([IDL.Nat, ToDoStatus], [], []),
-    'updateDeadlineStatus' : IDL.Func([IDL.Nat, DeadlineStatus], [], []),
     'updateFollowUpStatus' : IDL.Func([IDL.Nat, FollowUpStatus], [], []),
     'updatePaymentStatus' : IDL.Func([IDL.Nat, PaymentStatus], [], []),
     'updateStatus' : IDL.Func([IDL.Nat, RequestStatus], [], []),

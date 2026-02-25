@@ -14,7 +14,6 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
 import { useCreateFollowUp } from '../hooks/useComplianceAdmin';
 import { FollowUpStatus } from '../backend';
-import { Principal } from '@icp-sdk/core/principal';
 
 interface CreateFollowUpFormProps {
   onSuccess: () => void;
@@ -50,10 +49,11 @@ export default function CreateFollowUpForm({ onSuccess }: CreateFollowUpFormProp
       return;
     }
 
-    let clientPrincipal: Principal | null = null;
+    // Validate principal format if provided
     if (clientReference.trim()) {
       try {
-        clientPrincipal = Principal.fromText(clientReference.trim());
+        const { Principal } = await import('@dfinity/principal');
+        Principal.fromText(clientReference.trim());
       } catch {
         setError('Invalid client principal ID format.');
         return;
@@ -65,7 +65,7 @@ export default function CreateFollowUpForm({ onSuccess }: CreateFollowUpFormProp
         title: title.trim(),
         description: description.trim(),
         dueDate: dateToNanoseconds(dueDate),
-        clientReference: clientPrincipal,
+        clientReference: clientReference.trim() || null,
         status,
         notes: notes.trim(),
       });

@@ -10,6 +10,12 @@ import type { ActorMethod } from '@icp-sdk/core/agent';
 import type { IDL } from '@icp-sdk/core/candid';
 import type { Principal } from '@icp-sdk/core/principal';
 
+export interface AdminClientDeliverableInput {
+  'title' : string,
+  'file' : ExternalBlob,
+  'description' : string,
+  'clientPrincipal' : Principal,
+}
 export interface AdminPaymentSettings { 'paypalEmail' : string }
 export type ApprovalStatus = { 'pending' : null } |
   { 'approved' : null } |
@@ -51,19 +57,6 @@ export interface ComplianceDeliverable {
   'dueDate' : Time,
   'deliverableType' : DeliverableType,
 }
-export interface DeadlineRecord {
-  'id' : bigint,
-  'status' : DeadlineStatus,
-  'title' : string,
-  'urgencyLevel' : UrgencyLevel,
-  'dueDate' : Time,
-  'description' : string,
-  'clientPrincipal' : [] | [Principal],
-  'deliverableReference' : [] | [bigint],
-}
-export type DeadlineStatus = { 'active' : null } |
-  { 'completed' : null } |
-  { 'missed' : null };
 export type DeliverableStatus = { 'completed' : null } |
   { 'approved' : null } |
   { 'inReview' : null } |
@@ -192,9 +185,6 @@ export interface TrustMetrics {
 }
 export type UploadDocumentResult = { 'ok' : bigint } |
   { 'notApproved' : null };
-export type UrgencyLevel = { 'low' : null } |
-  { 'high' : null } |
-  { 'medium' : null };
 export interface UserApprovalInfo {
   'status' : ApprovalStatus,
   'principal' : Principal,
@@ -236,10 +226,6 @@ export interface _SERVICE {
   '_caffeineStorageUpdateGatewayPrincipals' : ActorMethod<[], undefined>,
   '_initializeAccessControlWithSecret' : ActorMethod<[string], undefined>,
   'assignCallerUserRole' : ActorMethod<[Principal, UserRole], undefined>,
-  'createClientDeadline' : ActorMethod<
-    [string, string, Time, UrgencyLevel, DeadlineStatus],
-    bigint
-  >,
   'createClientFollowUp' : ActorMethod<
     [string, string, Time, FollowUpStatus, string],
     bigint
@@ -250,10 +236,6 @@ export interface _SERVICE {
   >,
   'createClientToDo' : ActorMethod<
     [string, string, ToDoPriority, ToDoStatus],
-    bigint
-  >,
-  'createDeadline' : ActorMethod<
-    [string, string, Time, UrgencyLevel, DeadlineStatus, [] | [bigint]],
     bigint
   >,
   'createDeliverable' : ActorMethod<
@@ -283,7 +265,6 @@ export interface _SERVICE {
     [],
     Array<ComplianceDeliverable>
   >,
-  'getAllDeadlines' : ActorMethod<[], Array<DeadlineRecord>>,
   'getAllDeliverables' : ActorMethod<[], Array<ComplianceDeliverable>>,
   'getAllDocuments' : ActorMethod<[], Array<ClientDocument>>,
   'getAllFollowUps' : ActorMethod<[], Array<FollowUpItem>>,
@@ -300,7 +281,6 @@ export interface _SERVICE {
   >,
   'getClientRequests' : ActorMethod<[Principal], Array<ServiceRequest>>,
   'getClientSubmissions' : ActorMethod<[Principal], Array<ClientDeliverable>>,
-  'getMyDeadlines' : ActorMethod<[], Array<DeadlineRecord>>,
   'getMyDeliverables' : ActorMethod<[], Array<ComplianceDeliverable>>,
   'getMyFollowUps' : ActorMethod<[], Array<FollowUpItem>>,
   'getMyPayments' : ActorMethod<[], Array<PaymentRecord>>,
@@ -333,24 +313,14 @@ export interface _SERVICE {
   'setAdminPaymentSettings' : ActorMethod<[AdminPaymentSettings], undefined>,
   'setApproval' : ActorMethod<[Principal, ApprovalStatus], undefined>,
   'submitDeliverable' : ActorMethod<[ClientDeliverableInput], bigint>,
-  'updateClientDeadlineStatus' : ActorMethod<
-    [bigint, DeadlineStatus],
-    undefined
+  'submitDeliverableForClient' : ActorMethod<
+    [AdminClientDeliverableInput],
+    bigint
   >,
   'updateClientDeliverableStatus' : ActorMethod<
     [bigint, ClientDeliverableStatus],
     undefined
   >,
-  'updateClientFollowUpStatus' : ActorMethod<
-    [bigint, FollowUpStatus],
-    undefined
-  >,
-  'updateClientTimelineStatus' : ActorMethod<
-    [bigint, TimelineStatus],
-    undefined
-  >,
-  'updateClientToDoStatus' : ActorMethod<[bigint, ToDoStatus], undefined>,
-  'updateDeadlineStatus' : ActorMethod<[bigint, DeadlineStatus], undefined>,
   'updateFollowUpStatus' : ActorMethod<[bigint, FollowUpStatus], undefined>,
   'updatePaymentStatus' : ActorMethod<[bigint, PaymentStatus], undefined>,
   'updateStatus' : ActorMethod<[bigint, RequestStatus], undefined>,

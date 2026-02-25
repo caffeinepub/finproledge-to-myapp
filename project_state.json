@@ -1,16 +1,64 @@
 {
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
-  "summary": "Project with multiple task management features (To-Dos, Timelines, Follow-Ups, Deadlines, Compliance Tasks) requiring status management functionality.",
+  "summary": "Project involves a client/admin portal with task management (To-Dos, Timelines, Follow-Ups, Deadlines), compliance deliverables, document handling, and a contact/registration flow.",
   "architectural_notes": [],
   "known_issues": [],
   "isFixRequest": false,
   "existing_features": [
     {
-      "id": "feature-in-the-clienttaskstab-component-add-the-same-inline-status-change-controls-for-each-task-type-to-dos-timelines-follow-ups-deadlines-in-the-respective-tab-tables-so-clients-can-update-task-statuses-from-the-client-portal-as-well-reuse-or-share-the-status-select-logic-from-mycompliancetaskssection-to-keep-behavior-consistent",
-      "title": "In the ClientTasksTab component, add the same inline status-change controls for each task type (To-Dos, Timelines, Follow-Ups, Deadlines) in the respective tab tables, so clients can update task statuses from the client portal as well. Reuse or share the status select logic from MyComplianceTasksSection to keep behavior consistent.",
+      "id": "feature-remove-the-deadline-feature-entirely-from-the-application-this-includes-removing-the-deadline-tab-from-the-client-facing-compliancedashboardpage-and-clienttaskstab-removing-the-deadline-tab-from-complianceadmindashboardpage-removing-complianceadmindeadlinecountdown-and-clientcreatedeadlineform-components-from-active-use-removing-deadline-related-backend-methods-createdeadline-getdeadlines-updatedeadlinestatus-etc-from-main-mo-and-hiding-all-deadline-related-ui-elements-retain-the-data-type-in-migration-mo-only-if-needed-to-preserve-existing-data",
+      "title": "Remove the Deadline feature entirely from the application. This includes removing the Deadline tab from the client-facing ComplianceDashboardPage and ClientTasksTab, removing the Deadline tab from ComplianceAdminDashboardPage, removing ComplianceAdminDeadlineCountdown and ClientCreateDeadlineForm components from active use, removing deadline-related backend methods (createDeadline, getDeadlines, updateDeadlineStatus, etc.) from main.mo, and hiding all deadline-related UI elements. Retain the data type in migration.mo only if needed to preserve existing data.",
+      "reqIds": [
+        "REQ-1"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-enable-admins-to-change-the-statuses-of-to-dos-timelines-follow-ups-and-deadlines-while-deadlines-exist-from-the-admin-compliance-dashboard-the-complianceadmintodolist-complianceadmintimeline-complianceadminfollowup-and-complianceadmindeadlinecountdown-components-prior-to-deadline-removal-must-render-inline-status-selectors-using-the-existing-taskstatusselect-component-or-equivalent-the-admin-actor-must-be-authorized-to-call-the-existing-updatetodostatus-updatetimelinestatus-updatefollowupstatus-backend-methods",
+      "title": "Enable admins to change the statuses of To-Dos, Timelines, Follow-Ups, and Deadlines (while Deadlines exist) from the admin compliance dashboard. The ComplianceAdminToDoList, ComplianceAdminTimeline, ComplianceAdminFollowUp, and ComplianceAdminDeadlineCountdown components (prior to deadline removal) must render inline status selectors using the existing TaskStatusSelect component or equivalent. The admin actor must be authorized to call the existing updateToDoStatus, updateTimelineStatus, updateFollowUpStatus backend methods.",
       "reqIds": [
         "REQ-2"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-ensure-that-documents-uploaded-by-clients-and-received-by-the-admin-are-downloaded-in-their-original-format-in-the-documenttable-component-and-admindashboardpage-documents-tab-the-download-action-must-preserve-the-original-file-s-mime-type-and-filename-extension-the-backend-must-store-and-return-the-original-content-type-with-each-document-blob-and-the-download-link-or-function-must-set-the-correct-content-disposition-and-mime-type-so-the-browser-downloads-the-file-in-its-original-form-pdf-xlsx-etc",
+      "title": "Ensure that documents uploaded by clients and received by the admin are downloaded in their original format. In the DocumentTable component and AdminDashboardPage documents tab, the download action must preserve the original file's MIME type and filename extension. The backend must store and return the original content type with each document blob, and the download link or function must set the correct Content-Disposition and MIME type so the browser downloads the file in its original form (PDF, XLSX, etc.).",
+      "reqIds": [
+        "REQ-3"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-allow-both-clients-and-admins-to-add-compliance-deliverables-and-approve-or-reject-them-on-the-client-side-the-existing-clientdeliverableform-must-remain-accessible-on-the-admin-side-add-a-form-or-dialog-in-the-admindashboardpage-client-deliverables-tab-that-allows-the-admin-to-create-a-new-compliance-deliverable-on-behalf-of-any-client-both-clients-and-admins-must-be-able-to-approve-or-reject-deliverables-via-approve-reject-action-buttons-the-backend-s-submitclientdeliverable-and-updateclientdeliverablestatus-methods-must-authorize-both-the-client-principal-and-the-admin-principal-to-perform-these-operations",
+      "title": "Allow both clients and admins to add Compliance Deliverables and approve or reject them. On the client side, the existing ClientDeliverableForm must remain accessible. On the admin side, add a form or dialog in the AdminDashboardPage (Client Deliverables tab) that allows the admin to create a new compliance deliverable on behalf of any client. Both clients and admins must be able to approve or reject deliverables via approve/reject action buttons. The backend's submitClientDeliverable and updateClientDeliverableStatus methods must authorize both the client principal and the admin principal to perform these operations.",
+      "reqIds": [
+        "REQ-4"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-change-the-text-join-us-as-a-client-today-to-contact-us-everywhere-it-appears-in-the-frontend-including-buttons-headings-and-any-labels-on-the-homepage-or-any-other-page",
+      "title": "Change the text 'Join Us as a Client Today' to 'Contact Us' everywhere it appears in the frontend, including buttons, headings, and any labels on the HomePage or any other page.",
+      "reqIds": [
+        "REQ-5"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-make-the-phone-number-field-non-mandatory-in-the-servicerequestform-visitorservicerequestpage-form-and-userprofilesetup-modal-remove-the-required-validation-constraint-from-the-phone-number-input-field-the-form-must-be-submittable-without-entering-a-phone-number",
+      "title": "Make the Phone Number field non-mandatory in the ServiceRequestForm, VisitorServiceRequestPage form, and UserProfileSetup modal. Remove the required validation constraint from the phone number input field. The form must be submittable without entering a phone number.",
+      "reqIds": [
+        "REQ-6"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-in-the-admin-dashboard-s-client-submitted-deliverables-tab-update-the-adminclientdeliverabletable-component-to-display-a-link-or-button-that-allows-the-admin-to-view-or-download-the-uploaded-document-file-associated-with-each-deliverable-the-file-url-or-blob-stored-with-the-deliverable-must-be-surfaced-in-the-table-row-and-clicking-it-should-open-or-download-the-document",
+      "title": "In the Admin Dashboard's Client Submitted Deliverables tab, update the AdminClientDeliverableTable component to display a link or button that allows the admin to view or download the uploaded document file associated with each deliverable. The file URL or blob stored with the deliverable must be surfaced in the table row, and clicking it should open or download the document.",
+      "reqIds": [
+        "REQ-7"
       ],
       "version": 1
     }
@@ -18,29 +66,49 @@
   "new_feature_requests": [
     {
       "id": "AR-1",
-      "summary": "Provide a way to change the status of tasks (To-Dos, Timelines, Follow-Ups, Deadlines, Compliance Tasks)",
+      "summary": "Remove the Deadline feature from the application",
       "reqIds": [],
       "status": "pending"
     },
     {
       "id": "AR-2",
-      "summary": "In the MyComplianceTasksSection component, add inline status-change controls (select dropdowns or segmented buttons) for each task type — To-Dos, Timelines, Follow-Ups, and Deadlines — so that clients can update the status of their own tasks directly from the compliance dashboard. Each control should reflect the current status and immediately call the appropriate mutation hook on change (e.g., useUpdateClientToDoStatus, useUpdateClientTimelineStatus, useUpdateClientFollowUpStatus, useUpdateClientDeadlineStatus or equivalent hooks). Show a toast notification on success or failure.",
-      "reqIds": [
-        "REQ-1"
-      ],
+      "summary": "Admin can change statuses on To-Dos, Timelines, Follow-Ups, and Deadlines",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-3",
+      "summary": "Documents received by admin should be downloaded in the same format as received",
+      "reqIds": [],
       "status": "pending"
     },
     {
       "id": "AR-4",
-      "summary": "Ensure the backend actor exposes update-status endpoints for all four client task types (clientToDo, clientTimeline, clientFollowUp, clientDeadline) if they do not already exist. Each endpoint should accept the task ID and new status, verify the caller owns the record, and persist the updated status. Add or extend the corresponding frontend mutation hooks (e.g., in useComplianceAdmin.ts or a dedicated client-task hooks file) to call these endpoints.",
-      "reqIds": [
-        "REQ-3"
-      ],
+      "summary": "Both Client and Admin can add Compliance Deliverables and approve/reject them",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-5",
+      "summary": "Change button/label text from 'Join Us as a Client Today' to 'Contact Us'",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-6",
+      "summary": "Make Phone Number field not mandatory in the registration/contact form",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-7",
+      "summary": "In Client Submitted Deliverables section, Admin can view/see the uploaded document",
+      "reqIds": [],
       "status": "pending"
     }
   ],
   "gameProjectType": "none",
-  "projectName": "FINPROLEDGE Compliance",
+  "projectName": "FINPROLEDGE Portal",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

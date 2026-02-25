@@ -11,7 +11,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Loader2, AlertCircle } from 'lucide-react';
 import { useCreateClientToDo, ToDoPriority } from '../hooks/useComplianceAdmin';
 import { ToDoStatus } from '../backend';
 import { toast } from 'sonner';
@@ -23,7 +23,7 @@ interface ClientCreateToDoFormProps {
 export default function ClientCreateToDoForm({ onSuccess }: ClientCreateToDoFormProps) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [priority, setPriority] = useState<ToDoPriority>('medium');
+  const [priority, setPriority] = useState<ToDoPriority>(ToDoPriority.medium);
   const [status, setStatus] = useState<ToDoStatus>(ToDoStatus.pending);
   const [error, setError] = useState('');
 
@@ -99,9 +99,9 @@ export default function ClientCreateToDoForm({ onSuccess }: ClientCreateToDoForm
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="high">High</SelectItem>
-              <SelectItem value="medium">Medium</SelectItem>
-              <SelectItem value="low">Low</SelectItem>
+              <SelectItem value={ToDoPriority.high}>High</SelectItem>
+              <SelectItem value={ToDoPriority.medium}>Medium</SelectItem>
+              <SelectItem value={ToDoPriority.low}>Low</SelectItem>
             </SelectContent>
           </Select>
         </div>

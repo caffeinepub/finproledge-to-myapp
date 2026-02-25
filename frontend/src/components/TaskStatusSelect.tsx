@@ -1,44 +1,37 @@
+import { useState } from 'react';
 import { Loader2 } from 'lucide-react';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { ToDoStatus, TimelineStatus, FollowUpStatus, DeadlineStatus } from '../backend';
-import {
-  useUpdateClientToDoStatus,
-  useUpdateClientTimelineStatus,
-  useUpdateClientFollowUpStatus,
-  useUpdateClientDeadlineStatus,
-} from '../hooks/useComplianceAdmin';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ToDoStatus, TimelineStatus, FollowUpStatus } from '../backend';
 import { toast } from 'sonner';
-
-// ─── ToDo Status Select ───────────────────────────────────────────────────────
+import { useUpdateToDoStatus, useUpdateTimelineStatus, useUpdateFollowUpStatus } from '../hooks/useComplianceAdmin';
 
 interface ToDoStatusSelectProps {
-  taskId: bigint;
+  toDoId: bigint;
   currentStatus: ToDoStatus;
 }
 
-export function ToDoStatusSelect({ taskId, currentStatus }: ToDoStatusSelectProps) {
-  const mutation = useUpdateClientToDoStatus();
+export function ToDoStatusSelect({ toDoId, currentStatus }: ToDoStatusSelectProps) {
+  const [optimisticStatus, setOptimisticStatus] = useState<ToDoStatus>(currentStatus);
+  const updateStatus = useUpdateToDoStatus();
 
   const handleChange = async (value: string) => {
+    const newStatus = value as ToDoStatus;
+    const previousStatus = optimisticStatus;
+    setOptimisticStatus(newStatus);
     try {
-      await mutation.mutateAsync({ toDoId: taskId, newStatus: value as ToDoStatus });
-      toast.success('To-Do status updated.');
+      await updateStatus.mutateAsync({ toDoId, newStatus });
+      toast.success('Status updated');
     } catch {
-      toast.error('Failed to update status. Please try again.');
+      setOptimisticStatus(previousStatus);
+      toast.error('Failed to update status');
     }
   };
 
   return (
-    <div className="flex items-center gap-1.5 min-w-[130px]">
-      {mutation.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground shrink-0" />}
-      <Select value={currentStatus} onValueChange={handleChange} disabled={mutation.isPending}>
-        <SelectTrigger className="h-7 text-xs px-2 py-0">
+    <div className="flex items-center gap-1">
+      {updateStatus.isPending && <Loader2 className="w-3 h-3 animate-spin text-muted-foreground" />}
+      <Select value={optimisticStatus} onValueChange={handleChange} disabled={updateStatus.isPending}>
+        <SelectTrigger className="h-7 text-xs w-32">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -51,30 +44,33 @@ export function ToDoStatusSelect({ taskId, currentStatus }: ToDoStatusSelectProp
   );
 }
 
-// ─── Timeline Status Select ───────────────────────────────────────────────────
-
 interface TimelineStatusSelectProps {
-  taskId: bigint;
+  timelineId: bigint;
   currentStatus: TimelineStatus;
 }
 
-export function TimelineStatusSelect({ taskId, currentStatus }: TimelineStatusSelectProps) {
-  const mutation = useUpdateClientTimelineStatus();
+export function TimelineStatusSelect({ timelineId, currentStatus }: TimelineStatusSelectProps) {
+  const [optimisticStatus, setOptimisticStatus] = useState<TimelineStatus>(currentStatus);
+  const updateStatus = useUpdateTimelineStatus();
 
   const handleChange = async (value: string) => {
+    const newStatus = value as TimelineStatus;
+    const previousStatus = optimisticStatus;
+    setOptimisticStatus(newStatus);
     try {
-      await mutation.mutateAsync({ timelineId: taskId, newStatus: value as TimelineStatus });
-      toast.success('Timeline status updated.');
+      await updateStatus.mutateAsync({ timelineId, newStatus });
+      toast.success('Status updated');
     } catch {
-      toast.error('Failed to update status. Please try again.');
+      setOptimisticStatus(previousStatus);
+      toast.error('Failed to update status');
     }
   };
 
   return (
-    <div className="flex items-center gap-1.5 min-w-[130px]">
-      {mutation.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground shrink-0" />}
-      <Select value={currentStatus} onValueChange={handleChange} disabled={mutation.isPending}>
-        <SelectTrigger className="h-7 text-xs px-2 py-0">
+    <div className="flex items-center gap-1">
+      {updateStatus.isPending && <Loader2 className="w-3 h-3 animate-spin text-muted-foreground" />}
+      <Select value={optimisticStatus} onValueChange={handleChange} disabled={updateStatus.isPending}>
+        <SelectTrigger className="h-7 text-xs w-32">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -87,71 +83,38 @@ export function TimelineStatusSelect({ taskId, currentStatus }: TimelineStatusSe
   );
 }
 
-// ─── FollowUp Status Select ───────────────────────────────────────────────────
-
 interface FollowUpStatusSelectProps {
-  taskId: bigint;
+  followUpId: bigint;
   currentStatus: FollowUpStatus;
 }
 
-export function FollowUpStatusSelect({ taskId, currentStatus }: FollowUpStatusSelectProps) {
-  const mutation = useUpdateClientFollowUpStatus();
+export function FollowUpStatusSelect({ followUpId, currentStatus }: FollowUpStatusSelectProps) {
+  const [optimisticStatus, setOptimisticStatus] = useState<FollowUpStatus>(currentStatus);
+  const updateStatus = useUpdateFollowUpStatus();
 
   const handleChange = async (value: string) => {
+    const newStatus = value as FollowUpStatus;
+    const previousStatus = optimisticStatus;
+    setOptimisticStatus(newStatus);
     try {
-      await mutation.mutateAsync({ followUpId: taskId, newStatus: value as FollowUpStatus });
-      toast.success('Follow-Up status updated.');
+      await updateStatus.mutateAsync({ followUpId, newStatus });
+      toast.success('Status updated');
     } catch {
-      toast.error('Failed to update status. Please try again.');
+      setOptimisticStatus(previousStatus);
+      toast.error('Failed to update status');
     }
   };
 
   return (
-    <div className="flex items-center gap-1.5 min-w-[120px]">
-      {mutation.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground shrink-0" />}
-      <Select value={currentStatus} onValueChange={handleChange} disabled={mutation.isPending}>
-        <SelectTrigger className="h-7 text-xs px-2 py-0">
+    <div className="flex items-center gap-1">
+      {updateStatus.isPending && <Loader2 className="w-3 h-3 animate-spin text-muted-foreground" />}
+      <Select value={optimisticStatus} onValueChange={handleChange} disabled={updateStatus.isPending}>
+        <SelectTrigger className="h-7 text-xs w-32">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
           <SelectItem value={FollowUpStatus.pending}>Pending</SelectItem>
           <SelectItem value={FollowUpStatus.completed}>Completed</SelectItem>
-        </SelectContent>
-      </Select>
-    </div>
-  );
-}
-
-// ─── Deadline Status Select ───────────────────────────────────────────────────
-
-interface DeadlineStatusSelectProps {
-  taskId: bigint;
-  currentStatus: DeadlineStatus;
-}
-
-export function DeadlineStatusSelect({ taskId, currentStatus }: DeadlineStatusSelectProps) {
-  const mutation = useUpdateClientDeadlineStatus();
-
-  const handleChange = async (value: string) => {
-    try {
-      await mutation.mutateAsync({ deadlineId: taskId, newStatus: value as DeadlineStatus });
-      toast.success('Deadline status updated.');
-    } catch {
-      toast.error('Failed to update status. Please try again.');
-    }
-  };
-
-  return (
-    <div className="flex items-center gap-1.5 min-w-[120px]">
-      {mutation.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground shrink-0" />}
-      <Select value={currentStatus} onValueChange={handleChange} disabled={mutation.isPending}>
-        <SelectTrigger className="h-7 text-xs px-2 py-0">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value={DeadlineStatus.active}>Active</SelectItem>
-          <SelectItem value={DeadlineStatus.completed}>Completed</SelectItem>
-          <SelectItem value={DeadlineStatus.missed}>Missed</SelectItem>
         </SelectContent>
       </Select>
     </div>

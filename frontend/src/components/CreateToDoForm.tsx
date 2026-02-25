@@ -14,7 +14,6 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
 import { useCreateToDo, ToDoPriority } from '../hooks/useComplianceAdmin';
 import { ToDoStatus } from '../backend';
-import { Principal } from '@icp-sdk/core/principal';
 
 interface CreateToDoFormProps {
   onSuccess: () => void;
@@ -23,7 +22,7 @@ interface CreateToDoFormProps {
 export default function CreateToDoForm({ onSuccess }: CreateToDoFormProps) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [priority, setPriority] = useState<ToDoPriority>('medium');
+  const [priority, setPriority] = useState<ToDoPriority>(ToDoPriority.medium);
   const [status, setStatus] = useState<ToDoStatus>(ToDoStatus.pending);
   const [assignedClient, setAssignedClient] = useState('');
   const [error, setError] = useState('');
@@ -41,10 +40,11 @@ export default function CreateToDoForm({ onSuccess }: CreateToDoFormProps) {
       return;
     }
 
-    let clientPrincipal: Principal | null = null;
+    // Validate principal format if provided
     if (assignedClient.trim()) {
       try {
-        clientPrincipal = Principal.fromText(assignedClient.trim());
+        const { Principal } = await import('@dfinity/principal');
+        Principal.fromText(assignedClient.trim());
       } catch {
         setError('Invalid client principal ID format.');
         return;
@@ -57,7 +57,7 @@ export default function CreateToDoForm({ onSuccess }: CreateToDoFormProps) {
         description: description.trim(),
         priority,
         status,
-        assignedClient: clientPrincipal,
+        assignedClient: assignedClient.trim() || null,
       });
       setSuccess(true);
       setTimeout(() => {
@@ -123,9 +123,9 @@ export default function CreateToDoForm({ onSuccess }: CreateToDoFormProps) {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="high">High</SelectItem>
-              <SelectItem value="medium">Medium</SelectItem>
-              <SelectItem value="low">Low</SelectItem>
+              <SelectItem value={ToDoPriority.high}>High</SelectItem>
+              <SelectItem value={ToDoPriority.medium}>Medium</SelectItem>
+              <SelectItem value={ToDoPriority.low}>Low</SelectItem>
             </SelectContent>
           </Select>
         </div>

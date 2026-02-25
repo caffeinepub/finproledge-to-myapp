@@ -1,19 +1,15 @@
 import { useState } from 'react';
-import { useCreateVisitorRequest } from '../hooks/useServiceRequests';
+import { Link } from '@tanstack/react-router';
+import { ArrowLeft, CheckCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { CalendarIcon, CheckCircle, Loader2, Send } from 'lucide-react';
-import { format } from 'date-fns';
-import { toast } from 'sonner';
+import { useCreateVisitorRequest } from '../hooks/useServiceRequests';
 import { ServiceType } from '../backend';
 
-const SERVICE_TYPES = [
+const serviceOptions = [
   { value: ServiceType.incomeTaxFiling, label: 'Income Tax Filing' },
   { value: ServiceType.corporateTaxFiling, label: 'Corporate Tax Filing' },
   { value: ServiceType.audits, label: 'Audits' },
@@ -24,241 +20,185 @@ const SERVICE_TYPES = [
 ];
 
 export default function VisitorServiceRequestPage() {
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [company, setCompany] = useState('');
-  const [phone, setPhone] = useState('');
-  const [serviceType, setServiceType] = useState<ServiceType | ''>('');
-  const [description, setDescription] = useState('');
-  const [deadline, setDeadline] = useState<Date>();
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    company: '',
+    phone: '',
+    serviceType: '' as ServiceType | '',
+    description: '',
+  });
   const [submitted, setSubmitted] = useState(false);
 
   const createVisitorRequest = useCreateVisitorRequest();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!name.trim() || !email.trim() || !company.trim() || !serviceType || !deadline) {
-      toast.error('Please fill in all required fields');
-      return;
-    }
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email.trim())) {
-      toast.error('Please enter a valid email address');
-      return;
-    }
+    if (!formData.name || !formData.email || !formData.company || !formData.serviceType) return;
 
     try {
-      const deadlineNanos = BigInt(deadline.getTime()) * BigInt(1_000_000);
       await createVisitorRequest.mutateAsync({
-        name: name.trim(),
-        email: email.trim(),
-        company: company.trim(),
-        phone: phone.trim(),
-        serviceType: serviceType as ServiceType,
-        description: description.trim(),
-        deadline: deadlineNanos,
+        name: formData.name,
+        email: formData.email,
+        company: formData.company,
+        phone: formData.phone,
+        serviceType: formData.serviceType as ServiceType,
+        description: formData.description,
+        deadline: BigInt(Date.now()) * BigInt(1_000_000),
       });
-
       setSubmitted(true);
     } catch (error) {
-      toast.error('Failed to submit your request. Please try again.');
-      console.error('Visitor request error:', error);
+      console.error('Failed to submit request:', error);
     }
-  };
-
-  const handleReset = () => {
-    setName('');
-    setEmail('');
-    setCompany('');
-    setPhone('');
-    setServiceType('');
-    setDescription('');
-    setDeadline(undefined);
-    setSubmitted(false);
   };
 
   if (submitted) {
     return (
-      <section className="py-16 px-6">
-        <div className="container mx-auto max-w-2xl">
-          <Card className="text-center">
-            <CardContent className="pt-12 pb-10">
-              <CheckCircle className="h-16 w-16 text-primary mx-auto mb-6" />
-              <h2 className="text-2xl font-bold mb-3">Request Submitted!</h2>
-              <p className="text-muted-foreground mb-2">
-                Thank you for reaching out. Your service request has been received.
-              </p>
-              <p className="text-muted-foreground mb-8">
-                Our team will review your request and get back to you at <strong>{email}</strong> shortly.
-              </p>
-              <Button onClick={handleReset} variant="outline">
-                Submit Another Request
+      <div className="min-h-screen bg-background flex items-center justify-center px-4">
+        <div className="max-w-md w-full text-center">
+          <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+            <CheckCircle className="w-8 h-8 text-green-600" />
+          </div>
+          <h1 className="text-2xl font-bold text-foreground mb-4">Request Submitted!</h1>
+          <p className="text-muted-foreground mb-8">
+            Thank you for reaching out. Our team will review your request and get back to you within 24 hours.
+          </p>
+          <div className="flex flex-col gap-3">
+            <Link to="/">
+              <Button className="w-full bg-navy text-white hover:bg-navy/90">
+                Return to Home
               </Button>
-            </CardContent>
-          </Card>
+            </Link>
+          </div>
         </div>
-      </section>
+      </div>
     );
   }
 
   return (
-    <section className="py-16 px-6">
-      <div className="container mx-auto max-w-2xl">
-        {/* Page Header */}
-        <div className="text-center mb-10">
-          <h1 className="text-3xl font-bold tracking-tight mb-3">Service Request</h1>
-          <p className="text-muted-foreground text-lg">
-            Tell us about your financial service needs and we'll get back to you promptly.
+    <div className="min-h-screen bg-background">
+      <div className="max-w-2xl mx-auto px-4 py-12">
+        <Link to="/" className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground mb-8 transition-colors">
+          <ArrowLeft className="w-4 h-4" />
+          Back to Home
+        </Link>
+
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-foreground mb-2">Contact Us</h1>
+          <p className="text-muted-foreground">
+            Fill out the form below and our team will get back to you within 24 hours.
           </p>
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Send className="h-5 w-5 text-primary" />
-              Submit a Request
-            </CardTitle>
-            <CardDescription>
-              No account required. Fill in your details and we'll be in touch.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Contact Information */}
-              <div className="space-y-4">
-                <h3 className="text-sm font-semibold text-foreground/70 uppercase tracking-wider">
-                  Your Information
-                </h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="name">Full Name <span className="text-destructive">*</span></Label>
-                    <Input
-                      id="name"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      placeholder="John Smith"
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email Address <span className="text-destructive">*</span></Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="john@company.com"
-                      required
-                    />
-                  </div>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="company">Company / Organisation <span className="text-destructive">*</span></Label>
-                    <Input
-                      id="company"
-                      value={company}
-                      onChange={(e) => setCompany(e.target.value)}
-                      placeholder="Your company name"
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="phone">Phone No.</Label>
-                    <Input
-                      id="phone"
-                      type="tel"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      placeholder="+1 (555) 000-0000"
-                    />
-                  </div>
-                </div>
-              </div>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">
+                Full Name <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                id="name"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                placeholder="John Doe"
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="email">
+                Email Address <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                id="email"
+                type="email"
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                placeholder="john@example.com"
+                required
+              />
+            </div>
+          </div>
 
-              {/* Service Details */}
-              <div className="space-y-4">
-                <h3 className="text-sm font-semibold text-foreground/70 uppercase tracking-wider">
-                  Service Details
-                </h3>
-                <div className="space-y-2">
-                  <Label htmlFor="serviceType">Service Type <span className="text-destructive">*</span></Label>
-                  <Select value={serviceType} onValueChange={(value) => setServiceType(value as ServiceType)}>
-                    <SelectTrigger id="serviceType">
-                      <SelectValue placeholder="Select a service" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {SERVICE_TYPES.map((type) => (
-                        <SelectItem key={type.value} value={type.value}>
-                          {type.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="company">
+                Company Name <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                id="company"
+                value={formData.company}
+                onChange={(e) => setFormData({ ...formData, company: e.target.value })}
+                placeholder="Your Company Ltd."
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="phone">Phone Number</Label>
+              <Input
+                id="phone"
+                type="tel"
+                value={formData.phone}
+                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                placeholder="+91 98765 43210"
+              />
+            </div>
+          </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="description">
-                    Description <span className="text-muted-foreground font-normal">(optional)</span>
-                  </Label>
-                  <Textarea
-                    id="description"
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Describe your requirements in detail — the more context you provide, the better we can assist you."
-                    rows={5}
-                  />
-                </div>
+          <div className="space-y-2">
+            <Label htmlFor="serviceType">
+              Service Required <span className="text-destructive">*</span>
+            </Label>
+            <Select
+              value={formData.serviceType}
+              onValueChange={(value) => setFormData({ ...formData, serviceType: value as ServiceType })}
+              required
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select a service" />
+              </SelectTrigger>
+              <SelectContent>
+                {serviceOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
-                <div className="space-y-2">
-                  <Label>Preferred Deadline <span className="text-destructive">*</span></Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className="w-full justify-start text-left font-normal"
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {deadline ? format(deadline, 'PPP') : <span className="text-muted-foreground">Pick a date</span>}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0">
-                      <Calendar
-                        mode="single"
-                        selected={deadline}
-                        onSelect={setDeadline}
-                        disabled={(date) => date < new Date()}
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </div>
-              </div>
+          <div className="space-y-2">
+            <Label htmlFor="description">Additional Details</Label>
+            <Textarea
+              id="description"
+              value={formData.description}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              placeholder="Please describe your requirements in detail..."
+              rows={4}
+            />
+          </div>
 
-              <Button
-                type="submit"
-                className="w-full"
-                disabled={createVisitorRequest.isPending}
-              >
-                {createVisitorRequest.isPending ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Submitting...
-                  </>
-                ) : (
-                  <>
-                    <Send className="mr-2 h-4 w-4" />
-                    Submit Request
-                  </>
-                )}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
+          <Button
+            type="submit"
+            className="w-full bg-gold text-navy hover:bg-gold/90 font-semibold"
+            disabled={createVisitorRequest.isPending || !formData.name || !formData.email || !formData.company || !formData.serviceType}
+          >
+            {createVisitorRequest.isPending ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Submitting...
+              </>
+            ) : (
+              'Submit Request'
+            )}
+          </Button>
+
+          {createVisitorRequest.isError && (
+            <p className="text-destructive text-sm text-center">
+              Failed to submit request. Please try again.
+            </p>
+          )}
+        </form>
       </div>
-    </section>
+    </div>
   );
 }

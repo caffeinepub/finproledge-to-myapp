@@ -27,6 +27,14 @@ export interface ServiceRequest {
     company?: string;
     phone?: string;
 }
+export interface ComplianceDeliverable {
+    id: bigint;
+    status: DeliverableStatus;
+    client: Principal;
+    title: string;
+    dueDate: Time;
+    deliverableType: DeliverableType;
+}
 export type Time = bigint;
 export interface TechnicalReliabilityMetrics {
     pageLoadMs: bigint;
@@ -52,6 +60,10 @@ export interface LeadGenerationMetrics {
     formSubmissions: bigint;
     clickToCallCount: bigint;
 }
+export interface ClientRetentionMetrics {
+    portalFunnelDropoffs: bigint;
+    returningUserRatio: number;
+}
 export interface TimelineEntry {
     id: bigint;
     status: TimelineStatus;
@@ -67,16 +79,6 @@ export interface TrustMetrics {
     blogEngagement: bigint;
     aboutPageAvgTime: bigint;
 }
-export interface DeadlineRecord {
-    id: bigint;
-    status: DeadlineStatus;
-    title: string;
-    urgencyLevel: UrgencyLevel;
-    dueDate: Time;
-    description: string;
-    clientPrincipal?: Principal;
-    deliverableReference?: bigint;
-}
 export interface ClientDocument {
     id: bigint;
     client: Principal;
@@ -85,6 +87,11 @@ export interface ClientDocument {
     docType: DocumentType;
     uploadedAt: Time;
 }
+export interface ClientDeliverableInput {
+    title: string;
+    file: ExternalBlob;
+    description: string;
+}
 export interface ClientDeliverable {
     id: bigint;
     status: ClientDeliverableStatus;
@@ -92,23 +99,6 @@ export interface ClientDeliverable {
     submitter: Principal;
     file: ExternalBlob;
     createdAt: Time;
-    description: string;
-}
-export interface ClientRetentionMetrics {
-    portalFunnelDropoffs: bigint;
-    returningUserRatio: number;
-}
-export interface ComplianceDeliverable {
-    id: bigint;
-    status: DeliverableStatus;
-    client: Principal;
-    title: string;
-    dueDate: Time;
-    deliverableType: DeliverableType;
-}
-export interface ClientDeliverableInput {
-    title: string;
-    file: ExternalBlob;
     description: string;
 }
 export interface FollowUpItem {
@@ -140,6 +130,12 @@ export interface ToDoItem {
     clientPrincipal?: Principal;
     assignedClient?: Principal;
     priority: ToDoPriority;
+}
+export interface AdminClientDeliverableInput {
+    title: string;
+    file: ExternalBlob;
+    description: string;
+    clientPrincipal: Principal;
 }
 export interface UserApprovalInfo {
     status: ApprovalStatus;
@@ -173,11 +169,6 @@ export enum ClientDeliverableStatus {
     pending = "pending",
     rejected = "rejected",
     accepted = "accepted"
-}
-export enum DeadlineStatus {
-    active = "active",
-    completed = "completed",
-    missed = "missed"
 }
 export enum DeliverableStatus {
     completed = "completed",
@@ -233,15 +224,15 @@ export enum TimelineStatus {
     planned = "planned",
     inProgress = "inProgress"
 }
+export enum ToDoPriority {
+    low = "low",
+    high = "high",
+    medium = "medium"
+}
 export enum ToDoStatus {
     pending = "pending",
     completed = "completed",
     inProgress = "inProgress"
-}
-export enum UrgencyLevel {
-    low = "low",
-    high = "high",
-    medium = "medium"
 }
 export enum UserRole {
     admin = "admin",
@@ -250,11 +241,9 @@ export enum UserRole {
 }
 export interface backendInterface {
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
-    createClientDeadline(title: string, description: string, dueDate: Time, urgencyLevel: UrgencyLevel, status: DeadlineStatus): Promise<bigint>;
     createClientFollowUp(title: string, description: string, dueDate: Time, status: FollowUpStatus, notes: string): Promise<bigint>;
     createClientTimeline(title: string, description: string, startDate: Time, endDate: Time, status: TimelineStatus): Promise<bigint>;
     createClientToDo(title: string, description: string, priority: ToDoPriority, status: ToDoStatus): Promise<bigint>;
-    createDeadline(title: string, description: string, dueDate: Time, urgencyLevel: UrgencyLevel, status: DeadlineStatus, deliverableReference: bigint | null): Promise<bigint>;
     createDeliverable(clientPrincipal: Principal, title: string, dueDate: Time, deliverableType: DeliverableType): Promise<bigint>;
     createFollowUp(title: string, description: string, dueDate: Time, clientReference: Principal | null, status: FollowUpStatus, notes: string): Promise<bigint>;
     createPayment(amount: bigint, currencyCode: string, paymentMethod: PaymentMethod, cardType: string | null): Promise<bigint>;
@@ -264,7 +253,6 @@ export interface backendInterface {
     createVisitorRequest(input: ServiceRequestInput): Promise<bigint>;
     getAdminPaymentSettings(): Promise<AdminPaymentSettings | null>;
     getAllComplianceDeliverables(): Promise<Array<ComplianceDeliverable>>;
-    getAllDeadlines(): Promise<Array<DeadlineRecord>>;
     getAllDeliverables(): Promise<Array<ComplianceDeliverable>>;
     getAllDocuments(): Promise<Array<ClientDocument>>;
     getAllFollowUps(): Promise<Array<FollowUpItem>>;
@@ -278,7 +266,6 @@ export interface backendInterface {
     getClientDeliverables(client: Principal): Promise<Array<ComplianceDeliverable>>;
     getClientRequests(client: Principal): Promise<Array<ServiceRequest>>;
     getClientSubmissions(owner: Principal): Promise<Array<ClientDeliverable>>;
-    getMyDeadlines(): Promise<Array<DeadlineRecord>>;
     getMyDeliverables(): Promise<Array<ComplianceDeliverable>>;
     getMyFollowUps(): Promise<Array<FollowUpItem>>;
     getMyPayments(): Promise<Array<PaymentRecord>>;
@@ -305,12 +292,8 @@ export interface backendInterface {
     setAdminPaymentSettings(settings: AdminPaymentSettings): Promise<void>;
     setApproval(user: Principal, status: ApprovalStatus): Promise<void>;
     submitDeliverable(input: ClientDeliverableInput): Promise<bigint>;
-    updateClientDeadlineStatus(deadlineId: bigint, newStatus: DeadlineStatus): Promise<void>;
+    submitDeliverableForClient(input: AdminClientDeliverableInput): Promise<bigint>;
     updateClientDeliverableStatus(deliverableId: bigint, newStatus: ClientDeliverableStatus): Promise<void>;
-    updateClientFollowUpStatus(followUpId: bigint, newStatus: FollowUpStatus): Promise<void>;
-    updateClientTimelineStatus(timelineId: bigint, newStatus: TimelineStatus): Promise<void>;
-    updateClientToDoStatus(toDoId: bigint, newStatus: ToDoStatus): Promise<void>;
-    updateDeadlineStatus(deadlineId: bigint, newStatus: DeadlineStatus): Promise<void>;
     updateFollowUpStatus(followUpId: bigint, newStatus: FollowUpStatus): Promise<void>;
     updatePaymentStatus(paymentId: bigint, status: PaymentStatus): Promise<void>;
     updateStatus(requestId: bigint, status: RequestStatus): Promise<void>;

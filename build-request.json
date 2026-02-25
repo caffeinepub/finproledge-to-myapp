@@ -1,77 +1,155 @@
 {
   "kind": "build_request",
-  "title": "Add status change controls for client-facing task items",
-  "projectName": "FINPROLEDGE Compliance",
+  "title": "Remove Deadlines, Admin Status Control, Document Downloads, Compliance Deliverables, UI Text & Form Updates",
+  "projectName": "FINPROLEDGE Portal",
   "priority": "normal",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "In the MyComplianceTasksSection component, add inline status-change controls (select dropdowns or segmented buttons) for each task type — To-Dos, Timelines, Follow-Ups, and Deadlines — so that clients can update the status of their own tasks directly from the compliance dashboard. Each control should reflect the current status and immediately call the appropriate mutation hook on change (e.g., useUpdateClientToDoStatus, useUpdateClientTimelineStatus, useUpdateClientFollowUpStatus, useUpdateClientDeadlineStatus or equivalent hooks). Show a toast notification on success or failure.",
-      "target": "frontend",
+      "text": "Remove the Deadline feature entirely from the application. This includes removing the Deadline tab from the client-facing ComplianceDashboardPage and ClientTasksTab, removing the Deadline tab from ComplianceAdminDashboardPage, removing ComplianceAdminDeadlineCountdown and ClientCreateDeadlineForm components from active use, removing deadline-related backend methods (createDeadline, getDeadlines, updateDeadlineStatus, etc.) from main.mo, and hiding all deadline-related UI elements. Retain the data type in migration.mo only if needed to preserve existing data.",
+      "target": "both",
       "source": {
         "messageIds": [
-          "msg-6"
+          "msg-1"
         ],
         "quotes": [
-          "provide a Way to change Status"
+          "Don't keep Deadline"
         ]
       },
       "acceptanceCriteria": [
-        "Each task row in the My Compliance Tasks section (To-Dos, Timelines, Follow-Ups, Deadlines tabs) displays a status selector showing the current status.",
-        "Selecting a new status triggers the correct backend mutation for that task type.",
-        "A success toast is shown when the status is updated successfully.",
-        "An error toast is shown if the update fails.",
-        "The status badge/selector updates optimistically or refreshes after mutation completes."
+        "No Deadline tab appears in the client compliance dashboard",
+        "No Deadline tab appears in the admin compliance dashboard",
+        "No deadline creation forms are accessible to clients or admins",
+        "Backend no longer exposes deadline CRUD endpoints",
+        "TaskStatusSelect component no longer includes a Deadline status select",
+        "Navigation and all tabbed UIs show no trace of the Deadline section"
       ]
     },
     {
       "id": "REQ-2",
-      "text": "In the ClientTasksTab component, add the same inline status-change controls for each task type (To-Dos, Timelines, Follow-Ups, Deadlines) in the respective tab tables, so clients can update task statuses from the client portal as well. Reuse or share the status select logic from MyComplianceTasksSection to keep behavior consistent.",
-      "target": "frontend",
+      "text": "Enable admins to change the statuses of To-Dos, Timelines, Follow-Ups, and Deadlines (while Deadlines exist) from the admin compliance dashboard. The ComplianceAdminToDoList, ComplianceAdminTimeline, ComplianceAdminFollowUp, and ComplianceAdminDeadlineCountdown components (prior to deadline removal) must render inline status selectors using the existing TaskStatusSelect component or equivalent. The admin actor must be authorized to call the existing updateToDoStatus, updateTimelineStatus, updateFollowUpStatus backend methods.",
+      "target": "both",
       "source": {
         "messageIds": [
-          "msg-6"
+          "msg-1"
         ],
         "quotes": [
-          "provide a Way to change Status"
+          "Admin can also change the statuses on your To-Dos, Timelines, Follow-Ups, and Deadlines"
         ]
       },
       "acceptanceCriteria": [
-        "Each task table in ClientTasksTab includes a status selector per row for all four task types.",
-        "The status options match the valid statuses defined in the backend types for each task.",
-        "Changing the status calls the correct mutation and shows feedback toasts.",
-        "Newly created tasks show the status control immediately without requiring a page reload."
+        "Admin can change the status of any To-Do item from the admin compliance dashboard",
+        "Admin can change the status of any Timeline entry from the admin compliance dashboard",
+        "Admin can change the status of any Follow-Up item from the admin compliance dashboard",
+        "Status changes made by admin are persisted in the backend",
+        "Status updates reflect immediately in the UI (optimistic update or refetch)"
       ]
     },
     {
       "id": "REQ-3",
-      "text": "Ensure the backend actor exposes update-status endpoints for all four client task types (clientToDo, clientTimeline, clientFollowUp, clientDeadline) if they do not already exist. Each endpoint should accept the task ID and new status, verify the caller owns the record, and persist the updated status. Add or extend the corresponding frontend mutation hooks (e.g., in useComplianceAdmin.ts or a dedicated client-task hooks file) to call these endpoints.",
+      "text": "Ensure that documents uploaded by clients and received by the admin are downloaded in their original format. In the DocumentTable component and AdminDashboardPage documents tab, the download action must preserve the original file's MIME type and filename extension. The backend must store and return the original content type with each document blob, and the download link or function must set the correct Content-Disposition and MIME type so the browser downloads the file in its original form (PDF, XLSX, etc.).",
       "target": "both",
       "source": {
         "messageIds": [
-          "msg-6"
+          "msg-1"
         ],
         "quotes": [
-          "provide a Way to change Status"
+          "Documents Received by the admin should be downloaded in the same form as received"
         ]
       },
       "acceptanceCriteria": [
-        "Backend exposes updateClientToDoStatus, updateClientTimelineStatus, updateClientFollowUpStatus, and updateClientDeadlineStatus (or equivalent) methods.",
-        "Each method validates that the calling principal owns the task before allowing the update.",
-        "Frontend mutation hooks exist for each of the four task-type status updates.",
-        "Hooks invalidate the relevant query cache keys upon success so the UI reflects the new status."
+        "A PDF uploaded by a client downloads as a PDF for the admin",
+        "An XLSX uploaded by a client downloads as an XLSX for the admin",
+        "The downloaded filename matches the original upload filename",
+        "No format conversion or data loss occurs during download"
+      ]
+    },
+    {
+      "id": "REQ-4",
+      "text": "Allow both clients and admins to add Compliance Deliverables and approve or reject them. On the client side, the existing ClientDeliverableForm must remain accessible. On the admin side, add a form or dialog in the AdminDashboardPage (Client Deliverables tab) that allows the admin to create a new compliance deliverable on behalf of any client. Both clients and admins must be able to approve or reject deliverables via approve/reject action buttons. The backend's submitClientDeliverable and updateClientDeliverableStatus methods must authorize both the client principal and the admin principal to perform these operations.",
+      "target": "both",
+      "source": {
+        "messageIds": [
+          "msg-1"
+        ],
+        "quotes": [
+          "Clint and Admin can Add Compliance Deliverables and Approve and reject them"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Client can submit a new compliance deliverable from the client portal",
+        "Admin can submit a new compliance deliverable from the admin dashboard",
+        "Client can approve or reject a deliverable",
+        "Admin can approve or reject a deliverable",
+        "Approve and reject actions update the deliverable status in the backend",
+        "Both client and admin UIs reflect the updated status after action"
+      ]
+    },
+    {
+      "id": "REQ-5",
+      "text": "Change the text 'Join Us as a Client Today' to 'Contact Us' everywhere it appears in the frontend, including buttons, headings, and any labels on the HomePage or any other page.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-1"
+        ],
+        "quotes": [
+          "Change 'Join Us as a Client Today' to 'Contact Us'"
+        ]
+      },
+      "acceptanceCriteria": [
+        "No instance of 'Join Us as a Client Today' appears anywhere in the UI",
+        "All occurrences are replaced with 'Contact Us'"
+      ]
+    },
+    {
+      "id": "REQ-6",
+      "text": "Make the Phone Number field non-mandatory in the ServiceRequestForm, VisitorServiceRequestPage form, and UserProfileSetup modal. Remove the required validation constraint from the phone number input field. The form must be submittable without entering a phone number.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-1"
+        ],
+        "quotes": [
+          "Make Phone No. as not mandatory to write"
+        ]
+      },
+      "acceptanceCriteria": [
+        "The phone number field does not show a required indicator",
+        "Submitting a service request or profile setup form without a phone number succeeds",
+        "No validation error is shown when phone number is left blank"
+      ]
+    },
+    {
+      "id": "REQ-7",
+      "text": "In the Admin Dashboard's Client Submitted Deliverables tab, update the AdminClientDeliverableTable component to display a link or button that allows the admin to view or download the uploaded document file associated with each deliverable. The file URL or blob stored with the deliverable must be surfaced in the table row, and clicking it should open or download the document.",
+      "target": "both",
+      "source": {
+        "messageIds": [
+          "msg-1"
+        ],
+        "quotes": [
+          "In Client Submitted Deliverables Admin is Able to Also see the uploaded document"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Each row in the AdminClientDeliverableTable shows a view/download link or button for the attached document",
+        "Clicking the link opens or downloads the document file",
+        "Rows without an attached document show an appropriate placeholder or no link",
+        "The document is accessible in its original format"
       ]
     }
   ],
   "constraints": [
-    "Do not modify files under frontend/src/hooks/useActor.ts, frontend/src/hooks/useInternetIdentity.ts, frontend/src/main.tsx, or frontend/src/components/ui.",
-    "Reuse existing TaskStatusSelect pattern (frontend/src/components/TaskStatusSelect.tsx) as the base for client-facing status selectors where applicable.",
-    "Only the task owner (by principal) should be permitted to change their own task status on the backend."
+    "Do not modify files under frontend/src/hooks/useInternetIdentity.ts, frontend/src/hooks/useActor.ts, frontend/src/main.tsx, or frontend/src/components/ui",
+    "Deadline data migration logic in migration.mo must not break existing stored data during canister upgrade",
+    "Backend must remain a single actor in backend/main.mo"
   ],
   "nonGoals": [
-    "Admin-side status changes are already handled by TaskStatusSelect and ComplianceAdmin components — do not duplicate or replace that logic.",
-    "Do not add new task types beyond To-Dos, Timelines, Follow-Ups, and Deadlines.",
-    "Do not redesign the overall layout of MyComplianceTasksSection or ClientTasksTab."
+    "Adding any new authentication mechanisms beyond Internet Identity",
+    "Redesigning the overall visual theme or layout",
+    "Adding real-time notifications or WebSocket features",
+    "Modifying analytics sections"
   ],
   "imageRequirements": {
     "required": [],
