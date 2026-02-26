@@ -1,4 +1,8 @@
 import { useState } from 'react';
+import { FollowUpStatus } from '../backend';
+import { useCreateFollowUp } from '../hooks/useComplianceAdmin';
+import { useListApprovals } from '../hooks/useApprovals';
+import { useGetUserProfileByPrincipal } from '../hooks/useUserProfile';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -10,139 +14,116 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
-import { useCreateFollowUp } from '../hooks/useComplianceAdmin';
-import { FollowUpStatus } from '../backend';
+import { toast } from 'sonner';
+import { Loader2 } from 'lucide-react';
+import { ApprovalStatus } from '../backend';
 
 interface CreateFollowUpFormProps {
-  onSuccess: () => void;
+  onSuccess?: () => void;
 }
 
-function dateToNanoseconds(dateStr: string): bigint {
-  return BigInt(new Date(dateStr).getTime()) * BigInt(1_000_000);
+function ClientOption({ principalStr }: { principalStr: string }) {
+  const { data: profile } = useGetUserProfileByPrincipal(principalStr);
+  return (
+    <SelectItem value={principalStr}>
+      {profile ? `${profile.name} (${profile.email})` : principalStr.slice(0, 20) + '…'}
+    </SelectItem>
+  );
 }
 
 export default function CreateFollowUpForm({ onSuccess }: CreateFollowUpFormProps) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [dueDate, setDueDate] = useState('');
-  const [clientReference, setClientReference] = useState('');
   const [status, setStatus] = useState<FollowUpStatus>(FollowUpStatus.pending);
   const [notes, setNotes] = useState('');
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState(false);
+  const [clientReferenceStr, setClientReferenceStr] = useState<string>('');
 
   const createFollowUp = useCreateFollowUp();
+  const { data: approvals } = useListApprovals();
+
+  const approvedClients = approvals?.filter(
+    (a) => a.status === ApprovalStatus.approved
+  ) ?? [];
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
-    setSuccess(false);
-
-    if (!title.trim()) {
-      setError('Title is required.');
+    if (!title.trim() || !dueDate) {
+      toast.error('Title and due date are required');
       return;
-    }
-    if (!dueDate) {
-      setError('Due date is required.');
-      return;
-    }
-
-    // Validate principal format if provided
-    if (clientReference.trim()) {
-      try {
-        const { Principal } = await import('@dfinity/principal');
-        Principal.fromText(clientReference.trim());
-      } catch {
-        setError('Invalid client principal ID format.');
-        return;
-      }
     }
 
     try {
+      const dueDateNs = BigInt(new Date(dueDate).getTime()) * BigInt(1_000_000);
+
+      const { Principal } = await import('@dfinity/principal');
+      const principal = clientReferenceStr ? Principal.fromText(clientReferenceStr) : null;
+
       await createFollowUp.mutateAsync({
         title: title.trim(),
         description: description.trim(),
-        dueDate: dateToNanoseconds(dueDate),
-        clientReference: clientReference.trim() || null,
+        dueDate: dueDateNs,
+        clientReference: principal,
         status,
         notes: notes.trim(),
       });
-      setSuccess(true);
-      setTimeout(() => {
-        onSuccess();
-      }, 800);
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Failed to create follow-up item.';
-      setError(msg);
+
+      toast.success('Follow-Up created successfully!');
+      setTitle('');
+      setDescription('');
+      setDueDate('');
+      setStatus(FollowUpStatus.pending);
+      setNotes('');
+      setClientReferenceStr('');
+      onSuccess?.();
+    } catch (err) {
+      toast.error('Failed to create Follow-Up. Please try again.');
     }
   };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      {success && (
-        <Alert className="border-green-200 bg-green-50 dark:bg-green-950/20">
-          <CheckCircle2 className="h-4 w-4 text-green-600" />
-          <AlertDescription className="text-green-800 dark:text-green-200">
-            Follow-up item created successfully!
-          </AlertDescription>
-        </Alert>
-      )}
-      {error && (
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
-
-      <div className="space-y-1.5">
-        <Label htmlFor="fu-title">
+      <div className="space-y-2">
+        <Label htmlFor="title">
           Title <span className="text-destructive">*</span>
         </Label>
         <Input
-          id="fu-title"
-          placeholder="e.g. Follow up with client on missing documents"
+          id="title"
           value={title}
-          onChange={e => setTitle(e.target.value)}
-          disabled={createFollowUp.isPending || success}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder="Enter follow-up title"
+          required
         />
       </div>
 
-      <div className="space-y-1.5">
-        <Label htmlFor="fu-description">Description</Label>
+      <div className="space-y-2">
+        <Label htmlFor="description">Description</Label>
         <Textarea
-          id="fu-description"
-          placeholder="Optional details..."
+          id="description"
           value={description}
-          onChange={e => setDescription(e.target.value)}
-          rows={2}
-          disabled={createFollowUp.isPending || success}
+          onChange={(e) => setDescription(e.target.value)}
+          placeholder="Enter description..."
+          rows={3}
         />
       </div>
 
       <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-1.5">
-          <Label htmlFor="fu-due">
+        <div className="space-y-2">
+          <Label htmlFor="dueDate">
             Due Date <span className="text-destructive">*</span>
           </Label>
           <Input
-            id="fu-due"
-            type="datetime-local"
+            id="dueDate"
+            type="date"
             value={dueDate}
-            onChange={e => setDueDate(e.target.value)}
-            disabled={createFollowUp.isPending || success}
+            onChange={(e) => setDueDate(e.target.value)}
+            required
           />
         </div>
-
-        <div className="space-y-1.5">
-          <Label htmlFor="fu-status">Status</Label>
-          <Select
-            value={status}
-            onValueChange={v => setStatus(v as FollowUpStatus)}
-            disabled={createFollowUp.isPending || success}
-          >
-            <SelectTrigger id="fu-status">
+        <div className="space-y-2">
+          <Label htmlFor="status">Status</Label>
+          <Select value={status} onValueChange={(v) => setStatus(v as FollowUpStatus)}>
+            <SelectTrigger id="status">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -153,45 +134,45 @@ export default function CreateFollowUpForm({ onSuccess }: CreateFollowUpFormProp
         </div>
       </div>
 
-      <div className="space-y-1.5">
-        <Label htmlFor="fu-client">Client Reference Principal (optional)</Label>
-        <Input
-          id="fu-client"
-          placeholder="e.g. aaaaa-aa (Principal ID)"
-          value={clientReference}
-          onChange={e => setClientReference(e.target.value)}
-          disabled={createFollowUp.isPending || success}
-          className="font-mono text-sm"
-        />
-        <p className="text-xs text-muted-foreground">Leave blank if not linked to a specific client.</p>
+      <div className="space-y-2">
+        <Label htmlFor="clientReference">Assign to Client</Label>
+        <Select value={clientReferenceStr} onValueChange={setClientReferenceStr}>
+          <SelectTrigger id="clientReference">
+            <SelectValue placeholder="Select a client (optional)" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="">No client assigned</SelectItem>
+            {approvedClients.map((approval) => (
+              <ClientOption
+                key={approval.principal.toString()}
+                principalStr={approval.principal.toString()}
+              />
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
-      <div className="space-y-1.5">
-        <Label htmlFor="fu-notes">Notes</Label>
+      <div className="space-y-2">
+        <Label htmlFor="notes">Notes</Label>
         <Textarea
-          id="fu-notes"
-          placeholder="Any additional notes or context..."
+          id="notes"
           value={notes}
-          onChange={e => setNotes(e.target.value)}
+          onChange={(e) => setNotes(e.target.value)}
+          placeholder="Additional notes..."
           rows={2}
-          disabled={createFollowUp.isPending || success}
         />
       </div>
 
-      <div className="flex justify-end gap-3 pt-2">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={onSuccess}
-          disabled={createFollowUp.isPending}
-        >
-          Cancel
-        </Button>
-        <Button type="submit" disabled={createFollowUp.isPending || success}>
-          {createFollowUp.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          {createFollowUp.isPending ? 'Creating...' : 'Create Follow-Up'}
-        </Button>
-      </div>
+      <Button type="submit" disabled={createFollowUp.isPending} className="w-full">
+        {createFollowUp.isPending ? (
+          <>
+            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            Creating...
+          </>
+        ) : (
+          'Create Follow-Up'
+        )}
+      </Button>
     </form>
   );
 }

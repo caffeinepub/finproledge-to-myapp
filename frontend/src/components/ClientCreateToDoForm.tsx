@@ -1,4 +1,6 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
+import { ToDoPriority, ToDoStatus, ExternalBlob, ToDoDocument } from '../backend';
+import { useCreateClientToDo } from '../hooks/useComplianceAdmin';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -10,14 +12,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, AlertCircle } from 'lucide-react';
-import { useCreateClientToDo, ToDoPriority } from '../hooks/useComplianceAdmin';
-import { ToDoStatus } from '../backend';
 import { toast } from 'sonner';
+import { Loader2, Upload, X } from 'lucide-react';
 
 interface ClientCreateToDoFormProps {
-  onSuccess: () => void;
+  onSuccess?: () => void;
 }
 
 export default function ClientCreateToDoForm({ onSuccess }: ClientCreateToDoFormProps) {
@@ -25,77 +24,82 @@ export default function ClientCreateToDoForm({ onSuccess }: ClientCreateToDoForm
   const [description, setDescription] = useState('');
   const [priority, setPriority] = useState<ToDoPriority>(ToDoPriority.medium);
   const [status, setStatus] = useState<ToDoStatus>(ToDoStatus.pending);
-  const [error, setError] = useState('');
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const createClientToDo = useCreateClientToDo();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
-
     if (!title.trim()) {
-      setError('Title is required.');
+      toast.error('Title is required');
       return;
     }
 
     try {
+      let document: ToDoDocument | null = null;
+      if (selectedFile) {
+        const arrayBuffer = await selectedFile.arrayBuffer();
+        const uint8Array = new Uint8Array(arrayBuffer) as Uint8Array<ArrayBuffer>;
+        const blob = ExternalBlob.fromBytes(uint8Array);
+        document = {
+          file: blob,
+          fileName: selectedFile.name,
+          mimeType: selectedFile.type || 'application/octet-stream',
+        };
+      }
+
       await createClientToDo.mutateAsync({
         title: title.trim(),
         description: description.trim(),
         priority,
         status,
+        document,
       });
-      toast.success('To-Do item created successfully!');
-      onSuccess();
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Failed to create To-Do item.';
-      setError(msg);
+
+      toast.success('To-Do created successfully!');
+      setTitle('');
+      setDescription('');
+      setPriority(ToDoPriority.medium);
+      setStatus(ToDoStatus.pending);
+      setSelectedFile(null);
+      onSuccess?.();
+    } catch (err) {
+      toast.error('Failed to create To-Do. Please try again.');
     }
   };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      {error && (
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
-
-      <div className="space-y-1.5">
-        <Label htmlFor="ctodo-title">
+      <div className="space-y-2">
+        <Label htmlFor="title">
           Title <span className="text-destructive">*</span>
         </Label>
         <Input
-          id="ctodo-title"
-          placeholder="e.g. Gather Q4 receipts"
+          id="title"
           value={title}
-          onChange={e => setTitle(e.target.value)}
-          disabled={createClientToDo.isPending}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder="Enter To-Do title"
+          required
         />
       </div>
 
-      <div className="space-y-1.5">
-        <Label htmlFor="ctodo-description">Description</Label>
+      <div className="space-y-2">
+        <Label htmlFor="description">Description</Label>
         <Textarea
-          id="ctodo-description"
-          placeholder="Optional details about this task..."
+          id="description"
           value={description}
-          onChange={e => setDescription(e.target.value)}
+          onChange={(e) => setDescription(e.target.value)}
+          placeholder="Enter description..."
           rows={3}
-          disabled={createClientToDo.isPending}
         />
       </div>
 
       <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-1.5">
-          <Label htmlFor="ctodo-priority">Priority</Label>
-          <Select
-            value={priority}
-            onValueChange={v => setPriority(v as ToDoPriority)}
-            disabled={createClientToDo.isPending}
-          >
-            <SelectTrigger id="ctodo-priority">
+        <div className="space-y-2">
+          <Label htmlFor="priority">Priority</Label>
+          <Select value={priority} onValueChange={(v) => setPriority(v as ToDoPriority)}>
+            <SelectTrigger id="priority">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -106,14 +110,10 @@ export default function ClientCreateToDoForm({ onSuccess }: ClientCreateToDoForm
           </Select>
         </div>
 
-        <div className="space-y-1.5">
-          <Label htmlFor="ctodo-status">Status</Label>
-          <Select
-            value={status}
-            onValueChange={v => setStatus(v as ToDoStatus)}
-            disabled={createClientToDo.isPending}
-          >
-            <SelectTrigger id="ctodo-status">
+        <div className="space-y-2">
+          <Label htmlFor="status">Status</Label>
+          <Select value={status} onValueChange={(v) => setStatus(v as ToDoStatus)}>
+            <SelectTrigger id="status">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -123,6 +123,44 @@ export default function ClientCreateToDoForm({ onSuccess }: ClientCreateToDoForm
             </SelectContent>
           </Select>
         </div>
+      </div>
+
+      {/* Document Upload */}
+      <div className="space-y-2">
+        <Label>Attach Document (optional)</Label>
+        {selectedFile ? (
+          <div className="flex items-center gap-2 p-3 bg-muted rounded-sm border border-border">
+            <Upload className="w-4 h-4 text-muted-foreground" />
+            <span className="text-sm text-foreground flex-1 truncate">{selectedFile.name}</span>
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedFile(null);
+                if (fileInputRef.current) fileInputRef.current.value = '';
+              }}
+              className="text-muted-foreground hover:text-destructive"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        ) : (
+          <div
+            className="border-2 border-dashed border-border rounded-sm p-4 text-center cursor-pointer hover:border-primary/50 hover:bg-muted/30 transition-colors"
+            onClick={() => fileInputRef.current?.click()}
+          >
+            <Upload className="w-5 h-5 mx-auto mb-1 text-muted-foreground" />
+            <p className="text-sm text-muted-foreground">Click to attach a document</p>
+          </div>
+        )}
+        <input
+          ref={fileInputRef}
+          type="file"
+          className="hidden"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) setSelectedFile(file);
+          }}
+        />
       </div>
 
       <div className="flex justify-end gap-3 pt-2">
@@ -135,8 +173,14 @@ export default function ClientCreateToDoForm({ onSuccess }: ClientCreateToDoForm
           Cancel
         </Button>
         <Button type="submit" disabled={createClientToDo.isPending}>
-          {createClientToDo.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          {createClientToDo.isPending ? 'Creating...' : 'Create To-Do'}
+          {createClientToDo.isPending ? (
+            <>
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              Creating...
+            </>
+          ) : (
+            'Create To-Do'
+          )}
         </Button>
       </div>
     </form>

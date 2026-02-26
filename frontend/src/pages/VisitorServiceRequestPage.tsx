@@ -1,54 +1,67 @@
 import { useState } from 'react';
-import { Link } from '@tanstack/react-router';
-import { ArrowLeft, CheckCircle, Loader2 } from 'lucide-react';
+import { ServiceType } from '../backend';
+import { useCreateVisitorRequest } from '../hooks/useServiceRequests';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useCreateVisitorRequest } from '../hooks/useServiceRequests';
-import { ServiceType } from '../backend';
+import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { toast } from 'sonner';
+import { Loader2, CheckCircle, Mail, Building2, User } from 'lucide-react';
 
-const serviceOptions = [
+const SERVICE_TYPE_OPTIONS: { value: ServiceType; label: string }[] = [
   { value: ServiceType.incomeTaxFiling, label: 'Income Tax Filing' },
   { value: ServiceType.corporateTaxFiling, label: 'Corporate Tax Filing' },
-  { value: ServiceType.audits, label: 'Audits' },
+  { value: ServiceType.audits, label: 'Audits & Assurance' },
   { value: ServiceType.payrollAdmin, label: 'Payroll Administration' },
   { value: ServiceType.ledgerMaintenance, label: 'Ledger Maintenance' },
   { value: ServiceType.bankReconciliation, label: 'Bank Reconciliation' },
-  { value: ServiceType.other, label: 'Any Other Service' },
+  { value: ServiceType.gstFiling, label: 'GST Filing' },
+  { value: ServiceType.tdsFiling, label: 'TDS Filing' },
+  { value: ServiceType.financialManagement, label: 'Financial Management' },
+  { value: ServiceType.accountingServices, label: 'Accounting Services' },
+  { value: ServiceType.loanFinancing, label: 'Loan Financing' },
+  { value: ServiceType.other, label: 'Other' },
 ];
 
 export default function VisitorServiceRequestPage() {
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    company: '',
-    phone: '',
-    serviceType: '' as ServiceType | '',
-    description: '',
-  });
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [company, setCompany] = useState('');
+  const [phone, setPhone] = useState('');
+  const [serviceType, setServiceType] = useState<ServiceType>(ServiceType.incomeTaxFiling);
+  const [description, setDescription] = useState('');
+  const [deadline, setDeadline] = useState('');
   const [submitted, setSubmitted] = useState(false);
 
   const createVisitorRequest = useCreateVisitorRequest();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.name || !formData.email || !formData.company || !formData.serviceType) return;
-
     try {
+      const deadlineNs = deadline
+        ? BigInt(new Date(deadline).getTime()) * BigInt(1_000_000)
+        : BigInt(Date.now()) * BigInt(1_000_000);
+
       await createVisitorRequest.mutateAsync({
-        name: formData.name,
-        email: formData.email,
-        company: formData.company,
-        phone: formData.phone,
-        serviceType: formData.serviceType as ServiceType,
-        description: formData.description,
-        deadline: BigInt(Date.now()) * BigInt(1_000_000),
+        name,
+        email,
+        company,
+        phone,
+        serviceType,
+        description,
+        deadline: deadlineNs,
       });
       setSubmitted(true);
-    } catch (error) {
-      console.error('Failed to submit request:', error);
+      toast.success('Your enquiry has been submitted successfully!');
+    } catch (err) {
+      toast.error('Failed to submit. Please try again.');
     }
   };
 
@@ -56,20 +69,16 @@ export default function VisitorServiceRequestPage() {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center px-4">
         <div className="max-w-md w-full text-center">
-          <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-            <CheckCircle className="w-8 h-8 text-green-600" />
+          <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+            <CheckCircle className="w-10 h-10 text-green-600" />
           </div>
-          <h1 className="text-2xl font-bold text-foreground mb-4">Request Submitted!</h1>
-          <p className="text-muted-foreground mb-8">
-            Thank you for reaching out. Our team will review your request and get back to you within 24 hours.
+          <h2 className="text-3xl font-bold text-foreground mb-4">Thank You!</h2>
+          <p className="text-muted-foreground text-lg mb-8">
+            Your enquiry has been received. Our team will get back to you within 24 hours.
           </p>
-          <div className="flex flex-col gap-3">
-            <Link to="/">
-              <Button className="w-full bg-navy text-white hover:bg-navy/90">
-                Return to Home
-              </Button>
-            </Link>
-          </div>
+          <Button onClick={() => setSubmitted(false)} variant="outline">
+            Submit Another Enquiry
+          </Button>
         </div>
       </div>
     );
@@ -77,128 +86,151 @@ export default function VisitorServiceRequestPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="max-w-2xl mx-auto px-4 py-12">
-        <Link to="/" className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground mb-8 transition-colors">
-          <ArrowLeft className="w-4 h-4" />
-          Back to Home
-        </Link>
-
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-foreground mb-2">Contact Us</h1>
-          <p className="text-muted-foreground">
-            Fill out the form below and our team will get back to you within 24 hours.
+      {/* Hero */}
+      <section className="bg-navy py-16">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <h1 className="text-4xl lg:text-5xl font-bold text-white mb-4">
+            Contact <span className="text-gold">Us</span>
+          </h1>
+          <p className="text-white/70 text-lg max-w-2xl mx-auto">
+            Tell us about your financial service needs and we'll get back to you promptly.
           </p>
         </div>
+      </section>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">
-                Full Name <span className="text-destructive">*</span>
-              </Label>
-              <Input
-                id="name"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="John Doe"
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="email">
-                Email Address <span className="text-destructive">*</span>
-              </Label>
-              <Input
-                id="email"
-                type="email"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                placeholder="john@example.com"
-                required
-              />
-            </div>
+      {/* Form */}
+      <section className="py-16">
+        <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="bg-card border border-border rounded-sm p-8 shadow-sm">
+            <h2 className="text-2xl font-bold text-foreground mb-6">Send Us an Enquiry</h2>
+            <form onSubmit={handleSubmit} className="space-y-5">
+              <div className="grid sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="name">
+                    Full Name <span className="text-destructive">*</span>
+                  </Label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input
+                      id="name"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      placeholder="Your full name"
+                      className="pl-9"
+                      required
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="email">
+                    Email Address <span className="text-destructive">*</span>
+                  </Label>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input
+                      id="email"
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="your@email.com"
+                      className="pl-9"
+                      required
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="company">Company / Organization</Label>
+                  <div className="relative">
+                    <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input
+                      id="company"
+                      value={company}
+                      onChange={(e) => setCompany(e.target.value)}
+                      placeholder="Your company name"
+                      className="pl-9"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="phone">Phone Number</Label>
+                  <Input
+                    id="phone"
+                    type="tel"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    placeholder="+91 XXXXX XXXXX"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="serviceType">
+                  Service Type <span className="text-destructive">*</span>
+                </Label>
+                <Select
+                  value={serviceType}
+                  onValueChange={(val) => setServiceType(val as ServiceType)}
+                >
+                  <SelectTrigger id="serviceType">
+                    <SelectValue placeholder="Select a service type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {SERVICE_TYPE_OPTIONS.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="description">
+                  Description <span className="text-destructive">*</span>
+                </Label>
+                <Textarea
+                  id="description"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Describe your requirements in detail..."
+                  rows={4}
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="deadline">Preferred Deadline</Label>
+                <Input
+                  id="deadline"
+                  type="date"
+                  value={deadline}
+                  onChange={(e) => setDeadline(e.target.value)}
+                  min={new Date().toISOString().split('T')[0]}
+                />
+              </div>
+
+              <Button
+                type="submit"
+                disabled={createVisitorRequest.isPending}
+                className="w-full"
+                size="lg"
+              >
+                {createVisitorRequest.isPending ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Submitting...
+                  </>
+                ) : (
+                  'Submit Enquiry'
+                )}
+              </Button>
+            </form>
           </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="company">
-                Company Name <span className="text-destructive">*</span>
-              </Label>
-              <Input
-                id="company"
-                value={formData.company}
-                onChange={(e) => setFormData({ ...formData, company: e.target.value })}
-                placeholder="Your Company Ltd."
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="phone">Phone Number</Label>
-              <Input
-                id="phone"
-                type="tel"
-                value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                placeholder="+91 98765 43210"
-              />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="serviceType">
-              Service Required <span className="text-destructive">*</span>
-            </Label>
-            <Select
-              value={formData.serviceType}
-              onValueChange={(value) => setFormData({ ...formData, serviceType: value as ServiceType })}
-              required
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select a service" />
-              </SelectTrigger>
-              <SelectContent>
-                {serviceOptions.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="description">Additional Details</Label>
-            <Textarea
-              id="description"
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              placeholder="Please describe your requirements in detail..."
-              rows={4}
-            />
-          </div>
-
-          <Button
-            type="submit"
-            className="w-full bg-gold text-navy hover:bg-gold/90 font-semibold"
-            disabled={createVisitorRequest.isPending || !formData.name || !formData.email || !formData.company || !formData.serviceType}
-          >
-            {createVisitorRequest.isPending ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Submitting...
-              </>
-            ) : (
-              'Submit Request'
-            )}
-          </Button>
-
-          {createVisitorRequest.isError && (
-            <p className="text-destructive text-sm text-center">
-              Failed to submit request. Please try again.
-            </p>
-          )}
-        </form>
-      </div>
+        </div>
+      </section>
     </div>
   );
 }

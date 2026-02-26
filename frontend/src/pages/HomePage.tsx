@@ -1,241 +1,339 @@
 import { Link } from '@tanstack/react-router';
-import { Shield, Award, Users, TrendingUp, CheckCircle, ArrowRight, Phone, Mail, MapPin, Star } from 'lucide-react';
+import { SiX, SiInstagram, SiLinkedin } from 'react-icons/si';
+import {
+  Shield,
+  TrendingUp,
+  FileText,
+  Calculator,
+  BarChart3,
+  CheckCircle,
+  ArrowRight,
+  Award,
+  Users,
+  Clock,
+  Star,
+  ChevronRight,
+  Briefcase,
+  BookOpen,
+  PieChart,
+  CreditCard,
+} from 'lucide-react';
 
 const services = [
   {
+    icon: FileText,
     title: 'Income Tax Filing',
-    description: 'Comprehensive personal and business income tax preparation and filing services.',
-    icon: '📋',
+    description: 'Comprehensive individual and corporate income tax preparation and filing services.',
   },
   {
-    title: 'Corporate Tax Filing',
-    description: 'Expert corporate tax compliance, planning, and optimization strategies.',
-    icon: '🏢',
+    icon: Calculator,
+    title: 'GST Filing',
+    description: 'End-to-end GST compliance, return filing, and reconciliation for businesses of all sizes.',
   },
   {
-    title: 'Audits',
-    description: 'Thorough financial audits ensuring accuracy, compliance, and transparency.',
-    icon: '🔍',
+    icon: BarChart3,
+    title: 'TDS Filing',
+    description: 'Accurate TDS computation, deduction, and timely filing to ensure full statutory compliance.',
   },
   {
+    icon: Shield,
+    title: 'Audits & Assurance',
+    description: 'Rigorous internal and statutory audits to maintain the highest standards of fiscal health.',
+  },
+  {
+    icon: PieChart,
+    title: 'Financial Management',
+    description: 'Strategic financial planning, budgeting, and treasury management for sustainable growth.',
+  },
+  {
+    icon: BookOpen,
+    title: 'Accounting Services',
+    description: 'Full-cycle bookkeeping and precise financial statements in accordance with global standards.',
+  },
+  {
+    icon: Users,
     title: 'Payroll Administration',
-    description: 'Complete payroll management including calculations, filings, and compliance.',
-    icon: '💼',
+    description: 'Complete payroll processing, compliance, and employee benefits management.',
   },
   {
-    title: 'Ledger Maintenance',
-    description: 'Accurate bookkeeping and ledger maintenance for clear financial records.',
-    icon: '📊',
+    icon: CreditCard,
+    title: 'Loan Financing',
+    description: 'Expert guidance on loan structuring, documentation, and financing solutions for your business.',
   },
   {
-    title: 'Bank Reconciliation',
-    description: 'Precise reconciliation services to ensure your accounts are always balanced.',
-    icon: '🏦',
+    icon: Briefcase,
+    title: 'Corporate Tax Filing',
+    description: 'Strategic corporate tax planning and filing to minimize liability and ensure compliance.',
   },
 ];
 
 const stats = [
-  { value: '30+', label: 'Years of Experience' },
-  { value: '500+', label: 'Clients Served' },
-  { value: '99%', label: 'Client Satisfaction' },
-  { value: '₹100Cr+', label: 'Tax Savings Delivered' },
+  { value: '30+', label: 'Years of Excellence', icon: Award },
+  { value: '500+', label: 'Clients Served', icon: Users },
+  { value: '99.8%', label: 'Filing Accuracy', icon: CheckCircle },
+  { value: '24/7', label: 'Client Support', icon: Clock },
 ];
 
 const principles = [
   {
+    title: 'Technical Precision',
+    description: 'Every entry, every filing, every report — executed with meticulous attention to detail and zero tolerance for error.',
+    icon: CheckCircle,
+  },
+  {
+    title: 'Operational Reliability',
+    description: 'Deadlines are non-negotiable. We build systems and processes that ensure punctual delivery, every time.',
+    icon: Clock,
+  },
+  {
+    title: 'Confidential Integrity',
+    description: 'Your financial data is handled with the highest standards of security, discretion, and professional ethics.',
     icon: Shield,
-    title: 'Integrity',
-    description: 'We uphold the highest ethical standards in every engagement.',
   },
   {
-    icon: Award,
-    title: 'Excellence',
-    description: 'Delivering superior quality work that exceeds expectations.',
-  },
-  {
-    icon: Users,
-    title: 'Client Focus',
-    description: 'Your financial success is our primary mission and commitment.',
-  },
-  {
+    title: 'Results Over Rhetoric',
+    description: 'We channel our energy into the delivery of meticulous, high-volume financial practice — not public speaking.',
     icon: TrendingUp,
-    title: 'Growth',
-    description: 'Helping businesses and individuals achieve their financial goals.',
+  },
+];
+
+const testimonials = [
+  {
+    name: 'Rajesh Mehta',
+    company: 'Mehta Industries Pvt. Ltd.',
+    text: 'FinPro Ledge has transformed our financial operations. Their GST and TDS filing accuracy is unmatched, and they always meet every deadline.',
+    rating: 5,
+  },
+  {
+    name: 'Priya Sharma',
+    company: 'Sharma & Associates',
+    text: 'The level of technical expertise and attention to detail is extraordinary. Our audits have never been cleaner.',
+    rating: 5,
+  },
+  {
+    name: 'Anil Kapoor',
+    company: 'Kapoor Exports Ltd.',
+    text: 'From payroll to corporate tax filing, FinPro Ledge handles everything with precision. They are truly an extension of our finance team.',
+    rating: 5,
   },
 ];
 
 export default function HomePage() {
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-background">
       {/* Hero Section */}
-      <section className="relative min-h-[600px] flex items-center justify-center overflow-hidden">
+      <section className="relative min-h-screen flex items-center overflow-hidden">
+        {/* Background Image */}
         <div
           className="absolute inset-0 bg-cover bg-center bg-no-repeat"
           style={{ backgroundImage: 'url(/assets/generated/hero-bg.dim_1920x800.png)' }}
         />
-        <div className="absolute inset-0 bg-navy/80" />
-        <div className="relative z-10 text-center px-4 max-w-4xl mx-auto">
-          <div className="mb-6">
-            <img
-              src="/assets/generated/logo.dim_400x120.png"
-              alt="FinProLedge"
-              className="h-16 mx-auto mb-4 brightness-0 invert"
-            />
+        {/* Overlay */}
+        <div className="absolute inset-0 bg-gradient-to-br from-navy/95 via-navy/85 to-gold/20" />
+        {/* Decorative elements */}
+        <div className="absolute top-20 right-10 w-72 h-72 bg-gold/10 rounded-full blur-3xl" />
+        <div className="absolute bottom-20 left-10 w-96 h-96 bg-primary/10 rounded-full blur-3xl" />
+
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-32">
+          <div className="grid lg:grid-cols-2 gap-16 items-center">
+            <div>
+              <div className="inline-flex items-center gap-2 bg-gold/20 border border-gold/30 rounded-full px-4 py-2 mb-8">
+                <Star className="w-4 h-4 text-gold" fill="currentColor" />
+                <span className="text-gold text-sm font-medium tracking-wide">Trusted Financial Services Since 1994</span>
+              </div>
+              <h1 className="text-5xl lg:text-7xl font-bold text-white leading-tight mb-6">
+                The Engine of Your{' '}
+                <span className="text-gold">Financial</span>{' '}
+                Operations
+              </h1>
+              <p className="text-xl text-white/80 leading-relaxed mb-10 max-w-xl">
+                We operate in the trenches of your financial data — ensuring every entry is accurate, every filing is punctual, and every obligation is met with precision.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4">
+                <Link
+                  to="/contact"
+                  className="inline-flex items-center justify-center gap-2 bg-gold hover:bg-gold/90 text-navy font-bold px-8 py-4 rounded-sm transition-all duration-200 text-lg shadow-lg shadow-gold/25"
+                >
+                  Contact Us
+                  <ArrowRight className="w-5 h-5" />
+                </Link>
+                <Link
+                  to="/about-us"
+                  className="inline-flex items-center justify-center gap-2 border-2 border-white/30 hover:border-gold/60 text-white hover:text-gold font-semibold px-8 py-4 rounded-sm transition-all duration-200 text-lg"
+                >
+                  About Us
+                  <ChevronRight className="w-5 h-5" />
+                </Link>
+              </div>
+            </div>
+
+            {/* Stats Cards */}
+            <div className="grid grid-cols-2 gap-4">
+              {stats.map((stat) => {
+                const Icon = stat.icon;
+                return (
+                  <div
+                    key={stat.label}
+                    className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-sm p-6 hover:bg-white/15 transition-all duration-200"
+                  >
+                    <Icon className="w-8 h-8 text-gold mb-3" />
+                    <div className="text-4xl font-bold text-white mb-1">{stat.value}</div>
+                    <div className="text-white/70 text-sm font-medium">{stat.label}</div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
-          <h1 className="text-4xl md:text-6xl font-bold text-white mb-6 leading-tight">
-            Precision Financial Services
-            <span className="block text-gold mt-2">You Can Trust</span>
-          </h1>
-          <p className="text-xl text-white/80 mb-8 max-w-2xl mx-auto">
-            Delivering rigorous financial services with integrity and precision since 1994.
-            Your trusted partner for tax, audit, and accounting excellence.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+        </div>
+
+        {/* Scroll indicator */}
+        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-white/50">
+          <span className="text-xs tracking-widest uppercase">Scroll</span>
+          <div className="w-px h-12 bg-gradient-to-b from-white/50 to-transparent" />
+        </div>
+      </section>
+
+      {/* Services Section */}
+      <section className="py-24 bg-background">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <div className="inline-flex items-center gap-2 bg-primary/10 rounded-full px-4 py-2 mb-4">
+              <Briefcase className="w-4 h-4 text-primary" />
+              <span className="text-primary text-sm font-semibold tracking-wide uppercase">Our Services</span>
+            </div>
+            <h2 className="text-4xl lg:text-5xl font-bold text-foreground mb-4">
+              Core Financial Competencies
+            </h2>
+            <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+              Comprehensive financial services delivered with technical excellence and operational reliability.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {services.map((service) => {
+              const Icon = service.icon;
+              return (
+                <div
+                  key={service.title}
+                  className="group bg-card border border-border rounded-sm p-6 hover:border-gold/50 hover:shadow-lg hover:shadow-gold/5 transition-all duration-300"
+                >
+                  <div className="w-12 h-12 bg-primary/10 rounded-sm flex items-center justify-center mb-4 group-hover:bg-gold/10 transition-colors duration-300">
+                    <Icon className="w-6 h-6 text-primary group-hover:text-gold transition-colors duration-300" />
+                  </div>
+                  <h3 className="text-lg font-bold text-foreground mb-2">{service.title}</h3>
+                  <p className="text-muted-foreground text-sm leading-relaxed">{service.description}</p>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="text-center mt-12">
             <Link
-              to="/request-service"
-              className="inline-flex items-center gap-2 bg-gold text-navy font-semibold px-8 py-3 rounded-sm hover:bg-gold/90 transition-colors"
+              to="/contact"
+              className="inline-flex items-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold px-8 py-3 rounded-sm transition-all duration-200"
             >
-              Contact Us
+              Request a Service
               <ArrowRight className="w-4 h-4" />
-            </Link>
-            <Link
-              to="/client-portal"
-              className="inline-flex items-center gap-2 border-2 border-white text-white font-semibold px-8 py-3 rounded-sm hover:bg-white/10 transition-colors"
-            >
-              Client Portal
             </Link>
           </div>
         </div>
       </section>
 
-      {/* Trust Banner */}
-      <section className="bg-gold py-4">
-        <div className="max-w-6xl mx-auto px-4">
-          <div className="flex flex-wrap justify-center gap-8 text-navy font-medium text-sm">
-            <span className="flex items-center gap-2">
-              <CheckCircle className="w-4 h-4" />
-              Chartered Accountants
-            </span>
-            <span className="flex items-center gap-2">
-              <CheckCircle className="w-4 h-4" />
-              ICAI Registered
-            </span>
-            <span className="flex items-center gap-2">
-              <CheckCircle className="w-4 h-4" />
-              30+ Years Experience
-            </span>
-            <span className="flex items-center gap-2">
-              <CheckCircle className="w-4 h-4" />
-              500+ Satisfied Clients
-            </span>
+      {/* Hero Image Banner */}
+      <section className="relative h-80 overflow-hidden">
+        <img
+          src="/assets/generated/hero-accounting.dim_1440x600.png"
+          alt="Financial Operations"
+          className="w-full h-full object-cover"
+        />
+        <div className="absolute inset-0 bg-gradient-to-r from-navy/90 via-navy/60 to-transparent flex items-center">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h2 className="text-4xl lg:text-5xl font-bold text-white max-w-xl leading-tight">
+              Precision in Every{' '}
+              <span className="text-gold">Financial</span>{' '}
+              Transaction
+            </h2>
+            <p className="text-white/80 mt-4 max-w-md text-lg">
+              From GST filings to complex audits — we handle the mechanics so you can focus on growth.
+            </p>
           </div>
         </div>
       </section>
 
       {/* Principles Section */}
-      <section className="py-20 bg-background">
-        <div className="max-w-6xl mx-auto px-4">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-foreground mb-4">Our Core Principles</h2>
-            <p className="text-muted-foreground max-w-2xl mx-auto">
-              Built on a foundation of trust, expertise, and unwavering commitment to your financial well-being.
-            </p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {principles.map((principle) => (
-              <div key={principle.title} className="text-center p-6 rounded-sm border border-border hover:border-gold/50 transition-colors">
-                <div className="w-12 h-12 bg-gold/10 rounded-sm flex items-center justify-center mx-auto mb-4">
-                  <principle.icon className="w-6 h-6 text-gold" />
-                </div>
-                <h3 className="font-semibold text-foreground mb-2">{principle.title}</h3>
-                <p className="text-sm text-muted-foreground">{principle.description}</p>
+      <section className="py-24 bg-muted/30">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid lg:grid-cols-2 gap-16 items-center">
+            <div>
+              <div className="inline-flex items-center gap-2 bg-gold/10 rounded-full px-4 py-2 mb-4">
+                <Star className="w-4 h-4 text-gold" />
+                <span className="text-gold text-sm font-semibold tracking-wide uppercase">Our Principles</span>
               </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Services Grid */}
-      <section className="py-20 bg-muted/30">
-        <div className="max-w-6xl mx-auto px-4">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-foreground mb-4">Our Services</h2>
-            <p className="text-muted-foreground max-w-2xl mx-auto">
-              Comprehensive financial services tailored to meet your personal and business needs.
-            </p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {services.map((service) => (
-              <div
-                key={service.title}
-                className="bg-card border border-border rounded-sm p-6 hover:border-gold/50 hover:shadow-md transition-all"
+              <h2 className="text-4xl lg:text-5xl font-bold text-foreground mb-6">
+                Built for Clients Who Value Results
+              </h2>
+              <p className="text-muted-foreground text-lg leading-relaxed mb-8">
+                We are built for the client who values results over rhetoric. Our energy is strictly channeled into the delivery of meticulous, high-volume financial practice.
+              </p>
+              <Link
+                to="/about-us"
+                className="inline-flex items-center gap-2 text-primary font-semibold hover:text-gold transition-colors duration-200"
               >
-                <div className="text-3xl mb-4">{service.icon}</div>
-                <h3 className="font-semibold text-foreground mb-2">{service.title}</h3>
-                <p className="text-sm text-muted-foreground">{service.description}</p>
-              </div>
-            ))}
-          </div>
-          <div className="text-center mt-10">
-            <Link
-              to="/request-service"
-              className="inline-flex items-center gap-2 bg-navy text-white font-semibold px-8 py-3 rounded-sm hover:bg-navy/90 transition-colors"
-            >
-              Contact Us
-              <ArrowRight className="w-4 h-4" />
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* Stats Section */}
-      <section className="py-20 bg-navy text-white">
-        <div className="max-w-6xl mx-auto px-4">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
-            {stats.map((stat) => (
-              <div key={stat.label} className="text-center">
-                <div className="text-4xl font-bold text-gold mb-2">{stat.value}</div>
-                <div className="text-white/70 text-sm">{stat.label}</div>
-              </div>
-            ))}
+                Learn More About Us
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
+            <div className="grid grid-cols-1 gap-4">
+              {principles.map((principle) => {
+                const Icon = principle.icon;
+                return (
+                  <div
+                    key={principle.title}
+                    className="flex gap-4 bg-card border border-border rounded-sm p-5 hover:border-gold/30 transition-all duration-200"
+                  >
+                    <div className="w-10 h-10 bg-gold/10 rounded-sm flex items-center justify-center shrink-0">
+                      <Icon className="w-5 h-5 text-gold" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-foreground mb-1">{principle.title}</h3>
+                      <p className="text-muted-foreground text-sm leading-relaxed">{principle.description}</p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Testimonials */}
-      <section className="py-20 bg-background">
-        <div className="max-w-6xl mx-auto px-4">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-foreground mb-4">What Our Clients Say</h2>
+      {/* Testimonials Section */}
+      <section className="py-24 bg-background">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <div className="inline-flex items-center gap-2 bg-primary/10 rounded-full px-4 py-2 mb-4">
+              <Star className="w-4 h-4 text-primary" />
+              <span className="text-primary text-sm font-semibold tracking-wide uppercase">Client Testimonials</span>
+            </div>
+            <h2 className="text-4xl font-bold text-foreground mb-4">What Our Clients Say</h2>
+            <p className="text-muted-foreground text-lg max-w-xl mx-auto">
+              Trusted by businesses across India for rigorous financial services.
+            </p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {[
-              {
-                name: 'Rajesh Kumar',
-                company: 'Kumar Industries',
-                text: 'FinProLedge has been managing our corporate taxes for over 10 years. Their expertise and attention to detail is unmatched.',
-              },
-              {
-                name: 'Priya Sharma',
-                company: 'Sharma Enterprises',
-                text: 'The team at FinProLedge helped us save significantly on our tax liability while ensuring full compliance. Highly recommended!',
-              },
-              {
-                name: 'Amit Patel',
-                company: 'Patel & Associates',
-                text: 'Professional, reliable, and always available when we need them. Our go-to firm for all financial matters.',
-              },
-            ].map((testimonial) => (
-              <div key={testimonial.name} className="bg-card border border-border rounded-sm p-6">
+          <div className="grid md:grid-cols-3 gap-6">
+            {testimonials.map((t) => (
+              <div
+                key={t.name}
+                className="bg-card border border-border rounded-sm p-6 hover:border-gold/30 hover:shadow-md transition-all duration-200"
+              >
                 <div className="flex gap-1 mb-4">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="w-4 h-4 fill-gold text-gold" />
+                  {Array.from({ length: t.rating }).map((_, i) => (
+                    <Star key={i} className="w-4 h-4 text-gold" fill="currentColor" />
                   ))}
                 </div>
-                <p className="text-muted-foreground text-sm mb-4 italic">"{testimonial.text}"</p>
-                <div>
-                  <div className="font-semibold text-foreground text-sm">{testimonial.name}</div>
-                  <div className="text-muted-foreground text-xs">{testimonial.company}</div>
+                <p className="text-muted-foreground text-sm leading-relaxed mb-6 italic">"{t.text}"</p>
+                <div className="border-t border-border pt-4">
+                  <div className="font-bold text-foreground">{t.name}</div>
+                  <div className="text-muted-foreground text-sm">{t.company}</div>
                 </div>
               </div>
             ))}
@@ -244,40 +342,64 @@ export default function HomePage() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 bg-gold/10 border-t border-gold/20">
-        <div className="max-w-4xl mx-auto px-4 text-center">
-          <h2 className="text-3xl font-bold text-foreground mb-4">Contact Us</h2>
-          <p className="text-muted-foreground mb-8 max-w-2xl mx-auto">
-            Ready to take control of your financial future? Our team of expert chartered accountants is here to help.
+      <section className="relative py-24 overflow-hidden bg-navy">
+        <div className="absolute inset-0 bg-gradient-to-br from-navy via-navy to-primary/30" />
+        <div className="absolute top-0 right-0 w-96 h-96 bg-gold/10 rounded-full blur-3xl" />
+        <div className="absolute bottom-0 left-0 w-64 h-64 bg-primary/10 rounded-full blur-3xl" />
+        <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <h2 className="text-4xl lg:text-5xl font-bold text-white mb-6">
+            Ready to Streamline Your{' '}
+            <span className="text-gold">Financial Operations?</span>
+          </h2>
+          <p className="text-white/80 text-xl mb-10 max-w-2xl mx-auto">
+            Partner with FinPro Ledge — a dedicated extension of your finance department that prioritizes technical excellence above all else.
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center mb-10">
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link
-              to="/request-service"
-              className="inline-flex items-center gap-2 bg-gold text-navy font-semibold px-8 py-3 rounded-sm hover:bg-gold/90 transition-colors"
+              to="/contact"
+              className="inline-flex items-center justify-center gap-2 bg-gold hover:bg-gold/90 text-navy font-bold px-10 py-4 rounded-sm transition-all duration-200 text-lg shadow-lg shadow-gold/25"
             >
-              Contact Us
-              <ArrowRight className="w-4 h-4" />
+              Contact Us Today
+              <ArrowRight className="w-5 h-5" />
             </Link>
             <Link
-              to="/client-portal"
-              className="inline-flex items-center gap-2 border-2 border-navy text-navy font-semibold px-8 py-3 rounded-sm hover:bg-navy/5 transition-colors"
+              to="/about-us"
+              className="inline-flex items-center justify-center gap-2 border-2 border-white/30 hover:border-gold/60 text-white hover:text-gold font-semibold px-10 py-4 rounded-sm transition-all duration-200 text-lg"
             >
-              Access Client Portal
+              Learn More
             </Link>
           </div>
-          <div className="flex flex-wrap justify-center gap-8 text-sm text-muted-foreground">
-            <span className="flex items-center gap-2">
-              <Phone className="w-4 h-4 text-gold" />
-              +91 98765 43210
-            </span>
-            <span className="flex items-center gap-2">
-              <Mail className="w-4 h-4 text-gold" />
-              finproledge@gmail.com
-            </span>
-            <span className="flex items-center gap-2">
-              <MapPin className="w-4 h-4 text-gold" />
-              Mumbai, Maharashtra
-            </span>
+
+          {/* Social Links */}
+          <div className="mt-12 flex flex-wrap items-center justify-center gap-6">
+            <span className="text-white/50 text-sm">Follow us:</span>
+            <a
+              href="https://x.com/FinproLedge"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 text-white/70 hover:text-gold transition-colors duration-200"
+            >
+              <SiX className="w-5 h-5" />
+              <span className="text-sm">@finproledge</span>
+            </a>
+            <a
+              href="https://www.instagram.com/finproledge/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 text-white/70 hover:text-gold transition-colors duration-200"
+            >
+              <SiInstagram className="w-5 h-5" />
+              <span className="text-sm">@finproledge</span>
+            </a>
+            <a
+              href="https://www.linkedin.com/in/finproledge/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 text-white/70 hover:text-gold transition-colors duration-200"
+            >
+              <SiLinkedin className="w-5 h-5" />
+              <span className="text-sm">FinPro Ledge</span>
+            </a>
           </div>
         </div>
       </section>

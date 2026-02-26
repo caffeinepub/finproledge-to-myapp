@@ -1,4 +1,8 @@
 import { useState } from 'react';
+import { TimelineStatus } from '../backend';
+import { useCreateTimeline } from '../hooks/useComplianceAdmin';
+import { useListApprovals } from '../hooks/useApprovals';
+import { useGetUserProfileByPrincipal } from '../hooks/useUserProfile';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -10,17 +14,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
-import { useCreateTimeline } from '../hooks/useComplianceAdmin';
-import { TimelineStatus } from '../backend';
+import { toast } from 'sonner';
+import { Loader2 } from 'lucide-react';
+import { ApprovalStatus } from '../backend';
 
 interface CreateTimelineFormProps {
-  onSuccess: () => void;
+  onSuccess?: () => void;
 }
 
-function dateToNanoseconds(dateStr: string): bigint {
-  return BigInt(new Date(dateStr).getTime()) * BigInt(1_000_000);
+function ClientOption({ principalStr }: { principalStr: string }) {
+  const { data: profile } = useGetUserProfileByPrincipal(principalStr);
+  return (
+    <SelectItem value={principalStr}>
+      {profile ? `${profile.name} (${profile.email})` : principalStr.slice(0, 20) + '…'}
+    </SelectItem>
+  );
 }
 
 export default function CreateTimelineForm({ onSuccess }: CreateTimelineFormProps) {
@@ -29,179 +37,147 @@ export default function CreateTimelineForm({ onSuccess }: CreateTimelineFormProp
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [status, setStatus] = useState<TimelineStatus>(TimelineStatus.planned);
-  const [taskReference, setTaskReference] = useState('');
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState(false);
+  const [clientPrincipalStr, setClientPrincipalStr] = useState<string>('');
 
   const createTimeline = useCreateTimeline();
+  const { data: approvals } = useListApprovals();
+
+  const approvedClients = approvals?.filter(
+    (a) => a.status === ApprovalStatus.approved
+  ) ?? [];
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
-    setSuccess(false);
-
-    if (!title.trim()) {
-      setError('Title is required.');
+    if (!title.trim() || !startDate || !endDate) {
+      toast.error('Title, start date, and end date are required');
       return;
-    }
-    if (!startDate) {
-      setError('Start date is required.');
-      return;
-    }
-    if (!endDate) {
-      setError('End date is required.');
-      return;
-    }
-    if (new Date(endDate) < new Date(startDate)) {
-      setError('End date must be after start date.');
-      return;
-    }
-
-    let taskRef: bigint | null = null;
-    if (taskReference.trim()) {
-      const parsed = parseInt(taskReference.trim(), 10);
-      if (isNaN(parsed) || parsed < 0) {
-        setError('Task reference must be a valid non-negative number.');
-        return;
-      }
-      taskRef = BigInt(parsed);
     }
 
     try {
+      const startNs = BigInt(new Date(startDate).getTime()) * BigInt(1_000_000);
+      const endNs = BigInt(new Date(endDate).getTime()) * BigInt(1_000_000);
+
+      const { Principal } = await import('@dfinity/principal');
+      const principal = clientPrincipalStr ? Principal.fromText(clientPrincipalStr) : null;
+
       await createTimeline.mutateAsync({
         title: title.trim(),
         description: description.trim(),
-        startDate: dateToNanoseconds(startDate),
-        endDate: dateToNanoseconds(endDate),
+        startDate: startNs,
+        endDate: endNs,
         status,
-        taskReference: taskRef,
+        taskReference: null,
+        clientPrincipal: principal,
       });
-      setSuccess(true);
-      setTimeout(() => {
-        onSuccess();
-      }, 800);
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Failed to create timeline entry.';
-      setError(msg);
+
+      toast.success('Timeline entry created successfully!');
+      setTitle('');
+      setDescription('');
+      setStartDate('');
+      setEndDate('');
+      setStatus(TimelineStatus.planned);
+      setClientPrincipalStr('');
+      onSuccess?.();
+    } catch (err) {
+      toast.error('Failed to create Timeline entry. Please try again.');
     }
   };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      {success && (
-        <Alert className="border-green-200 bg-green-50 dark:bg-green-950/20">
-          <CheckCircle2 className="h-4 w-4 text-green-600" />
-          <AlertDescription className="text-green-800 dark:text-green-200">
-            Timeline entry created successfully!
-          </AlertDescription>
-        </Alert>
-      )}
-      {error && (
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
-
-      <div className="space-y-1.5">
-        <Label htmlFor="tl-title">
+      <div className="space-y-2">
+        <Label htmlFor="title">
           Title <span className="text-destructive">*</span>
         </Label>
         <Input
-          id="tl-title"
-          placeholder="e.g. Annual Audit Phase 1"
+          id="title"
           value={title}
-          onChange={e => setTitle(e.target.value)}
-          disabled={createTimeline.isPending || success}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder="Enter timeline title"
+          required
         />
       </div>
 
-      <div className="space-y-1.5">
-        <Label htmlFor="tl-description">Description</Label>
+      <div className="space-y-2">
+        <Label htmlFor="description">Description</Label>
         <Textarea
-          id="tl-description"
-          placeholder="Optional details about this timeline entry..."
+          id="description"
           value={description}
-          onChange={e => setDescription(e.target.value)}
+          onChange={(e) => setDescription(e.target.value)}
+          placeholder="Enter description..."
           rows={3}
-          disabled={createTimeline.isPending || success}
         />
       </div>
 
       <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-1.5">
-          <Label htmlFor="tl-start">
+        <div className="space-y-2">
+          <Label htmlFor="startDate">
             Start Date <span className="text-destructive">*</span>
           </Label>
           <Input
-            id="tl-start"
-            type="datetime-local"
+            id="startDate"
+            type="date"
             value={startDate}
-            onChange={e => setStartDate(e.target.value)}
-            disabled={createTimeline.isPending || success}
+            onChange={(e) => setStartDate(e.target.value)}
+            required
           />
         </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="tl-end">
+        <div className="space-y-2">
+          <Label htmlFor="endDate">
             End Date <span className="text-destructive">*</span>
           </Label>
           <Input
-            id="tl-end"
-            type="datetime-local"
+            id="endDate"
+            type="date"
             value={endDate}
-            onChange={e => setEndDate(e.target.value)}
-            disabled={createTimeline.isPending || success}
+            onChange={(e) => setEndDate(e.target.value)}
+            required
           />
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-1.5">
-          <Label htmlFor="tl-status">Status</Label>
-          <Select
-            value={status}
-            onValueChange={v => setStatus(v as TimelineStatus)}
-            disabled={createTimeline.isPending || success}
-          >
-            <SelectTrigger id="tl-status">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={TimelineStatus.planned}>Planned</SelectItem>
-              <SelectItem value={TimelineStatus.inProgress}>In Progress</SelectItem>
-              <SelectItem value={TimelineStatus.completed}>Completed</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="space-y-1.5">
-          <Label htmlFor="tl-taskref">Task Reference (optional)</Label>
-          <Input
-            id="tl-taskref"
-            type="number"
-            min="0"
-            placeholder="e.g. 42"
-            value={taskReference}
-            onChange={e => setTaskReference(e.target.value)}
-            disabled={createTimeline.isPending || success}
-          />
-        </div>
+      <div className="space-y-2">
+        <Label htmlFor="status">Status</Label>
+        <Select value={status} onValueChange={(v) => setStatus(v as TimelineStatus)}>
+          <SelectTrigger id="status">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={TimelineStatus.planned}>Planned</SelectItem>
+            <SelectItem value={TimelineStatus.inProgress}>In Progress</SelectItem>
+            <SelectItem value={TimelineStatus.completed}>Completed</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
-      <div className="flex justify-end gap-3 pt-2">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={onSuccess}
-          disabled={createTimeline.isPending}
-        >
-          Cancel
-        </Button>
-        <Button type="submit" disabled={createTimeline.isPending || success}>
-          {createTimeline.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          {createTimeline.isPending ? 'Creating...' : 'Create Entry'}
-        </Button>
+      <div className="space-y-2">
+        <Label htmlFor="clientPrincipal">Assign to Client</Label>
+        <Select value={clientPrincipalStr} onValueChange={setClientPrincipalStr}>
+          <SelectTrigger id="clientPrincipal">
+            <SelectValue placeholder="Select a client (optional)" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="">No client assigned</SelectItem>
+            {approvedClients.map((approval) => (
+              <ClientOption
+                key={approval.principal.toString()}
+                principalStr={approval.principal.toString()}
+              />
+            ))}
+          </SelectContent>
+        </Select>
       </div>
+
+      <Button type="submit" disabled={createTimeline.isPending} className="w-full">
+        {createTimeline.isPending ? (
+          <>
+            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            Creating...
+          </>
+        ) : (
+          'Create Timeline Entry'
+        )}
+      </Button>
     </form>
   );
 }

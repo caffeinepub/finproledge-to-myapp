@@ -8,19 +8,24 @@ import Runtime "mo:core/Runtime";
 import MixinAuthorization "authorization/MixinAuthorization";
 import MixinStorage "blob-storage/Mixin";
 import Storage "blob-storage/Storage";
-
 import AccessControl "authorization/access-control";
 import UserApproval "user-approval/approval";
-import Migration "migration";
 
-// Use migration to discard deprecated deadline state components
-(with migration = Migration.run)
 actor {
   let accessControlState = AccessControl.initState();
   var userApprovalState : UserApproval.UserApprovalState = UserApproval.initState(accessControlState);
 
   include MixinAuthorization(accessControlState);
   include MixinStorage();
+
+  type ExportFormat = {
+    #pdf;
+    #docx;
+    #xlsx;
+    #csv;
+    #zip;
+    #image;
+  };
 
   public type ServiceType = {
     #incomeTaxFiling;
@@ -29,6 +34,11 @@ actor {
     #payrollAdmin;
     #ledgerMaintenance;
     #bankReconciliation;
+    #gstFiling;
+    #tdsFiling;
+    #financialManagement;
+    #accountingServices;
+    #loanFinancing;
     #other;
   };
 
@@ -58,6 +68,7 @@ actor {
     client : Principal;
     docType : DocumentType;
     name : Text;
+    mimeType : Text;
     uploadedAt : Time.Time;
     file : Storage.ExternalBlob;
   };
@@ -66,6 +77,11 @@ actor {
     #taxFiling;
     #payrollReport;
     #auditDoc;
+    #gstFiling;
+    #tdsFiling;
+    #financialManagement;
+    #accountingServices;
+    #loanFinancing;
   };
 
   public type ComplianceDeliverable = {
@@ -158,7 +174,19 @@ actor {
     status : ClientDeliverableStatus;
   };
 
-  // --- New Metrics Types ---
+  public type ExportableFile = {
+    id : Nat;
+    name : Text;
+    originalFormat : Text;
+    availableFormats : [ExportFormat];
+    file : Storage.ExternalBlob;
+  };
+
+  public type CompanyContactDetails = {
+    phoneNumber : Text;
+    email : Text;
+  };
+
   public type LeadGenerationMetrics = {
     formSubmissions : Nat;
     clickToCallCount : Nat;
@@ -239,7 +267,13 @@ actor {
     conversionRate : ConversionRate;
   };
 
-  // --- New Compliance Admin Types ---
+  // Optional document blob for To-Do attachments
+  public type ToDoDocument = {
+    fileName : Text;
+    mimeType : Text;
+    file : Storage.ExternalBlob;
+  };
+
   public type ToDoItem = {
     id : Nat;
     title : Text;
@@ -249,6 +283,7 @@ actor {
     assignedClient : ?Principal;
     createdAt : Time.Time;
     clientPrincipal : ?Principal;
+    document : ?ToDoDocument;
   };
 
   public type ToDoStatus = {
@@ -311,70 +346,68 @@ actor {
   let paymentRecords = Map.empty<Nat, PaymentRecord>();
   let userProfiles = Map.empty<Principal, UserProfile>();
   let clientDeliverables = Map.empty<Nat, ClientDeliverable>();
-
-  // New maps for ToDos, Timelines, FollowUps
   let toDoItems = Map.empty<Nat, ToDoItem>();
   let timelineEntries = Map.empty<Nat, TimelineEntry>();
   let followUpItems = Map.empty<Nat, FollowUpItem>();
 
   var adminPaymentSettings : ?AdminPaymentSettings = null;
   var analyticsSummary : ?AnalyticsSummary = null;
-
   var newAnalyticsSummary : ?NewAnalyticsSummary = null;
 
-  // --- New Analytics Endpoints ---
+  var companyContactDetails : CompanyContactDetails = {
+    phoneNumber = "+91 123-456-7890";
+    email = "info@finlogic.co.in";
+  };
+
   public query ({ caller }) func getNewAnalyticsSummary() : async { leadGeneration : LeadGenerationMetrics; trust : TrustMetrics; searchIntent : SearchIntentMetrics; technicalReliability : TechnicalReliabilityMetrics; clientRetention : ClientRetentionMetrics } {
-    if (UserApproval.isApproved(userApprovalState, caller) or AccessControl.hasPermission(accessControlState, caller, #admin)) {
-      switch (newAnalyticsSummary) {
-        case (?summary) {
-          {
-            leadGeneration = summary.leadGeneration;
-            trust = summary.trust;
-            searchIntent = summary.searchIntent;
-            technicalReliability = summary.technicalReliability;
-            clientRetention = summary.clientRetention;
-          };
+    if (not (UserApproval.isApproved(userApprovalState, caller) or AccessControl.hasPermission(accessControlState, caller, #admin))) {
+      Runtime.trap("Unauthorized: Only approved users and admins can access this data");
+    };
+    switch (newAnalyticsSummary) {
+      case (?summary) {
+        {
+          leadGeneration = summary.leadGeneration;
+          trust = summary.trust;
+          searchIntent = summary.searchIntent;
+          technicalReliability = summary.technicalReliability;
+          clientRetention = summary.clientRetention;
         };
-        case (null) {
-          {
-            leadGeneration = {
-              formSubmissions = 100;
-              clickToCallCount = 50;
-              leadQualityBreakup = {
-                high = 60;
-                medium = 30;
-                low = 10;
-              };
+      };
+      case (null) {
+        {
+          leadGeneration = {
+            formSubmissions = 100;
+            clickToCallCount = 50;
+            leadQualityBreakup = {
+              high = 60;
+              medium = 30;
+              low = 10;
             };
-            trust = {
-              blogEngagement = 200;
-              aboutPageAvgTime = 120;
-              testimonialClicks = 40;
-            };
-            searchIntent = {
-              localSeoRankings = 5;
-              seasonalKeywordTrends = ["tax season", "accounting tips"];
-              aiVisibilityScore = 80;
-            };
-            technicalReliability = {
-              sslStatus = true;
-              mobileScore = 90;
-              pageLoadMs = 1500;
-            };
-            clientRetention = {
-              returningUserRatio = 0.7;
-              portalFunnelDropoffs = 20;
-            };
+          };
+          trust = {
+            blogEngagement = 200;
+            aboutPageAvgTime = 120;
+            testimonialClicks = 40;
+          };
+          searchIntent = {
+            localSeoRankings = 5;
+            seasonalKeywordTrends = ["tax season", "accounting tips"];
+            aiVisibilityScore = 80;
+          };
+          technicalReliability = {
+            sslStatus = true;
+            mobileScore = 90;
+            pageLoadMs = 1500;
+          };
+          clientRetention = {
+            returningUserRatio = 0.7;
+            portalFunnelDropoffs = 20;
           };
         };
       };
-    } else {
-      Runtime.trap("Unauthorized: Only approved users and admins can access this data");
     };
   };
 
-  // User Profile Management
-  // Admins and approved users can get their own profile
   public query ({ caller }) func getCallerUserProfile() : async ?UserProfile {
     if (not UserApproval.isApproved(userApprovalState, caller) and not AccessControl.isAdmin(accessControlState, caller)) {
       Runtime.trap("Unauthorized: Only approved users or admins can view profiles");
@@ -389,7 +422,6 @@ actor {
     userProfiles.get(user);
   };
 
-  // Admin-only function to fetch any user's profile by principal
   public query ({ caller }) func getUserProfileByPrincipal(user : Principal) : async ?UserProfile {
     if (not (AccessControl.isAdmin(accessControlState, caller))) {
       Runtime.trap("Unauthorized: Only admins can view profiles by principal");
@@ -397,7 +429,6 @@ actor {
     userProfiles.get(user);
   };
 
-  // Admins and approved users can save their own profile
   public shared ({ caller }) func saveCallerUserProfile(profile : UserProfile) : async () {
     if (not UserApproval.isApproved(userApprovalState, caller) and not AccessControl.isAdmin(accessControlState, caller)) {
       Runtime.trap("Unauthorized: Only approved users or admins can save profiles");
@@ -405,7 +436,6 @@ actor {
     userProfiles.add(caller, profile);
   };
 
-  // Service Request Management
   public shared ({ caller }) func createRequest(serviceType : ServiceType, description : Text, deadline : Time.Time) : async Nat {
     if (not UserApproval.isApproved(userApprovalState, caller)) {
       Runtime.trap("Unauthorized: Only approved users can create requests");
@@ -432,7 +462,6 @@ actor {
   };
 
   public shared ({ caller }) func createVisitorRequest(input : ServiceRequestInput) : async Nat {
-    // Open to all callers including guests/visitors — no auth check required
     let requestId = nextRequestId;
     let newRequest : ServiceRequest = {
       id = requestId;
@@ -454,7 +483,7 @@ actor {
     requestId;
   };
 
-  public shared ({ caller }) func uploadDocument(docType : DocumentType, name : Text, file : Storage.ExternalBlob) : async UploadDocumentResult {
+  public shared ({ caller }) func uploadDocument(docType : DocumentType, name : Text, mimeType : Text, file : Storage.ExternalBlob) : async UploadDocumentResult {
     if (not UserApproval.isApproved(userApprovalState, caller)) {
       Runtime.trap("Unauthorized: Only approved users can upload documents");
     };
@@ -464,6 +493,7 @@ actor {
       client = caller;
       docType;
       name;
+      mimeType;
       uploadedAt = Time.now();
       file;
     };
@@ -474,7 +504,22 @@ actor {
     #ok(docId);
   };
 
-  // Admin-only: admins create compliance deliverables and assign them to clients
+  public query ({ caller }) func getMyDocuments() : async [ClientDocument] {
+    if (not UserApproval.isApproved(userApprovalState, caller) and not AccessControl.isAdmin(accessControlState, caller)) {
+      Runtime.trap("Unauthorized: Only approved users or admins can view documents");
+    };
+    let values = clientDocuments.values().toArray();
+    values.filter(func(doc) { doc.client == caller });
+  };
+
+  public query ({ caller }) func getClientDocuments(client : Principal) : async [ClientDocument] {
+    if (caller != client and not (AccessControl.isAdmin(accessControlState, caller))) {
+      Runtime.trap("Unauthorized: Can only view your own documents");
+    };
+    let values = clientDocuments.values().toArray();
+    values.filter(func(doc) { doc.client == client });
+  };
+
   public shared ({ caller }) func createDeliverable(clientPrincipal : Principal, title : Text, dueDate : Time.Time, deliverableType : DeliverableType) : async Nat {
     if (not (AccessControl.isAdmin(accessControlState, caller))) {
       Runtime.trap("Unauthorized: Only admins can create deliverables");
@@ -495,7 +540,6 @@ actor {
     deliverableId;
   };
 
-  // Admin or the client themselves can query a specific client's requests
   public query ({ caller }) func getClientRequests(client : Principal) : async [ServiceRequest] {
     if (caller != client and not (AccessControl.isAdmin(accessControlState, caller))) {
       Runtime.trap("Unauthorized: Can only view your own requests");
@@ -509,7 +553,6 @@ actor {
     values.filter(func(request) { request.client == caller });
   };
 
-  // Admin or the client themselves can query a specific client's deliverables
   public query ({ caller }) func getClientDeliverables(client : Principal) : async [ComplianceDeliverable] {
     if (caller != client and not (AccessControl.isAdmin(accessControlState, caller))) {
       Runtime.trap("Unauthorized: Can only view your own deliverables");
@@ -523,7 +566,6 @@ actor {
     values.filter(func(deliverable) { deliverable.client == caller });
   };
 
-  // Admin or the client themselves can query a specific client's pending deliverables
   public query ({ caller }) func getPendingDeliverables(client : Principal) : async [ComplianceDeliverable] {
     if (caller != client and not (AccessControl.isAdmin(accessControlState, caller))) {
       Runtime.trap("Unauthorized: Can only view your own pending deliverables");
@@ -541,7 +583,6 @@ actor {
     });
   };
 
-  // Update service request status — admin can update any request; approved user can only update their own
   public shared ({ caller }) func updateStatus(requestId : Nat, status : RequestStatus) : async () {
     let isAdmin = AccessControl.isAdmin(accessControlState, caller);
     if (not isAdmin and not UserApproval.isApproved(userApprovalState, caller)) {
@@ -553,7 +594,6 @@ actor {
         if (not isAdmin and request.client != caller) {
           Runtime.trap("Unauthorized: Can only update your own requests");
         };
-
         let updatedRequest = {
           request with
           status;
@@ -563,8 +603,6 @@ actor {
     };
   };
 
-  // --- Compliance Dashboard Endpoints ---
-  // Admin: get all compliance tasks across all clients
   public query ({ caller }) func getAllComplianceDeliverables() : async [ComplianceDeliverable] {
     if (not (AccessControl.isAdmin(accessControlState, caller))) {
       Runtime.trap("Unauthorized: Only admins can access all compliance deliverables");
@@ -572,16 +610,12 @@ actor {
     complianceDeliverables.values().toArray();
   };
 
-  // New Client Deliverables section
-
-  // Input type for submitting deliverables
   public type ClientDeliverableInput = {
     title : Text;
     description : Text;
     file : Storage.ExternalBlob;
   };
 
-  // Input type for admin submitting a deliverable on behalf of a client
   public type AdminClientDeliverableInput = {
     clientPrincipal : Principal;
     title : Text;
@@ -589,7 +623,6 @@ actor {
     file : Storage.ExternalBlob;
   };
 
-  // Approved clients and admins can submit deliverables
   public shared ({ caller }) func submitDeliverable(input : ClientDeliverableInput) : async Nat {
     let isAdmin = AccessControl.isAdmin(accessControlState, caller);
     if (not isAdmin and not UserApproval.isApproved(userApprovalState, caller)) {
@@ -612,7 +645,6 @@ actor {
     deliverableId;
   };
 
-  // Admin can submit a deliverable on behalf of a specific client
   public shared ({ caller }) func submitDeliverableForClient(input : AdminClientDeliverableInput) : async Nat {
     if (not AccessControl.isAdmin(accessControlState, caller)) {
       Runtime.trap("Unauthorized: Only admins can submit deliverables on behalf of clients");
@@ -634,7 +666,6 @@ actor {
     deliverableId;
   };
 
-  // Both clients (for their own deliverables) and admins can update deliverable status (approve/reject)
   public shared ({ caller }) func updateClientDeliverableStatus(deliverableId : Nat, newStatus : ClientDeliverableStatus) : async () {
     let isAdmin = AccessControl.isAdmin(accessControlState, caller);
     if (not isAdmin and not UserApproval.isApproved(userApprovalState, caller)) {
@@ -643,7 +674,6 @@ actor {
     switch (clientDeliverables.get(deliverableId)) {
       case (null) { Runtime.trap("Deliverable not found") };
       case (?deliverable) {
-        // Non-admins can only update their own deliverables
         if (not isAdmin and deliverable.submitter != caller) {
           Runtime.trap("Unauthorized: Can only update your own deliverables");
         };
@@ -676,7 +706,6 @@ actor {
     values.filter(func(deliverable) { deliverable.submitter == owner });
   };
 
-  // ----- Payment Management -----
   public shared ({ caller }) func createPayment(amount : Nat, currencyCode : Text, paymentMethod : PaymentMethod, cardType : ?Text) : async Nat {
     if (not UserApproval.isApproved(userApprovalState, caller)) {
       Runtime.trap("Unauthorized: Only approved users can create payments");
@@ -741,7 +770,6 @@ actor {
     adminPaymentSettings;
   };
 
-  // Admin-only functions
   public query ({ caller }) func getAllRequests() : async [ServiceRequest] {
     if (not (AccessControl.isAdmin(accessControlState, caller))) {
       Runtime.trap("Unauthorized: Only admins can access all requests");
@@ -763,7 +791,6 @@ actor {
     complianceDeliverables.values().toArray();
   };
 
-  // User Approval Functions
   public query ({ caller }) func isCallerApproved() : async Bool {
     AccessControl.hasPermission(accessControlState, caller, #admin) or UserApproval.isApproved(userApprovalState, caller);
   };
@@ -786,10 +813,7 @@ actor {
     UserApproval.listApprovals(userApprovalState);
   };
 
-  // ---------- New Compliance Admin Functions ----------
-
-  // Create To-Do — admin only
-  public shared ({ caller }) func createToDo(title : Text, description : Text, priority : ToDoPriority, status : ToDoStatus, assignedClient : ?Principal) : async Nat {
+  public shared ({ caller }) func createToDo(title : Text, description : Text, priority : ToDoPriority, status : ToDoStatus, assignedClient : ?Principal, document : ?ToDoDocument) : async Nat {
     if (not (AccessControl.isAdmin(accessControlState, caller))) {
       Runtime.trap("Unauthorized: Only admins can create to-dos");
     };
@@ -803,6 +827,7 @@ actor {
       assignedClient;
       createdAt = Time.now();
       clientPrincipal = assignedClient;
+      document;
     };
 
     toDoItems.add(toDoId, newToDo);
@@ -811,8 +836,7 @@ actor {
     toDoId;
   };
 
-  // Create Timeline Entry — admin only
-  public shared ({ caller }) func createTimelineEntry(title : Text, description : Text, startDate : Time.Time, endDate : Time.Time, status : TimelineStatus, taskReference : ?Nat) : async Nat {
+  public shared ({ caller }) func createTimelineEntry(title : Text, description : Text, startDate : Time.Time, endDate : Time.Time, status : TimelineStatus, taskReference : ?Nat, clientPrincipal : ?Principal) : async Nat {
     if (not (AccessControl.isAdmin(accessControlState, caller))) {
       Runtime.trap("Unauthorized: Only admins can create timeline entries");
     };
@@ -825,7 +849,7 @@ actor {
       endDate;
       status;
       taskReference;
-      clientPrincipal = null;
+      clientPrincipal;
     };
 
     timelineEntries.add(timelineId, newTimelineEntry);
@@ -834,7 +858,6 @@ actor {
     timelineId;
   };
 
-  // Create Follow-Up — admin only
   public shared ({ caller }) func createFollowUp(title : Text, description : Text, dueDate : Time.Time, clientReference : ?Principal, status : FollowUpStatus, notes : Text) : async Nat {
     if (not (AccessControl.isAdmin(accessControlState, caller))) {
       Runtime.trap("Unauthorized: Only admins can create follow-ups");
@@ -857,8 +880,6 @@ actor {
     followUpId;
   };
 
-  // ------------ Getters for Compliance Admin Functions -----------
-
   public query ({ caller }) func getAllToDos() : async [ToDoItem] {
     if (not (AccessControl.isAdmin(accessControlState, caller))) {
       Runtime.trap("Unauthorized: Only admins can access all to-dos");
@@ -879,10 +900,6 @@ actor {
     };
     followUpItems.values().toArray();
   };
-
-  // -------------- Client-Specific Query Endpoints -------------------
-  // These are callable by any authenticated (approved) user and return only
-  // records belonging to the caller (where clientPrincipal == caller).
 
   public query ({ caller }) func getMyToDos() : async [ToDoItem] {
     if (not (UserApproval.isApproved(userApprovalState, caller) or AccessControl.isAdmin(accessControlState, caller))) {
@@ -929,11 +946,7 @@ actor {
     );
   };
 
-  // -------------- Client Record Creation Functions ------------
-  // Approved clients can create their own items; clientPrincipal is automatically
-  // set to the caller so the items appear in the caller's filtered queries.
-
-  public shared ({ caller }) func createClientToDo(title : Text, description : Text, priority : ToDoPriority, status : ToDoStatus) : async Nat {
+  public shared ({ caller }) func createClientToDo(title : Text, description : Text, priority : ToDoPriority, status : ToDoStatus, document : ?ToDoDocument) : async Nat {
     if (not UserApproval.isApproved(userApprovalState, caller)) {
       Runtime.trap("Unauthorized: Only approved users can create to-dos");
     };
@@ -947,6 +960,7 @@ actor {
       assignedClient = ?caller;
       createdAt = Time.now();
       clientPrincipal = ?caller;
+      document;
     };
 
     toDoItems.add(toDoId, newToDo);
@@ -999,7 +1013,6 @@ actor {
     followUpId;
   };
 
-  // Update To-Do status — admins can update any to-do; approved users can only update their own
   public shared ({ caller }) func updateToDoStatus(toDoId : Nat, newStatus : ToDoStatus) : async () {
     let isAdmin = AccessControl.isAdmin(accessControlState, caller);
     if (not isAdmin and not UserApproval.isApproved(userApprovalState, caller)) {
@@ -1029,7 +1042,6 @@ actor {
     };
   };
 
-  // Update Timeline status — admins can update any timeline; approved users can only update their own
   public shared ({ caller }) func updateTimelineStatus(timelineId : Nat, newStatus : TimelineStatus) : async () {
     let isAdmin = AccessControl.isAdmin(accessControlState, caller);
     if (not isAdmin and not UserApproval.isApproved(userApprovalState, caller)) {
@@ -1059,7 +1071,6 @@ actor {
     };
   };
 
-  // Update Follow-Up status — admins can update any follow-up; approved users can only update their own
   public shared ({ caller }) func updateFollowUpStatus(followUpId : Nat, newStatus : FollowUpStatus) : async () {
     let isAdmin = AccessControl.isAdmin(accessControlState, caller);
     if (not isAdmin and not UserApproval.isApproved(userApprovalState, caller)) {
@@ -1087,5 +1098,55 @@ actor {
         followUpItems.add(followUpId, updatedFollowUp);
       };
     };
+  };
+
+  // New endpoints for download functionality
+  public query ({ caller }) func getExportableFiles() : async [ExportableFile] {
+    if (not AccessControl.isAdmin(accessControlState, caller)) {
+      Runtime.trap("Unauthorized: Only admins can access exportable files");
+    };
+
+    let fileList = clientDocuments.values().toArray();
+    let deliverablesList = clientDeliverables.values().toArray();
+    let toDoList = toDoItems.values().toArray();
+
+    let exportableFiles = fileList.map(
+      func(doc) {
+        {
+          id = doc.id;
+          name = doc.name;
+          originalFormat = doc.mimeType;
+          availableFormats = [#pdf, #docx, #xlsx, #csv];
+          file = doc.file;
+        };
+      }
+    );
+
+    let deliverablesFiles = deliverablesList.map(
+      func(deliverable) {
+        {
+          id = deliverable.id;
+          name = deliverable.title;
+          originalFormat = "application/pdf";
+          availableFormats = [#pdf, #docx, #xlsx];
+          file = deliverable.file;
+        };
+      }
+    );
+
+    let toDoFiles = [] : [ExportableFile];
+
+    exportableFiles.concat(deliverablesFiles).concat(toDoFiles);
+  };
+
+  public query ({ caller }) func getCompanyContactDetails() : async CompanyContactDetails {
+    companyContactDetails;
+  };
+
+  public shared ({ caller }) func updateCompanyContactDetails(newDetails : CompanyContactDetails) : async () {
+    if (not (AccessControl.isAdmin(accessControlState, caller))) {
+      Runtime.trap("Unauthorized: Only admins can update contact details");
+    };
+    companyContactDetails := newDetails;
   };
 };

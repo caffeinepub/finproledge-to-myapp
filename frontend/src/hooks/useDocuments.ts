@@ -1,7 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useActor } from './useActor';
-import { ClientDocument, DocumentType } from '../backend';
-import { ExternalBlob } from '../backend';
+import { ClientDocument, DocumentType, ExternalBlob } from '../backend';
 
 export function useGetAllDocuments() {
   const { actor, isFetching } = useActor();
@@ -24,14 +23,16 @@ export function useUploadDocument() {
     mutationFn: async ({
       docType,
       name,
+      mimeType,
       file,
     }: {
       docType: DocumentType;
       name: string;
+      mimeType: string;
       file: ExternalBlob;
     }) => {
       if (!actor) throw new Error('Actor not available');
-      return actor.uploadDocument(docType, name, file);
+      return actor.uploadDocument(docType, name, mimeType, file);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['allDocuments'] });

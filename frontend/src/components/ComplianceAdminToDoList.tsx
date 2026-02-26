@@ -1,92 +1,165 @@
 import { useState } from 'react';
-import { Plus, Loader2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Skeleton } from '@/components/ui/skeleton';
-import { useGetAllToDos, ToDoPriority } from '../hooks/useComplianceAdmin';
+import { ToDoItem, ToDoStatus, ToDoPriority } from '../backend';
+import { useGetAllToDos } from '../hooks/useComplianceAdmin';
+import { useGetUserProfileByPrincipal } from '../hooks/useUserProfile';
 import { ToDoStatusSelect } from './TaskStatusSelect';
-import CreateToDoForm from './CreateToDoForm';
-import { ToDoItem, ToDoStatus } from '../backend';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Download, FileText, User } from 'lucide-react';
+import { toast } from 'sonner';
 
-function PriorityBadge({ priority }: { priority: unknown }) {
-  const p = priority as unknown as ToDoPriority;
-  const map: Record<string, { label: string; className: string }> = {
-    high: { label: 'High', className: 'bg-red-100 text-red-700 border-red-200' },
-    medium: { label: 'Medium', className: 'bg-yellow-100 text-yellow-700 border-yellow-200' },
-    low: { label: 'Low', className: 'bg-green-100 text-green-700 border-green-200' },
-  };
-  const config = map[p as string] ?? { label: String(p), className: '' };
-  return <Badge variant="outline" className={config.className}>{config.label}</Badge>;
+const PRIORITY_COLORS: Record<string, string> = {
+  high: 'bg-red-100 text-red-800',
+  medium: 'bg-yellow-100 text-yellow-800',
+  low: 'bg-green-100 text-green-800',
+};
+
+function ClientNameCell({ principalStr }: { principalStr: string | undefined }) {
+  const { data: profile, isLoading } = useGetUserProfileByPrincipal(principalStr ?? null);
+
+  if (!principalStr) return <span className="text-muted-foreground text-sm">—</span>;
+  if (isLoading) return <Skeleton className="h-4 w-24" />;
+  if (!profile) return <span className="text-muted-foreground text-xs">{principalStr.slice(0, 12)}…</span>;
+
+  return (
+    <div className="flex items-center gap-2">
+      <User className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+      <div>
+        <div className="font-medium text-sm text-foreground">{profile.name}</div>
+        <div className="text-xs text-muted-foreground">{profile.email}</div>
+        {profile.company && <div className="text-xs text-muted-foreground">{profile.company}</div>}
+      </div>
+    </div>
+  );
+}
+
+async function downloadToDoDocument(doc: { file: any; fileName: string; mimeType: string }) {
+  try {
+    const bytes = await doc.file.getBytes();
+    const blob = new Blob([bytes], { type: doc.mimeType || 'application/octet-stream' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = doc.fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  } catch {
+    toast.error('Failed to download document.');
+  }
 }
 
 export default function ComplianceAdminToDoList() {
-  const { data: todos, isLoading } = useGetAllToDos();
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const { data: todos, isLoading, error } = useGetAllToDos();
+
+  if (isLoading) {
+    return (
+      <div className="space-y-3">
+        {[1, 2, 3].map((i) => (
+          <Skeleton key={i} className="h-12 w-full" />
+        ))}
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-8 text-destructive">
+        Failed to load To-Do items. Please try again.
+      </div>
+    );
+  }
+
+  if (!todos || todos.length === 0) {
+    return (
+      <div className="text-center py-12 text-muted-foreground">
+        <FileText className="w-12 h-12 mx-auto mb-3 opacity-30" />
+        <p className="font-medium">No To-Do items yet</p>
+        <p className="text-sm mt-1">Create a new To-Do to get started.</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold text-foreground">To-Do List</h2>
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild>
-            <Button size="sm" className="bg-navy text-white hover:bg-navy/90">
-              <Plus className="w-4 h-4 mr-1" /> Add To-Do
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Create New To-Do</DialogTitle>
-            </DialogHeader>
-            <CreateToDoForm onSuccess={() => setDialogOpen(false)} />
-          </DialogContent>
-        </Dialog>
-      </div>
-
-      {isLoading ? (
-        <div className="space-y-2">
-          {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}
-        </div>
-      ) : !todos || todos.length === 0 ? (
-        <div className="text-center py-12 text-muted-foreground">
-          No to-do items yet. Create one to get started.
-        </div>
-      ) : (
-        <div className="border border-border rounded-sm overflow-hidden">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Title</TableHead>
-                <TableHead>Description</TableHead>
-                <TableHead>Priority</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Assigned Client</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {todos.map((todo: ToDoItem) => (
-                <TableRow key={String(todo.id)}>
-                  <TableCell className="font-medium">{todo.title}</TableCell>
-                  <TableCell className="text-muted-foreground text-sm max-w-xs truncate">{todo.description}</TableCell>
-                  <TableCell>
-                    <PriorityBadge priority={todo.priority as unknown as ToDoPriority} />
-                  </TableCell>
-                  <TableCell>
-                    <ToDoStatusSelect
-                      toDoId={todo.id}
-                      currentStatus={todo.status as unknown as ToDoStatus}
-                    />
-                  </TableCell>
-                  <TableCell className="text-muted-foreground text-xs">
-                    {todo.assignedClient ? String(todo.assignedClient).slice(0, 12) + '...' : '—'}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-      )}
+    <div className="overflow-x-auto">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Title</TableHead>
+            <TableHead>Assigned Client</TableHead>
+            <TableHead>Priority</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead>Document</TableHead>
+            <TableHead>Created</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {todos.map((todo) => (
+            <TableRow key={todo.id.toString()}>
+              <TableCell>
+                <div>
+                  <div className="font-medium text-foreground">{todo.title}</div>
+                  {todo.description && (
+                    <div className="text-xs text-muted-foreground mt-0.5 max-w-xs truncate">
+                      {todo.description}
+                    </div>
+                  )}
+                </div>
+              </TableCell>
+              <TableCell>
+                <ClientNameCell
+                  principalStr={
+                    todo.assignedClient?.toString() ?? todo.clientPrincipal?.toString()
+                  }
+                />
+              </TableCell>
+              <TableCell>
+                <span
+                  className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                    PRIORITY_COLORS[todo.priority] || 'bg-gray-100 text-gray-800'
+                  }`}
+                >
+                  {todo.priority.charAt(0).toUpperCase() + todo.priority.slice(1)}
+                </span>
+              </TableCell>
+              <TableCell>
+                <ToDoStatusSelect toDoId={todo.id} currentStatus={todo.status} />
+              </TableCell>
+              <TableCell>
+                {todo.document ? (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => downloadToDoDocument(todo.document!)}
+                    className="gap-1"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    {todo.document.fileName}
+                  </Button>
+                ) : (
+                  <span className="text-muted-foreground text-sm">—</span>
+                )}
+              </TableCell>
+              <TableCell className="text-muted-foreground text-sm">
+                {new Date(Number(todo.createdAt) / 1_000_000).toLocaleDateString('en-IN', {
+                  day: '2-digit',
+                  month: 'short',
+                  year: 'numeric',
+                })}
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
     </div>
   );
 }

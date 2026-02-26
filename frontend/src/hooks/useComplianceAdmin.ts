@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useActor } from './useActor';
-import { ToDoStatus, TimelineStatus, FollowUpStatus, ToDoPriority } from '../backend';
+import { ToDoStatus, TimelineStatus, FollowUpStatus, ToDoPriority, ToDoDocument } from '../backend';
+import type { Principal } from '@dfinity/principal';
 
 export { ToDoPriority };
 
@@ -85,12 +86,18 @@ export function useCreateToDo() {
       description: string;
       priority: ToDoPriority;
       status: ToDoStatus;
-      assignedClient: string | null;
+      assignedClient: Principal | null;
+      document: ToDoDocument | null;
     }) => {
       if (!actor) throw new Error('Actor not available');
-      const { Principal } = await import('@dfinity/principal');
-      const assignedClient = params.assignedClient ? Principal.fromText(params.assignedClient) : null;
-      return actor.createToDo(params.title, params.description, params.priority, params.status, assignedClient);
+      return actor.createToDo(
+        params.title,
+        params.description,
+        params.priority,
+        params.status,
+        params.assignedClient,
+        params.document
+      );
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['allToDos'] });
@@ -110,6 +117,7 @@ export function useCreateTimeline() {
       endDate: bigint;
       status: TimelineStatus;
       taskReference: bigint | null;
+      clientPrincipal: Principal | null;
     }) => {
       if (!actor) throw new Error('Actor not available');
       return actor.createTimelineEntry(
@@ -118,7 +126,8 @@ export function useCreateTimeline() {
         params.startDate,
         params.endDate,
         params.status,
-        params.taskReference
+        params.taskReference,
+        params.clientPrincipal
       );
     },
     onSuccess: () => {
@@ -136,18 +145,16 @@ export function useCreateFollowUp() {
       title: string;
       description: string;
       dueDate: bigint;
-      clientReference: string | null;
+      clientReference: Principal | null;
       status: FollowUpStatus;
       notes: string;
     }) => {
       if (!actor) throw new Error('Actor not available');
-      const { Principal } = await import('@dfinity/principal');
-      const clientReference = params.clientReference ? Principal.fromText(params.clientReference) : null;
       return actor.createFollowUp(
         params.title,
         params.description,
         params.dueDate,
-        clientReference,
+        params.clientReference,
         params.status,
         params.notes
       );
@@ -168,9 +175,16 @@ export function useCreateClientToDo() {
       description: string;
       priority: ToDoPriority;
       status: ToDoStatus;
+      document: ToDoDocument | null;
     }) => {
       if (!actor) throw new Error('Actor not available');
-      return actor.createClientToDo(params.title, params.description, params.priority, params.status);
+      return actor.createClientToDo(
+        params.title,
+        params.description,
+        params.priority,
+        params.status,
+        params.document
+      );
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['myToDos'] });

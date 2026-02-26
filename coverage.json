@@ -1,163 +1,45 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-25T13:47:19.399Z",
+  "generatedAt": "2026-02-26T03:36:24.789Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 7,
-    "implemented": 7,
+    "total": 2,
+    "implemented": 2,
     "items": [
       {
         "id": "REQ-1",
-        "summary": "Remove the Deadline feature entirely from the application. This includes removing the Deadline tab from the client-facing ComplianceDashboardPage and ClientTasksTab, removing the Deadline tab from ComplianceAdminDashboardPage, removing ComplianceAdminDeadlineCountdown and ClientCreateDeadlineForm components from active use, removing deadline-related backend methods (createDeadline, getDeadlines, updateDeadlineStatus, etc.) from main.mo, and hiding all deadline-related UI elements. Retain the data type in migration.mo only if needed to preserve existing data.",
+        "summary": "In the Navigation component, move the 'Compliance' link so it appears as a nested item under the 'Client Portal' section (visible to authenticated, approved users). It should no longer appear as a top-level navigation item.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/pages/ComplianceDashboardPage.tsx",
-          "frontend/src/components/ClientTasksTab.tsx",
-          "frontend/src/pages/ComplianceAdminDashboardPage.tsx",
-          "frontend/src/components/ComplianceAdminDeadlineCountdown.tsx",
-          "frontend/src/components/ClientCreateDeadlineForm.tsx",
-          "frontend/src/components/CreateDeadlineForm.tsx",
-          "frontend/src/components/TaskStatusSelect.tsx",
-          "frontend/src/hooks/useComplianceAdmin.ts",
-          "frontend/src/components/MyComplianceTasksSection.tsx"
+          "frontend/src/components/Navigation.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/pages/ComplianceDashboardPage.tsx",
-          "frontend/src/components/ClientTasksTab.tsx",
-          "frontend/src/pages/ComplianceAdminDashboardPage.tsx",
-          "frontend/src/components/ComplianceAdminDeadlineCountdown.tsx",
-          "frontend/src/components/ClientCreateDeadlineForm.tsx",
-          "frontend/src/components/CreateDeadlineForm.tsx",
-          "frontend/src/components/TaskStatusSelect.tsx",
-          "frontend/src/hooks/useComplianceAdmin.ts",
-          "frontend/src/components/MyComplianceTasksSection.tsx"
+          "frontend/src/components/Navigation.tsx"
         ]
       },
       {
         "id": "REQ-2",
-        "summary": "Enable admins to change the statuses of To-Dos, Timelines, Follow-Ups, and Deadlines (while Deadlines exist) from the admin compliance dashboard. The ComplianceAdminToDoList, ComplianceAdminTimeline, ComplianceAdminFollowUp, and ComplianceAdminDeadlineCountdown components (prior to deadline removal) must render inline status selectors using the existing TaskStatusSelect component or equivalent. The admin actor must be authorized to call the existing updateToDoStatus, updateTimelineStatus, updateFollowUpStatus backend methods.",
+        "summary": "In the Navigation component, move the 'Compliance Admin' link so it appears as a nested item under the 'Admin' menu section (visible to admin users only). It should no longer appear as a top-level navigation item.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/components/ComplianceAdminToDoList.tsx",
-          "frontend/src/components/ComplianceAdminTimeline.tsx",
-          "frontend/src/components/ComplianceAdminFollowUp.tsx",
-          "frontend/src/hooks/useComplianceAdmin.ts"
-        ],
-        "matchedFiles": [
-          "frontend/src/components/ComplianceAdminToDoList.tsx",
-          "frontend/src/components/ComplianceAdminTimeline.tsx",
-          "frontend/src/components/ComplianceAdminFollowUp.tsx",
-          "frontend/src/hooks/useComplianceAdmin.ts"
-        ]
-      },
-      {
-        "id": "REQ-3",
-        "summary": "Ensure that documents uploaded by clients and received by the admin are downloaded in their original format. In the DocumentTable component and AdminDashboardPage documents tab, the download action must preserve the original file's MIME type and filename extension. The backend must store and return the original content type with each document blob, and the download link or function must set the correct Content-Disposition and MIME type so the browser downloads the file in its original form (PDF, XLSX, etc.).",
-        "status": "implemented",
-        "plannedFiles": [
-          "frontend/src/components/DocumentTable.tsx",
-          "frontend/src/pages/AdminDashboardPage.tsx"
-        ],
-        "matchedFiles": [
-          "frontend/src/components/DocumentTable.tsx"
-        ]
-      },
-      {
-        "id": "REQ-4",
-        "summary": "Allow both clients and admins to add Compliance Deliverables and approve or reject them. On the client side, the existing ClientDeliverableForm must remain accessible. On the admin side, add a form or dialog in the AdminDashboardPage (Client Deliverables tab) that allows the admin to create a new compliance deliverable on behalf of any client. Both clients and admins must be able to approve or reject deliverables via approve/reject action buttons. The backend's submitClientDeliverable and updateClientDeliverableStatus methods must authorize both the client principal and the admin principal to perform these operations.",
-        "status": "implemented",
-        "plannedFiles": [
-          "frontend/src/components/ClientDeliverableForm.tsx",
-          "frontend/src/pages/AdminDashboardPage.tsx",
-          "frontend/src/components/AdminClientDeliverableTable.tsx",
-          "frontend/src/components/ClientDeliverableTable.tsx",
-          "frontend/src/hooks/useClientDeliverables.ts"
-        ],
-        "matchedFiles": [
-          "frontend/src/components/ClientDeliverableForm.tsx",
-          "frontend/src/components/AdminClientDeliverableTable.tsx",
-          "frontend/src/components/ClientDeliverableTable.tsx",
-          "frontend/src/hooks/useClientDeliverables.ts"
-        ]
-      },
-      {
-        "id": "REQ-5",
-        "summary": "Change the text 'Join Us as a Client Today' to 'Contact Us' everywhere it appears in the frontend, including buttons, headings, and any labels on the HomePage or any other page.",
-        "status": "implemented",
-        "plannedFiles": [
-          "frontend/src/pages/HomePage.tsx",
-          "frontend/src/components/Layout.tsx",
           "frontend/src/components/Navigation.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/pages/HomePage.tsx"
-        ]
-      },
-      {
-        "id": "REQ-6",
-        "summary": "Make the Phone Number field non-mandatory in the ServiceRequestForm, VisitorServiceRequestPage form, and UserProfileSetup modal. Remove the required validation constraint from the phone number input field. The form must be submittable without entering a phone number.",
-        "status": "implemented",
-        "plannedFiles": [
-          "frontend/src/components/ServiceRequestForm.tsx",
-          "frontend/src/pages/VisitorServiceRequestPage.tsx",
-          "frontend/src/components/UserProfileSetup.tsx"
-        ],
-        "matchedFiles": [
-          "frontend/src/components/ServiceRequestForm.tsx",
-          "frontend/src/pages/VisitorServiceRequestPage.tsx"
-        ]
-      },
-      {
-        "id": "REQ-7",
-        "summary": "In the Admin Dashboard's Client Submitted Deliverables tab, update the AdminClientDeliverableTable component to display a link or button that allows the admin to view or download the uploaded document file associated with each deliverable. The file URL or blob stored with the deliverable must be surfaced in the table row, and clicking it should open or download the document.",
-        "status": "implemented",
-        "plannedFiles": [
-          "frontend/src/components/AdminClientDeliverableTable.tsx"
-        ],
-        "matchedFiles": [
-          "frontend/src/components/AdminClientDeliverableTable.tsx"
+          "frontend/src/components/Navigation.tsx"
         ]
       }
     ]
   },
   "changedFiles": [
-    "backend/main.mo",
-    "backend/migration.mo",
     "build-request.json",
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
-    "frontend/src/backend.d.ts",
-    "frontend/src/backend.ts",
-    "frontend/src/components/AdminClientDeliverableTable.tsx",
-    "frontend/src/components/ClientCreateDeadlineForm.tsx",
-    "frontend/src/components/ClientCreateToDoForm.tsx",
-    "frontend/src/components/ClientDeliverableForm.tsx",
-    "frontend/src/components/ClientDeliverableTable.tsx",
-    "frontend/src/components/ClientTasksTab.tsx",
-    "frontend/src/components/ComplianceAdminDeadlineCountdown.tsx",
-    "frontend/src/components/ComplianceAdminFollowUp.tsx",
-    "frontend/src/components/ComplianceAdminTimeline.tsx",
-    "frontend/src/components/ComplianceAdminToDoList.tsx",
-    "frontend/src/components/CreateDeadlineForm.tsx",
-    "frontend/src/components/CreateFollowUpForm.tsx",
-    "frontend/src/components/CreateToDoForm.tsx",
-    "frontend/src/components/DocumentTable.tsx",
-    "frontend/src/components/MyComplianceTasksSection.tsx",
-    "frontend/src/components/ServiceRequestForm.tsx",
-    "frontend/src/components/TaskStatusSelect.tsx",
-    "frontend/src/declarations/backend.did.d.ts",
-    "frontend/src/declarations/backend.did.js",
-    "frontend/src/hooks/useClientDeliverables.ts",
-    "frontend/src/hooks/useComplianceAdmin.ts",
-    "frontend/src/pages/ComplianceAdminDashboardPage.tsx",
-    "frontend/src/pages/ComplianceDashboardPage.tsx",
-    "frontend/src/pages/HomePage.tsx",
-    "frontend/src/pages/VisitorServiceRequestPage.tsx",
+    "frontend/src/components/Navigation.tsx",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

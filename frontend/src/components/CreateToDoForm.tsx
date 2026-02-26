@@ -1,4 +1,8 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
+import { ToDoPriority, ToDoStatus, ExternalBlob, ToDoDocument } from '../backend';
+import { useCreateToDo } from '../hooks/useComplianceAdmin';
+import { useListApprovals } from '../hooks/useApprovals';
+import { useGetUserProfileByPrincipal } from '../hooks/useUserProfile';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -10,13 +14,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
-import { useCreateToDo, ToDoPriority } from '../hooks/useComplianceAdmin';
-import { ToDoStatus } from '../backend';
+import { toast } from 'sonner';
+import { Loader2, Upload, X } from 'lucide-react';
+import { ApprovalStatus } from '../backend';
 
 interface CreateToDoFormProps {
-  onSuccess: () => void;
+  onSuccess?: () => void;
+}
+
+function ClientOption({ principalStr }: { principalStr: string }) {
+  const { data: profile } = useGetUserProfileByPrincipal(principalStr);
+  return (
+    <SelectItem value={principalStr}>
+      {profile ? `${profile.name} (${profile.email})` : principalStr.slice(0, 20) + '…'}
+    </SelectItem>
+  );
 }
 
 export default function CreateToDoForm({ onSuccess }: CreateToDoFormProps) {
@@ -24,102 +36,95 @@ export default function CreateToDoForm({ onSuccess }: CreateToDoFormProps) {
   const [description, setDescription] = useState('');
   const [priority, setPriority] = useState<ToDoPriority>(ToDoPriority.medium);
   const [status, setStatus] = useState<ToDoStatus>(ToDoStatus.pending);
-  const [assignedClient, setAssignedClient] = useState('');
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState(false);
+  const [assignedClient, setAssignedClient] = useState<string>('');
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const createToDo = useCreateToDo();
+  const { data: approvals } = useListApprovals();
+
+  const approvedClients = approvals?.filter(
+    (a) => a.status === ApprovalStatus.approved
+  ) ?? [];
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
-    setSuccess(false);
-
     if (!title.trim()) {
-      setError('Title is required.');
+      toast.error('Title is required');
       return;
     }
 
-    // Validate principal format if provided
-    if (assignedClient.trim()) {
-      try {
-        const { Principal } = await import('@dfinity/principal');
-        Principal.fromText(assignedClient.trim());
-      } catch {
-        setError('Invalid client principal ID format.');
-        return;
-      }
-    }
-
     try {
+      let document: ToDoDocument | null = null;
+      if (selectedFile) {
+        const arrayBuffer = await selectedFile.arrayBuffer();
+        const uint8Array = new Uint8Array(arrayBuffer) as Uint8Array<ArrayBuffer>;
+        const blob = ExternalBlob.fromBytes(uint8Array);
+        document = {
+          file: blob,
+          fileName: selectedFile.name,
+          mimeType: selectedFile.type || 'application/octet-stream',
+        };
+      }
+
+      const { Principal } = await import('@dfinity/principal');
+      const clientPrincipal = assignedClient
+        ? Principal.fromText(assignedClient)
+        : null;
+
       await createToDo.mutateAsync({
         title: title.trim(),
         description: description.trim(),
         priority,
         status,
-        assignedClient: assignedClient.trim() || null,
+        assignedClient: clientPrincipal,
+        document,
       });
-      setSuccess(true);
-      setTimeout(() => {
-        onSuccess();
-      }, 800);
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Failed to create To-Do item.';
-      setError(msg);
+
+      toast.success('To-Do created successfully!');
+      setTitle('');
+      setDescription('');
+      setPriority(ToDoPriority.medium);
+      setStatus(ToDoStatus.pending);
+      setAssignedClient('');
+      setSelectedFile(null);
+      onSuccess?.();
+    } catch (err) {
+      toast.error('Failed to create To-Do. Please try again.');
     }
   };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      {success && (
-        <Alert className="border-green-200 bg-green-50 dark:bg-green-950/20">
-          <CheckCircle2 className="h-4 w-4 text-green-600" />
-          <AlertDescription className="text-green-800 dark:text-green-200">
-            To-Do item created successfully!
-          </AlertDescription>
-        </Alert>
-      )}
-      {error && (
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
-
-      <div className="space-y-1.5">
-        <Label htmlFor="todo-title">
+      <div className="space-y-2">
+        <Label htmlFor="title">
           Title <span className="text-destructive">*</span>
         </Label>
         <Input
-          id="todo-title"
-          placeholder="e.g. Prepare Q4 tax filing"
+          id="title"
           value={title}
-          onChange={e => setTitle(e.target.value)}
-          disabled={createToDo.isPending || success}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder="Enter To-Do title"
+          required
         />
       </div>
 
-      <div className="space-y-1.5">
-        <Label htmlFor="todo-description">Description</Label>
+      <div className="space-y-2">
+        <Label htmlFor="description">Description</Label>
         <Textarea
-          id="todo-description"
-          placeholder="Optional details about this task..."
+          id="description"
           value={description}
-          onChange={e => setDescription(e.target.value)}
+          onChange={(e) => setDescription(e.target.value)}
+          placeholder="Enter description..."
           rows={3}
-          disabled={createToDo.isPending || success}
         />
       </div>
 
       <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-1.5">
-          <Label htmlFor="todo-priority">Priority</Label>
-          <Select
-            value={priority}
-            onValueChange={v => setPriority(v as ToDoPriority)}
-            disabled={createToDo.isPending || success}
-          >
-            <SelectTrigger id="todo-priority">
+        <div className="space-y-2">
+          <Label htmlFor="priority">Priority</Label>
+          <Select value={priority} onValueChange={(v) => setPriority(v as ToDoPriority)}>
+            <SelectTrigger id="priority">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -130,14 +135,10 @@ export default function CreateToDoForm({ onSuccess }: CreateToDoFormProps) {
           </Select>
         </div>
 
-        <div className="space-y-1.5">
-          <Label htmlFor="todo-status">Status</Label>
-          <Select
-            value={status}
-            onValueChange={v => setStatus(v as ToDoStatus)}
-            disabled={createToDo.isPending || success}
-          >
-            <SelectTrigger id="todo-status">
+        <div className="space-y-2">
+          <Label htmlFor="status">Status</Label>
+          <Select value={status} onValueChange={(v) => setStatus(v as ToDoStatus)}>
+            <SelectTrigger id="status">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -149,33 +150,72 @@ export default function CreateToDoForm({ onSuccess }: CreateToDoFormProps) {
         </div>
       </div>
 
-      <div className="space-y-1.5">
-        <Label htmlFor="todo-client">Assigned Client Principal (optional)</Label>
-        <Input
-          id="todo-client"
-          placeholder="e.g. aaaaa-aa (Principal ID)"
-          value={assignedClient}
-          onChange={e => setAssignedClient(e.target.value)}
-          disabled={createToDo.isPending || success}
-          className="font-mono text-sm"
-        />
-        <p className="text-xs text-muted-foreground">Leave blank if not assigned to a specific client.</p>
+      <div className="space-y-2">
+        <Label htmlFor="assignedClient">Assign to Client</Label>
+        <Select value={assignedClient} onValueChange={setAssignedClient}>
+          <SelectTrigger id="assignedClient">
+            <SelectValue placeholder="Select a client (optional)" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="">No client assigned</SelectItem>
+            {approvedClients.map((approval) => (
+              <ClientOption
+                key={approval.principal.toString()}
+                principalStr={approval.principal.toString()}
+              />
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
-      <div className="flex justify-end gap-3 pt-2">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={onSuccess}
-          disabled={createToDo.isPending}
-        >
-          Cancel
-        </Button>
-        <Button type="submit" disabled={createToDo.isPending || success}>
-          {createToDo.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          {createToDo.isPending ? 'Creating...' : 'Create To-Do'}
-        </Button>
+      {/* Document Upload */}
+      <div className="space-y-2">
+        <Label>Attach Document (optional)</Label>
+        {selectedFile ? (
+          <div className="flex items-center gap-2 p-3 bg-muted rounded-sm border border-border">
+            <Upload className="w-4 h-4 text-muted-foreground" />
+            <span className="text-sm text-foreground flex-1 truncate">{selectedFile.name}</span>
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedFile(null);
+                if (fileInputRef.current) fileInputRef.current.value = '';
+              }}
+              className="text-muted-foreground hover:text-destructive"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        ) : (
+          <div
+            className="border-2 border-dashed border-border rounded-sm p-4 text-center cursor-pointer hover:border-primary/50 hover:bg-muted/30 transition-colors"
+            onClick={() => fileInputRef.current?.click()}
+          >
+            <Upload className="w-5 h-5 mx-auto mb-1 text-muted-foreground" />
+            <p className="text-sm text-muted-foreground">Click to attach a document</p>
+          </div>
+        )}
+        <input
+          ref={fileInputRef}
+          type="file"
+          className="hidden"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) setSelectedFile(file);
+          }}
+        />
       </div>
+
+      <Button type="submit" disabled={createToDo.isPending} className="w-full">
+        {createToDo.isPending ? (
+          <>
+            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            Creating...
+          </>
+        ) : (
+          'Create To-Do'
+        )}
+      </Button>
     </form>
   );
 }

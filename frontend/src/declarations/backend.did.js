@@ -44,6 +44,12 @@ export const ToDoStatus = IDL.Variant({
   'completed' : IDL.Null,
   'inProgress' : IDL.Null,
 });
+export const ExternalBlob = IDL.Vec(IDL.Nat8);
+export const ToDoDocument = IDL.Record({
+  'file' : ExternalBlob,
+  'mimeType' : IDL.Text,
+  'fileName' : IDL.Text,
+});
 export const DeliverableType = IDL.Variant({
   'consulting' : IDL.Null,
   'annual' : IDL.Null,
@@ -59,12 +65,17 @@ export const PaymentMethod = IDL.Variant({
 });
 export const ServiceType = IDL.Variant({
   'bankReconciliation' : IDL.Null,
+  'accountingServices' : IDL.Null,
   'incomeTaxFiling' : IDL.Null,
+  'gstFiling' : IDL.Null,
+  'financialManagement' : IDL.Null,
   'other' : IDL.Null,
+  'tdsFiling' : IDL.Null,
   'audits' : IDL.Null,
   'corporateTaxFiling' : IDL.Null,
   'payrollAdmin' : IDL.Null,
   'ledgerMaintenance' : IDL.Null,
+  'loanFinancing' : IDL.Null,
 });
 export const ServiceRequestInput = IDL.Record({
   'serviceType' : ServiceType,
@@ -91,17 +102,22 @@ export const ComplianceDeliverable = IDL.Record({
   'dueDate' : Time,
   'deliverableType' : DeliverableType,
 });
-export const ExternalBlob = IDL.Vec(IDL.Nat8);
 export const DocumentType = IDL.Variant({
+  'accountingServices' : IDL.Null,
+  'gstFiling' : IDL.Null,
+  'financialManagement' : IDL.Null,
+  'tdsFiling' : IDL.Null,
   'payrollReport' : IDL.Null,
   'auditDoc' : IDL.Null,
   'taxFiling' : IDL.Null,
+  'loanFinancing' : IDL.Null,
 });
 export const ClientDocument = IDL.Record({
   'id' : IDL.Nat,
   'client' : IDL.Principal,
   'file' : ExternalBlob,
   'name' : IDL.Text,
+  'mimeType' : IDL.Text,
   'docType' : DocumentType,
   'uploadedAt' : Time,
 });
@@ -181,12 +197,32 @@ export const ToDoItem = IDL.Record({
   'description' : IDL.Text,
   'clientPrincipal' : IDL.Opt(IDL.Principal),
   'assignedClient' : IDL.Opt(IDL.Principal),
+  'document' : IDL.Opt(ToDoDocument),
   'priority' : ToDoPriority,
 });
 export const UserProfile = IDL.Record({
   'name' : IDL.Text,
   'email' : IDL.Text,
   'company' : IDL.Text,
+});
+export const CompanyContactDetails = IDL.Record({
+  'email' : IDL.Text,
+  'phoneNumber' : IDL.Text,
+});
+export const ExportFormat = IDL.Variant({
+  'csv' : IDL.Null,
+  'pdf' : IDL.Null,
+  'zip' : IDL.Null,
+  'docx' : IDL.Null,
+  'xlsx' : IDL.Null,
+  'image' : IDL.Null,
+});
+export const ExportableFile = IDL.Record({
+  'id' : IDL.Nat,
+  'originalFormat' : IDL.Text,
+  'file' : ExternalBlob,
+  'name' : IDL.Text,
+  'availableFormats' : IDL.Vec(ExportFormat),
 });
 export const SearchIntentMetrics = IDL.Record({
   'localSeoRankings' : IDL.Nat,
@@ -281,7 +317,7 @@ export const idlService = IDL.Service({
       [],
     ),
   'createClientToDo' : IDL.Func(
-      [IDL.Text, IDL.Text, ToDoPriority, ToDoStatus],
+      [IDL.Text, IDL.Text, ToDoPriority, ToDoStatus, IDL.Opt(ToDoDocument)],
       [IDL.Nat],
       [],
     ),
@@ -309,12 +345,27 @@ export const idlService = IDL.Service({
     ),
   'createRequest' : IDL.Func([ServiceType, IDL.Text, Time], [IDL.Nat], []),
   'createTimelineEntry' : IDL.Func(
-      [IDL.Text, IDL.Text, Time, Time, TimelineStatus, IDL.Opt(IDL.Nat)],
+      [
+        IDL.Text,
+        IDL.Text,
+        Time,
+        Time,
+        TimelineStatus,
+        IDL.Opt(IDL.Nat),
+        IDL.Opt(IDL.Principal),
+      ],
       [IDL.Nat],
       [],
     ),
   'createToDo' : IDL.Func(
-      [IDL.Text, IDL.Text, ToDoPriority, ToDoStatus, IDL.Opt(IDL.Principal)],
+      [
+        IDL.Text,
+        IDL.Text,
+        ToDoPriority,
+        ToDoStatus,
+        IDL.Opt(IDL.Principal),
+        IDL.Opt(ToDoDocument),
+      ],
       [IDL.Nat],
       [],
     ),
@@ -352,6 +403,11 @@ export const idlService = IDL.Service({
       [IDL.Vec(ComplianceDeliverable)],
       ['query'],
     ),
+  'getClientDocuments' : IDL.Func(
+      [IDL.Principal],
+      [IDL.Vec(ClientDocument)],
+      ['query'],
+    ),
   'getClientRequests' : IDL.Func(
       [IDL.Principal],
       [IDL.Vec(ServiceRequest)],
@@ -362,11 +418,14 @@ export const idlService = IDL.Service({
       [IDL.Vec(ClientDeliverable)],
       ['query'],
     ),
+  'getCompanyContactDetails' : IDL.Func([], [CompanyContactDetails], ['query']),
+  'getExportableFiles' : IDL.Func([], [IDL.Vec(ExportableFile)], ['query']),
   'getMyDeliverables' : IDL.Func(
       [],
       [IDL.Vec(ComplianceDeliverable)],
       ['query'],
     ),
+  'getMyDocuments' : IDL.Func([], [IDL.Vec(ClientDocument)], ['query']),
   'getMyFollowUps' : IDL.Func([], [IDL.Vec(FollowUpItem)], ['query']),
   'getMyPayments' : IDL.Func([], [IDL.Vec(PaymentRecord)], ['query']),
   'getMyPendingDeliverables' : IDL.Func(
@@ -428,13 +487,14 @@ export const idlService = IDL.Service({
       [],
       [],
     ),
+  'updateCompanyContactDetails' : IDL.Func([CompanyContactDetails], [], []),
   'updateFollowUpStatus' : IDL.Func([IDL.Nat, FollowUpStatus], [], []),
   'updatePaymentStatus' : IDL.Func([IDL.Nat, PaymentStatus], [], []),
   'updateStatus' : IDL.Func([IDL.Nat, RequestStatus], [], []),
   'updateTimelineStatus' : IDL.Func([IDL.Nat, TimelineStatus], [], []),
   'updateToDoStatus' : IDL.Func([IDL.Nat, ToDoStatus], [], []),
   'uploadDocument' : IDL.Func(
-      [DocumentType, IDL.Text, ExternalBlob],
+      [DocumentType, IDL.Text, IDL.Text, ExternalBlob],
       [UploadDocumentResult],
       [],
     ),
@@ -479,6 +539,12 @@ export const idlFactory = ({ IDL }) => {
     'completed' : IDL.Null,
     'inProgress' : IDL.Null,
   });
+  const ExternalBlob = IDL.Vec(IDL.Nat8);
+  const ToDoDocument = IDL.Record({
+    'file' : ExternalBlob,
+    'mimeType' : IDL.Text,
+    'fileName' : IDL.Text,
+  });
   const DeliverableType = IDL.Variant({
     'consulting' : IDL.Null,
     'annual' : IDL.Null,
@@ -494,12 +560,17 @@ export const idlFactory = ({ IDL }) => {
   });
   const ServiceType = IDL.Variant({
     'bankReconciliation' : IDL.Null,
+    'accountingServices' : IDL.Null,
     'incomeTaxFiling' : IDL.Null,
+    'gstFiling' : IDL.Null,
+    'financialManagement' : IDL.Null,
     'other' : IDL.Null,
+    'tdsFiling' : IDL.Null,
     'audits' : IDL.Null,
     'corporateTaxFiling' : IDL.Null,
     'payrollAdmin' : IDL.Null,
     'ledgerMaintenance' : IDL.Null,
+    'loanFinancing' : IDL.Null,
   });
   const ServiceRequestInput = IDL.Record({
     'serviceType' : ServiceType,
@@ -526,17 +597,22 @@ export const idlFactory = ({ IDL }) => {
     'dueDate' : Time,
     'deliverableType' : DeliverableType,
   });
-  const ExternalBlob = IDL.Vec(IDL.Nat8);
   const DocumentType = IDL.Variant({
+    'accountingServices' : IDL.Null,
+    'gstFiling' : IDL.Null,
+    'financialManagement' : IDL.Null,
+    'tdsFiling' : IDL.Null,
     'payrollReport' : IDL.Null,
     'auditDoc' : IDL.Null,
     'taxFiling' : IDL.Null,
+    'loanFinancing' : IDL.Null,
   });
   const ClientDocument = IDL.Record({
     'id' : IDL.Nat,
     'client' : IDL.Principal,
     'file' : ExternalBlob,
     'name' : IDL.Text,
+    'mimeType' : IDL.Text,
     'docType' : DocumentType,
     'uploadedAt' : Time,
   });
@@ -616,12 +692,32 @@ export const idlFactory = ({ IDL }) => {
     'description' : IDL.Text,
     'clientPrincipal' : IDL.Opt(IDL.Principal),
     'assignedClient' : IDL.Opt(IDL.Principal),
+    'document' : IDL.Opt(ToDoDocument),
     'priority' : ToDoPriority,
   });
   const UserProfile = IDL.Record({
     'name' : IDL.Text,
     'email' : IDL.Text,
     'company' : IDL.Text,
+  });
+  const CompanyContactDetails = IDL.Record({
+    'email' : IDL.Text,
+    'phoneNumber' : IDL.Text,
+  });
+  const ExportFormat = IDL.Variant({
+    'csv' : IDL.Null,
+    'pdf' : IDL.Null,
+    'zip' : IDL.Null,
+    'docx' : IDL.Null,
+    'xlsx' : IDL.Null,
+    'image' : IDL.Null,
+  });
+  const ExportableFile = IDL.Record({
+    'id' : IDL.Nat,
+    'originalFormat' : IDL.Text,
+    'file' : ExternalBlob,
+    'name' : IDL.Text,
+    'availableFormats' : IDL.Vec(ExportFormat),
   });
   const SearchIntentMetrics = IDL.Record({
     'localSeoRankings' : IDL.Nat,
@@ -716,7 +812,7 @@ export const idlFactory = ({ IDL }) => {
         [],
       ),
     'createClientToDo' : IDL.Func(
-        [IDL.Text, IDL.Text, ToDoPriority, ToDoStatus],
+        [IDL.Text, IDL.Text, ToDoPriority, ToDoStatus, IDL.Opt(ToDoDocument)],
         [IDL.Nat],
         [],
       ),
@@ -744,12 +840,27 @@ export const idlFactory = ({ IDL }) => {
       ),
     'createRequest' : IDL.Func([ServiceType, IDL.Text, Time], [IDL.Nat], []),
     'createTimelineEntry' : IDL.Func(
-        [IDL.Text, IDL.Text, Time, Time, TimelineStatus, IDL.Opt(IDL.Nat)],
+        [
+          IDL.Text,
+          IDL.Text,
+          Time,
+          Time,
+          TimelineStatus,
+          IDL.Opt(IDL.Nat),
+          IDL.Opt(IDL.Principal),
+        ],
         [IDL.Nat],
         [],
       ),
     'createToDo' : IDL.Func(
-        [IDL.Text, IDL.Text, ToDoPriority, ToDoStatus, IDL.Opt(IDL.Principal)],
+        [
+          IDL.Text,
+          IDL.Text,
+          ToDoPriority,
+          ToDoStatus,
+          IDL.Opt(IDL.Principal),
+          IDL.Opt(ToDoDocument),
+        ],
         [IDL.Nat],
         [],
       ),
@@ -787,6 +898,11 @@ export const idlFactory = ({ IDL }) => {
         [IDL.Vec(ComplianceDeliverable)],
         ['query'],
       ),
+    'getClientDocuments' : IDL.Func(
+        [IDL.Principal],
+        [IDL.Vec(ClientDocument)],
+        ['query'],
+      ),
     'getClientRequests' : IDL.Func(
         [IDL.Principal],
         [IDL.Vec(ServiceRequest)],
@@ -797,11 +913,18 @@ export const idlFactory = ({ IDL }) => {
         [IDL.Vec(ClientDeliverable)],
         ['query'],
       ),
+    'getCompanyContactDetails' : IDL.Func(
+        [],
+        [CompanyContactDetails],
+        ['query'],
+      ),
+    'getExportableFiles' : IDL.Func([], [IDL.Vec(ExportableFile)], ['query']),
     'getMyDeliverables' : IDL.Func(
         [],
         [IDL.Vec(ComplianceDeliverable)],
         ['query'],
       ),
+    'getMyDocuments' : IDL.Func([], [IDL.Vec(ClientDocument)], ['query']),
     'getMyFollowUps' : IDL.Func([], [IDL.Vec(FollowUpItem)], ['query']),
     'getMyPayments' : IDL.Func([], [IDL.Vec(PaymentRecord)], ['query']),
     'getMyPendingDeliverables' : IDL.Func(
@@ -863,13 +986,14 @@ export const idlFactory = ({ IDL }) => {
         [],
         [],
       ),
+    'updateCompanyContactDetails' : IDL.Func([CompanyContactDetails], [], []),
     'updateFollowUpStatus' : IDL.Func([IDL.Nat, FollowUpStatus], [], []),
     'updatePaymentStatus' : IDL.Func([IDL.Nat, PaymentStatus], [], []),
     'updateStatus' : IDL.Func([IDL.Nat, RequestStatus], [], []),
     'updateTimelineStatus' : IDL.Func([IDL.Nat, TimelineStatus], [], []),
     'updateToDoStatus' : IDL.Func([IDL.Nat, ToDoStatus], [], []),
     'uploadDocument' : IDL.Func(
-        [DocumentType, IDL.Text, ExternalBlob],
+        [DocumentType, IDL.Text, IDL.Text, ExternalBlob],
         [UploadDocumentResult],
         [],
       ),

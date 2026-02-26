@@ -42,12 +42,17 @@ export interface ClientDocument {
   'client' : Principal,
   'file' : ExternalBlob,
   'name' : string,
+  'mimeType' : string,
   'docType' : DocumentType,
   'uploadedAt' : Time,
 }
 export interface ClientRetentionMetrics {
   'portalFunnelDropoffs' : bigint,
   'returningUserRatio' : number,
+}
+export interface CompanyContactDetails {
+  'email' : string,
+  'phoneNumber' : string,
 }
 export interface ComplianceDeliverable {
   'id' : bigint,
@@ -66,9 +71,27 @@ export type DeliverableType = { 'consulting' : null } |
   { 'annual' : null } |
   { 'quarterly' : null } |
   { 'monthly' : null };
-export type DocumentType = { 'payrollReport' : null } |
+export type DocumentType = { 'accountingServices' : null } |
+  { 'gstFiling' : null } |
+  { 'financialManagement' : null } |
+  { 'tdsFiling' : null } |
+  { 'payrollReport' : null } |
   { 'auditDoc' : null } |
-  { 'taxFiling' : null };
+  { 'taxFiling' : null } |
+  { 'loanFinancing' : null };
+export type ExportFormat = { 'csv' : null } |
+  { 'pdf' : null } |
+  { 'zip' : null } |
+  { 'docx' : null } |
+  { 'xlsx' : null } |
+  { 'image' : null };
+export interface ExportableFile {
+  'id' : bigint,
+  'originalFormat' : string,
+  'file' : ExternalBlob,
+  'name' : string,
+  'availableFormats' : Array<ExportFormat>,
+}
 export type ExternalBlob = Uint8Array;
 export interface FollowUpItem {
   'id' : bigint,
@@ -137,12 +160,17 @@ export interface ServiceRequestInput {
   'phone' : string,
 }
 export type ServiceType = { 'bankReconciliation' : null } |
+  { 'accountingServices' : null } |
   { 'incomeTaxFiling' : null } |
+  { 'gstFiling' : null } |
+  { 'financialManagement' : null } |
   { 'other' : null } |
+  { 'tdsFiling' : null } |
   { 'audits' : null } |
   { 'corporateTaxFiling' : null } |
   { 'payrollAdmin' : null } |
-  { 'ledgerMaintenance' : null };
+  { 'ledgerMaintenance' : null } |
+  { 'loanFinancing' : null };
 export interface TechnicalReliabilityMetrics {
   'pageLoadMs' : bigint,
   'sslStatus' : boolean,
@@ -162,6 +190,11 @@ export interface TimelineEntry {
 export type TimelineStatus = { 'completed' : null } |
   { 'planned' : null } |
   { 'inProgress' : null };
+export interface ToDoDocument {
+  'file' : ExternalBlob,
+  'mimeType' : string,
+  'fileName' : string,
+}
 export interface ToDoItem {
   'id' : bigint,
   'status' : ToDoStatus,
@@ -170,6 +203,7 @@ export interface ToDoItem {
   'description' : string,
   'clientPrincipal' : [] | [Principal],
   'assignedClient' : [] | [Principal],
+  'document' : [] | [ToDoDocument],
   'priority' : ToDoPriority,
 }
 export type ToDoPriority = { 'low' : null } |
@@ -235,7 +269,7 @@ export interface _SERVICE {
     bigint
   >,
   'createClientToDo' : ActorMethod<
-    [string, string, ToDoPriority, ToDoStatus],
+    [string, string, ToDoPriority, ToDoStatus, [] | [ToDoDocument]],
     bigint
   >,
   'createDeliverable' : ActorMethod<
@@ -252,11 +286,26 @@ export interface _SERVICE {
   >,
   'createRequest' : ActorMethod<[ServiceType, string, Time], bigint>,
   'createTimelineEntry' : ActorMethod<
-    [string, string, Time, Time, TimelineStatus, [] | [bigint]],
+    [
+      string,
+      string,
+      Time,
+      Time,
+      TimelineStatus,
+      [] | [bigint],
+      [] | [Principal],
+    ],
     bigint
   >,
   'createToDo' : ActorMethod<
-    [string, string, ToDoPriority, ToDoStatus, [] | [Principal]],
+    [
+      string,
+      string,
+      ToDoPriority,
+      ToDoStatus,
+      [] | [Principal],
+      [] | [ToDoDocument],
+    ],
     bigint
   >,
   'createVisitorRequest' : ActorMethod<[ServiceRequestInput], bigint>,
@@ -279,9 +328,13 @@ export interface _SERVICE {
     [Principal],
     Array<ComplianceDeliverable>
   >,
+  'getClientDocuments' : ActorMethod<[Principal], Array<ClientDocument>>,
   'getClientRequests' : ActorMethod<[Principal], Array<ServiceRequest>>,
   'getClientSubmissions' : ActorMethod<[Principal], Array<ClientDeliverable>>,
+  'getCompanyContactDetails' : ActorMethod<[], CompanyContactDetails>,
+  'getExportableFiles' : ActorMethod<[], Array<ExportableFile>>,
   'getMyDeliverables' : ActorMethod<[], Array<ComplianceDeliverable>>,
+  'getMyDocuments' : ActorMethod<[], Array<ClientDocument>>,
   'getMyFollowUps' : ActorMethod<[], Array<FollowUpItem>>,
   'getMyPayments' : ActorMethod<[], Array<PaymentRecord>>,
   'getMyPendingDeliverables' : ActorMethod<[], Array<ComplianceDeliverable>>,
@@ -321,13 +374,17 @@ export interface _SERVICE {
     [bigint, ClientDeliverableStatus],
     undefined
   >,
+  'updateCompanyContactDetails' : ActorMethod<
+    [CompanyContactDetails],
+    undefined
+  >,
   'updateFollowUpStatus' : ActorMethod<[bigint, FollowUpStatus], undefined>,
   'updatePaymentStatus' : ActorMethod<[bigint, PaymentStatus], undefined>,
   'updateStatus' : ActorMethod<[bigint, RequestStatus], undefined>,
   'updateTimelineStatus' : ActorMethod<[bigint, TimelineStatus], undefined>,
   'updateToDoStatus' : ActorMethod<[bigint, ToDoStatus], undefined>,
   'uploadDocument' : ActorMethod<
-    [DocumentType, string, ExternalBlob],
+    [DocumentType, string, string, ExternalBlob],
     UploadDocumentResult
   >,
 }

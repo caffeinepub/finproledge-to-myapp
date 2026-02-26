@@ -60,9 +60,9 @@ export interface LeadGenerationMetrics {
     formSubmissions: bigint;
     clickToCallCount: bigint;
 }
-export interface ClientRetentionMetrics {
-    portalFunnelDropoffs: bigint;
-    returningUserRatio: number;
+export interface CompanyContactDetails {
+    email: string;
+    phoneNumber: string;
 }
 export interface TimelineEntry {
     id: bigint;
@@ -84,6 +84,7 @@ export interface ClientDocument {
     client: Principal;
     file: ExternalBlob;
     name: string;
+    mimeType: string;
     docType: DocumentType;
     uploadedAt: Time;
 }
@@ -100,6 +101,17 @@ export interface ClientDeliverable {
     file: ExternalBlob;
     createdAt: Time;
     description: string;
+}
+export interface ExportableFile {
+    id: bigint;
+    originalFormat: string;
+    file: ExternalBlob;
+    name: string;
+    availableFormats: Array<ExportFormat>;
+}
+export interface ClientRetentionMetrics {
+    portalFunnelDropoffs: bigint;
+    returningUserRatio: number;
 }
 export interface FollowUpItem {
     id: bigint;
@@ -118,6 +130,11 @@ export type UploadDocumentResult = {
     __kind__: "notApproved";
     notApproved: null;
 };
+export interface ToDoDocument {
+    file: ExternalBlob;
+    mimeType: string;
+    fileName: string;
+}
 export interface AdminPaymentSettings {
     paypalEmail: string;
 }
@@ -129,6 +146,7 @@ export interface ToDoItem {
     description: string;
     clientPrincipal?: Principal;
     assignedClient?: Principal;
+    document?: ToDoDocument;
     priority: ToDoPriority;
 }
 export interface AdminClientDeliverableInput {
@@ -184,9 +202,22 @@ export enum DeliverableType {
     monthly = "monthly"
 }
 export enum DocumentType {
+    accountingServices = "accountingServices",
+    gstFiling = "gstFiling",
+    financialManagement = "financialManagement",
+    tdsFiling = "tdsFiling",
     payrollReport = "payrollReport",
     auditDoc = "auditDoc",
-    taxFiling = "taxFiling"
+    taxFiling = "taxFiling",
+    loanFinancing = "loanFinancing"
+}
+export enum ExportFormat {
+    csv = "csv",
+    pdf = "pdf",
+    zip = "zip",
+    docx = "docx",
+    xlsx = "xlsx",
+    image = "image"
 }
 export enum FollowUpStatus {
     pending = "pending",
@@ -212,12 +243,17 @@ export enum RequestStatus {
 }
 export enum ServiceType {
     bankReconciliation = "bankReconciliation",
+    accountingServices = "accountingServices",
     incomeTaxFiling = "incomeTaxFiling",
+    gstFiling = "gstFiling",
+    financialManagement = "financialManagement",
     other = "other",
+    tdsFiling = "tdsFiling",
     audits = "audits",
     corporateTaxFiling = "corporateTaxFiling",
     payrollAdmin = "payrollAdmin",
-    ledgerMaintenance = "ledgerMaintenance"
+    ledgerMaintenance = "ledgerMaintenance",
+    loanFinancing = "loanFinancing"
 }
 export enum TimelineStatus {
     completed = "completed",
@@ -243,13 +279,13 @@ export interface backendInterface {
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
     createClientFollowUp(title: string, description: string, dueDate: Time, status: FollowUpStatus, notes: string): Promise<bigint>;
     createClientTimeline(title: string, description: string, startDate: Time, endDate: Time, status: TimelineStatus): Promise<bigint>;
-    createClientToDo(title: string, description: string, priority: ToDoPriority, status: ToDoStatus): Promise<bigint>;
+    createClientToDo(title: string, description: string, priority: ToDoPriority, status: ToDoStatus, document: ToDoDocument | null): Promise<bigint>;
     createDeliverable(clientPrincipal: Principal, title: string, dueDate: Time, deliverableType: DeliverableType): Promise<bigint>;
     createFollowUp(title: string, description: string, dueDate: Time, clientReference: Principal | null, status: FollowUpStatus, notes: string): Promise<bigint>;
     createPayment(amount: bigint, currencyCode: string, paymentMethod: PaymentMethod, cardType: string | null): Promise<bigint>;
     createRequest(serviceType: ServiceType, description: string, deadline: Time): Promise<bigint>;
-    createTimelineEntry(title: string, description: string, startDate: Time, endDate: Time, status: TimelineStatus, taskReference: bigint | null): Promise<bigint>;
-    createToDo(title: string, description: string, priority: ToDoPriority, status: ToDoStatus, assignedClient: Principal | null): Promise<bigint>;
+    createTimelineEntry(title: string, description: string, startDate: Time, endDate: Time, status: TimelineStatus, taskReference: bigint | null, clientPrincipal: Principal | null): Promise<bigint>;
+    createToDo(title: string, description: string, priority: ToDoPriority, status: ToDoStatus, assignedClient: Principal | null, document: ToDoDocument | null): Promise<bigint>;
     createVisitorRequest(input: ServiceRequestInput): Promise<bigint>;
     getAdminPaymentSettings(): Promise<AdminPaymentSettings | null>;
     getAllComplianceDeliverables(): Promise<Array<ComplianceDeliverable>>;
@@ -264,9 +300,13 @@ export interface backendInterface {
     getCallerUserProfile(): Promise<UserProfile | null>;
     getCallerUserRole(): Promise<UserRole>;
     getClientDeliverables(client: Principal): Promise<Array<ComplianceDeliverable>>;
+    getClientDocuments(client: Principal): Promise<Array<ClientDocument>>;
     getClientRequests(client: Principal): Promise<Array<ServiceRequest>>;
     getClientSubmissions(owner: Principal): Promise<Array<ClientDeliverable>>;
+    getCompanyContactDetails(): Promise<CompanyContactDetails>;
+    getExportableFiles(): Promise<Array<ExportableFile>>;
     getMyDeliverables(): Promise<Array<ComplianceDeliverable>>;
+    getMyDocuments(): Promise<Array<ClientDocument>>;
     getMyFollowUps(): Promise<Array<FollowUpItem>>;
     getMyPayments(): Promise<Array<PaymentRecord>>;
     getMyPendingDeliverables(): Promise<Array<ComplianceDeliverable>>;
@@ -294,10 +334,11 @@ export interface backendInterface {
     submitDeliverable(input: ClientDeliverableInput): Promise<bigint>;
     submitDeliverableForClient(input: AdminClientDeliverableInput): Promise<bigint>;
     updateClientDeliverableStatus(deliverableId: bigint, newStatus: ClientDeliverableStatus): Promise<void>;
+    updateCompanyContactDetails(newDetails: CompanyContactDetails): Promise<void>;
     updateFollowUpStatus(followUpId: bigint, newStatus: FollowUpStatus): Promise<void>;
     updatePaymentStatus(paymentId: bigint, status: PaymentStatus): Promise<void>;
     updateStatus(requestId: bigint, status: RequestStatus): Promise<void>;
     updateTimelineStatus(timelineId: bigint, newStatus: TimelineStatus): Promise<void>;
     updateToDoStatus(toDoId: bigint, newStatus: ToDoStatus): Promise<void>;
-    uploadDocument(docType: DocumentType, name: string, file: ExternalBlob): Promise<UploadDocumentResult>;
+    uploadDocument(docType: DocumentType, name: string, mimeType: string, file: ExternalBlob): Promise<UploadDocumentResult>;
 }

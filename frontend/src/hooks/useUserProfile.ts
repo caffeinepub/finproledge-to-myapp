@@ -22,18 +22,20 @@ export function useGetCallerUserProfile() {
   };
 }
 
-export function useGetUserProfileByPrincipal(principal: string) {
-  const { actor, isFetching } = useActor();
+export function useGetUserProfileByPrincipal(principalStr: string | null | undefined) {
+  const { actor, isFetching: actorFetching } = useActor();
 
   return useQuery<UserProfile | null>({
-    queryKey: ['userProfile', principal],
+    queryKey: ['userProfileByPrincipal', principalStr],
     queryFn: async () => {
-      if (!actor) return null;
+      if (!actor || !principalStr) return null;
       const { Principal } = await import('@dfinity/principal');
-      return actor.getUserProfileByPrincipal(Principal.fromText(principal));
+      const principal = Principal.fromText(principalStr);
+      return actor.getUserProfileByPrincipal(principal);
     },
-    enabled: !!actor && !isFetching && !!principal,
-    staleTime: 1000 * 60 * 10,
+    enabled: !!actor && !actorFetching && !!principalStr,
+    retry: false,
+    staleTime: 60000,
   });
 }
 

@@ -8,8 +8,8 @@ export default {
   theme: {
     extend: {
       colors: {
-        background: 'oklch(var(--background) / <alpha-value>)',
-        foreground: 'oklch(var(--foreground) / <alpha-value>)',
+        background: 'var(--background)',
+        foreground: 'var(--foreground)',
         card: {
           DEFAULT: 'var(--card)',
           foreground: 'var(--card-foreground)',
@@ -54,6 +54,9 @@ export default {
           DEFAULT: 'var(--warning)',
           foreground: 'var(--warning-foreground)',
         },
+        /* Named palette tokens used throughout the app */
+        navy: 'var(--navy)',
+        gold: 'var(--gold)',
       },
       fontFamily: {
         serif: ['Lora', 'Georgia', 'serif'],
