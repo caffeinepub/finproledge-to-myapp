@@ -1,7 +1,4 @@
-import { TimelineEntry } from '../backend';
-import { useGetAllTimelines } from '../hooks/useComplianceAdmin';
-import { useGetUserProfileByPrincipal } from '../hooks/useUserProfile';
-import { TimelineStatusSelect } from './TaskStatusSelect';
+import React from 'react';
 import {
   Table,
   TableBody,
@@ -11,110 +8,132 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Calendar, User } from 'lucide-react';
+import { useGetAllTimelines } from '../hooks/useComplianceAdmin';
+import { useGetUserProfileByPrincipal } from '../hooks/useUserProfile';
+import { TimelineStatus } from '../backend';
+import { TimelineStatusSelect } from './TaskStatusSelect';
 
-function ClientNameCell({ principalStr }: { principalStr: string | undefined }) {
-  const { data: profile, isLoading } = useGetUserProfileByPrincipal(principalStr ?? null);
+function StatusBadge({ status }: { status: TimelineStatus }) {
+  const map: Record<string, string> = {
+    planned: 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200',
+    inProgress: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
+    completed: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+  };
+  const label =
+    status === TimelineStatus.planned
+      ? 'Planned'
+      : status === TimelineStatus.inProgress
+      ? 'In Progress'
+      : 'Completed';
+  return (
+    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${map[status] ?? ''}`}>
+      {label}
+    </span>
+  );
+}
 
-  if (!principalStr) return <span className="text-muted-foreground text-sm">—</span>;
-  if (isLoading) return <Skeleton className="h-4 w-24" />;
-  if (!profile) return <span className="text-muted-foreground text-xs">{principalStr.slice(0, 12)}…</span>;
+function ClientCell({ principalStr }: { principalStr: string }) {
+  const { data: profile, isLoading } = useGetUserProfileByPrincipal(principalStr);
+
+  if (isLoading) {
+    return (
+      <div className="space-y-1">
+        <Skeleton className="h-3 w-24" />
+        <Skeleton className="h-3 w-32" />
+      </div>
+    );
+  }
 
   return (
-    <div className="flex items-center gap-2">
-      <User className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-      <div>
-        <div className="font-medium text-sm text-foreground">{profile.name}</div>
-        <div className="text-xs text-muted-foreground">{profile.email}</div>
-        {profile.company && <div className="text-xs text-muted-foreground">{profile.company}</div>}
-      </div>
+    <div className="space-y-0.5 text-xs">
+      {profile ? (
+        <>
+          <div className="font-medium text-foreground">{profile.name}</div>
+          {profile.company && (
+            <div className="text-muted-foreground">{profile.company}</div>
+          )}
+          <div className="text-muted-foreground font-mono text-[10px]">{principalStr.slice(0, 16)}…</div>
+        </>
+      ) : (
+        <div className="font-mono text-muted-foreground">{principalStr.slice(0, 16)}…</div>
+      )}
     </div>
   );
 }
 
+function formatDate(ns: bigint) {
+  return new Date(Number(ns) / 1_000_000).toLocaleDateString();
+}
+
 export default function ComplianceAdminTimeline() {
-  const { data: timelines, isLoading, error } = useGetAllTimelines();
+  const { data: timelines, isLoading } = useGetAllTimelines();
 
   if (isLoading) {
     return (
-      <div className="space-y-3">
-        {[1, 2, 3].map((i) => (
+      <div className="space-y-2">
+        {[...Array(3)].map((_, i) => (
           <Skeleton key={i} className="h-12 w-full" />
         ))}
       </div>
     );
   }
 
-  if (error) {
-    return (
-      <div className="text-center py-8 text-destructive">
-        Failed to load Timeline entries. Please try again.
-      </div>
-    );
-  }
-
-  if (!timelines || timelines.length === 0) {
-    return (
-      <div className="text-center py-12 text-muted-foreground">
-        <Calendar className="w-12 h-12 mx-auto mb-3 opacity-30" />
-        <p className="font-medium">No Timeline entries yet</p>
-        <p className="text-sm mt-1">Create a new Timeline entry to get started.</p>
-      </div>
-    );
-  }
-
   return (
-    <div className="overflow-x-auto">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Title</TableHead>
-            <TableHead>Assigned Client</TableHead>
-            <TableHead>Start Date</TableHead>
-            <TableHead>End Date</TableHead>
-            <TableHead>Status</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {timelines.map((entry) => (
-            <TableRow key={entry.id.toString()}>
-              <TableCell>
-                <div>
-                  <div className="font-medium text-foreground">{entry.title}</div>
-                  {entry.description && (
-                    <div className="text-xs text-muted-foreground mt-0.5 max-w-xs truncate">
-                      {entry.description}
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-semibold">All Timelines ({timelines?.length ?? 0})</h3>
+      </div>
+
+      {!timelines || timelines.length === 0 ? (
+        <p className="text-muted-foreground text-sm py-4 text-center">No timeline entries found.</p>
+      ) : (
+        <div className="overflow-x-auto rounded-md border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Title</TableHead>
+                <TableHead>Client</TableHead>
+                <TableHead>Start Date</TableHead>
+                <TableHead>End Date</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Task Ref</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {timelines.map((entry) => (
+                <TableRow key={String(entry.id)}>
+                  <TableCell>
+                    <div>
+                      <div className="font-medium">{entry.title}</div>
+                      {entry.description && (
+                        <div className="text-xs text-muted-foreground mt-0.5">{entry.description}</div>
+                      )}
                     </div>
-                  )}
-                </div>
-              </TableCell>
-              <TableCell>
-                <ClientNameCell principalStr={entry.clientPrincipal?.toString()} />
-              </TableCell>
-              <TableCell className="text-muted-foreground text-sm">
-                {new Date(Number(entry.startDate) / 1_000_000).toLocaleDateString('en-IN', {
-                  day: '2-digit',
-                  month: 'short',
-                  year: 'numeric',
-                })}
-              </TableCell>
-              <TableCell className="text-muted-foreground text-sm">
-                {new Date(Number(entry.endDate) / 1_000_000).toLocaleDateString('en-IN', {
-                  day: '2-digit',
-                  month: 'short',
-                  year: 'numeric',
-                })}
-              </TableCell>
-              <TableCell>
-                <TimelineStatusSelect
-                  timelineId={entry.id}
-                  currentStatus={entry.status}
-                />
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+                  </TableCell>
+                  <TableCell>
+                    {entry.clientPrincipal ? (
+                      <ClientCell principalStr={entry.clientPrincipal.toString()} />
+                    ) : (
+                      <span className="text-muted-foreground text-xs">Unassigned</span>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-xs">{formatDate(entry.startDate)}</TableCell>
+                  <TableCell className="text-xs">{formatDate(entry.endDate)}</TableCell>
+                  <TableCell>
+                    <TimelineStatusSelect
+                      timelineId={entry.id}
+                      currentStatus={entry.status}
+                    />
+                  </TableCell>
+                  <TableCell className="text-xs text-muted-foreground">
+                    {entry.taskReference != null ? String(entry.taskReference) : '—'}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
     </div>
   );
 }

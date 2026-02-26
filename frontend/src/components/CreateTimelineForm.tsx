@@ -1,12 +1,8 @@
-import { useState } from 'react';
-import { TimelineStatus } from '../backend';
-import { useCreateTimeline } from '../hooks/useComplianceAdmin';
-import { useListApprovals } from '../hooks/useApprovals';
-import { useGetUserProfileByPrincipal } from '../hooks/useUserProfile';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -14,9 +10,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { useCreateTimelineEntry } from '../hooks/useComplianceAdmin';
+import { useListApprovals } from '../hooks/useApprovals';
+import { useGetUserProfileByPrincipal } from '../hooks/useUserProfile';
+import { TimelineStatus } from '../backend';
+import { Principal } from '@dfinity/principal';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
-import { ApprovalStatus } from '../backend';
 
 interface CreateTimelineFormProps {
   onSuccess?: () => void;
@@ -24,11 +24,10 @@ interface CreateTimelineFormProps {
 
 function ClientOption({ principalStr }: { principalStr: string }) {
   const { data: profile } = useGetUserProfileByPrincipal(principalStr);
-  return (
-    <SelectItem value={principalStr}>
-      {profile ? `${profile.name} (${profile.email})` : principalStr.slice(0, 20) + '…'}
-    </SelectItem>
-  );
+  if (profile) {
+    return <span>{profile.name} {profile.company ? `(${profile.company})` : ''}</span>;
+  }
+  return <span>{principalStr.slice(0, 12)}…</span>;
 }
 
 export default function CreateTimelineForm({ onSuccess }: CreateTimelineFormProps) {
@@ -37,60 +36,74 @@ export default function CreateTimelineForm({ onSuccess }: CreateTimelineFormProp
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [status, setStatus] = useState<TimelineStatus>(TimelineStatus.planned);
-  const [clientPrincipalStr, setClientPrincipalStr] = useState<string>('');
+  const [selectedClient, setSelectedClient] = useState<string>('none');
 
-  const createTimeline = useCreateTimeline();
+  const createTimeline = useCreateTimelineEntry();
   const { data: approvals } = useListApprovals();
 
-  const approvedClients = approvals?.filter(
-    (a) => a.status === ApprovalStatus.approved
-  ) ?? [];
+  const approvedUsers = (approvals ?? []).filter((a) => a.status === 'approved');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim() || !startDate || !endDate) {
-      toast.error('Title, start date, and end date are required');
+    if (!title.trim()) {
+      toast.error('Title is required');
+      return;
+    }
+    if (!startDate || !endDate) {
+      toast.error('Start date and end date are required');
       return;
     }
 
-    try {
-      const startNs = BigInt(new Date(startDate).getTime()) * BigInt(1_000_000);
-      const endNs = BigInt(new Date(endDate).getTime()) * BigInt(1_000_000);
+    const startMs = new Date(startDate).getTime();
+    const endMs = new Date(endDate).getTime();
+    if (isNaN(startMs) || isNaN(endMs)) {
+      toast.error('Invalid date values');
+      return;
+    }
 
-      const { Principal } = await import('@dfinity/principal');
-      const principal = clientPrincipalStr ? Principal.fromText(clientPrincipalStr) : null;
+    const startDateNs = BigInt(startMs) * BigInt(1_000_000);
+    const endDateNs = BigInt(endMs) * BigInt(1_000_000);
 
-      await createTimeline.mutateAsync({
-        title: title.trim(),
-        description: description.trim(),
-        startDate: startNs,
-        endDate: endNs,
+    const clientPrincipal: Principal | null =
+      selectedClient && selectedClient !== 'none'
+        ? Principal.fromText(selectedClient)
+        : null;
+
+    createTimeline.mutate(
+      {
+        title,
+        description,
+        startDate: startDateNs,
+        endDate: endDateNs,
         status,
         taskReference: null,
-        clientPrincipal: principal,
-      });
-
-      toast.success('Timeline entry created successfully!');
-      setTitle('');
-      setDescription('');
-      setStartDate('');
-      setEndDate('');
-      setStatus(TimelineStatus.planned);
-      setClientPrincipalStr('');
-      onSuccess?.();
-    } catch (err) {
-      toast.error('Failed to create Timeline entry. Please try again.');
-    }
+        clientPrincipal,
+      },
+      {
+        onSuccess: () => {
+          toast.success('Timeline entry created successfully');
+          setTitle('');
+          setDescription('');
+          setStartDate('');
+          setEndDate('');
+          setStatus(TimelineStatus.planned);
+          setSelectedClient('none');
+          onSuccess?.();
+        },
+        onError: (err) => {
+          const msg = err instanceof Error ? err.message : 'Something went wrong';
+          toast.error(`Failed to create timeline: ${msg}`);
+        },
+      }
+    );
   };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="space-y-2">
-        <Label htmlFor="title">
-          Title <span className="text-destructive">*</span>
-        </Label>
+      <div>
+        <Label htmlFor="timeline-title">Title *</Label>
         <Input
-          id="title"
+          id="timeline-title"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder="Enter timeline title"
@@ -98,36 +111,32 @@ export default function CreateTimelineForm({ onSuccess }: CreateTimelineFormProp
         />
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="description">Description</Label>
+      <div>
+        <Label htmlFor="timeline-description">Description</Label>
         <Textarea
-          id="description"
+          id="timeline-description"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-          placeholder="Enter description..."
+          placeholder="Enter description"
           rows={3}
         />
       </div>
 
       <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="startDate">
-            Start Date <span className="text-destructive">*</span>
-          </Label>
+        <div>
+          <Label htmlFor="timeline-start">Start Date *</Label>
           <Input
-            id="startDate"
+            id="timeline-start"
             type="date"
             value={startDate}
             onChange={(e) => setStartDate(e.target.value)}
             required
           />
         </div>
-        <div className="space-y-2">
-          <Label htmlFor="endDate">
-            End Date <span className="text-destructive">*</span>
-          </Label>
+        <div>
+          <Label htmlFor="timeline-end">End Date *</Label>
           <Input
-            id="endDate"
+            id="timeline-end"
             type="date"
             value={endDate}
             onChange={(e) => setEndDate(e.target.value)}
@@ -136,10 +145,10 @@ export default function CreateTimelineForm({ onSuccess }: CreateTimelineFormProp
         </div>
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="status">Status</Label>
+      <div>
+        <Label htmlFor="timeline-status">Status</Label>
         <Select value={status} onValueChange={(v) => setStatus(v as TimelineStatus)}>
-          <SelectTrigger id="status">
+          <SelectTrigger id="timeline-status">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -150,20 +159,22 @@ export default function CreateTimelineForm({ onSuccess }: CreateTimelineFormProp
         </Select>
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="clientPrincipal">Assign to Client</Label>
-        <Select value={clientPrincipalStr} onValueChange={setClientPrincipalStr}>
-          <SelectTrigger id="clientPrincipal">
-            <SelectValue placeholder="Select a client (optional)" />
+      <div>
+        <Label htmlFor="timeline-client">Assign to Client (optional)</Label>
+        <Select value={selectedClient} onValueChange={setSelectedClient}>
+          <SelectTrigger id="timeline-client">
+            <SelectValue placeholder="Select a client" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">No client assigned</SelectItem>
-            {approvedClients.map((approval) => (
-              <ClientOption
-                key={approval.principal.toString()}
-                principalStr={approval.principal.toString()}
-              />
-            ))}
+            <SelectItem value="none">No client assigned</SelectItem>
+            {approvedUsers.map((approval) => {
+              const principalStr = approval.principal.toString();
+              return (
+                <SelectItem key={principalStr} value={principalStr}>
+                  <ClientOption principalStr={principalStr} />
+                </SelectItem>
+              );
+            })}
           </SelectContent>
         </Select>
       </div>
@@ -171,8 +182,8 @@ export default function CreateTimelineForm({ onSuccess }: CreateTimelineFormProp
       <Button type="submit" disabled={createTimeline.isPending} className="w-full">
         {createTimeline.isPending ? (
           <>
-            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            Creating...
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            Creating…
           </>
         ) : (
           'Create Timeline Entry'

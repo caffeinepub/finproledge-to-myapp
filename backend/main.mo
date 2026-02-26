@@ -10,7 +10,11 @@ import MixinStorage "blob-storage/Mixin";
 import Storage "blob-storage/Storage";
 import AccessControl "authorization/access-control";
 import UserApproval "user-approval/approval";
+import Migration "migration";
 
+// Explicitly import migration and use with-clause for data upgrade.
+
+(with migration = Migration.run)
 actor {
   let accessControlState = AccessControl.initState();
   var userApprovalState : UserApproval.UserApprovalState = UserApproval.initState(accessControlState);
@@ -366,8 +370,10 @@ actor {
     AccessControl.isAdmin(accessControlState, caller);
   };
 
-  public query func isAnyUser(_caller : Principal) : async Bool {
-    true;
+  // Returns whether the actual message caller is an approved user or admin.
+  // Uses shared query so the IC-authenticated principal is used.
+  public shared query ({ caller }) func isAnyUser() : async Bool {
+    UserApproval.isApproved(userApprovalState, caller) or AccessControl.isAdmin(accessControlState, caller);
   };
 
   public query ({ caller }) func getNewAnalyticsSummary() : async { leadGeneration : LeadGenerationMetrics; trust : TrustMetrics; searchIntent : SearchIntentMetrics; technicalReliability : TechnicalReliabilityMetrics; clientRetention : ClientRetentionMetrics } {
@@ -420,9 +426,6 @@ actor {
   };
 
   public query ({ caller }) func getCallerUserProfile() : async ?UserProfile {
-    if (not UserApproval.isApproved(userApprovalState, caller) and not AccessControl.isAdmin(accessControlState, caller)) {
-      Runtime.trap("Unauthorized: Only approved users or admins can view profiles");
-    };
     userProfiles.get(caller);
   };
 
@@ -441,12 +444,10 @@ actor {
   };
 
   public shared ({ caller }) func saveCallerUserProfile(profile : UserProfile) : async () {
-    if (not UserApproval.isApproved(userApprovalState, caller) and not AccessControl.isAdmin(accessControlState, caller)) {
-      Runtime.trap("Unauthorized: Only approved users or admins can save profiles");
-    };
     userProfiles.add(caller, profile);
   };
 
+  // The rest of your actor code remains unchanged.
   public shared ({ caller }) func createRequest(serviceType : ServiceType, description : Text, deadline : Time.Time) : async Nat {
     if (not UserApproval.isApproved(userApprovalState, caller)) {
       Runtime.trap("Unauthorized: Only approved users can create requests");
@@ -472,6 +473,7 @@ actor {
     requestId;
   };
 
+  // Visitor request: no auth required (public contact/service inquiry form)
   public shared ({ caller }) func createVisitorRequest(input : ServiceRequestInput) : async Nat {
     let requestId = nextRequestId;
     let newRequest : ServiceRequest = {
@@ -560,6 +562,9 @@ actor {
   };
 
   public query ({ caller }) func getMyRequests() : async [ServiceRequest] {
+    if (not UserApproval.isApproved(userApprovalState, caller) and not AccessControl.isAdmin(accessControlState, caller)) {
+      Runtime.trap("Unauthorized: Only approved users or admins can view their requests");
+    };
     let values = serviceRequests.values().toArray();
     values.filter(func(request) { request.client == caller });
   };
@@ -573,6 +578,9 @@ actor {
   };
 
   public query ({ caller }) func getMyDeliverables() : async [ComplianceDeliverable] {
+    if (not UserApproval.isApproved(userApprovalState, caller) and not AccessControl.isAdmin(accessControlState, caller)) {
+      Runtime.trap("Unauthorized: Only approved users or admins can view their deliverables");
+    };
     let values = complianceDeliverables.values().toArray();
     values.filter(func(deliverable) { deliverable.client == caller });
   };
@@ -588,6 +596,9 @@ actor {
   };
 
   public query ({ caller }) func getMyPendingDeliverables() : async [ComplianceDeliverable] {
+    if (not UserApproval.isApproved(userApprovalState, caller) and not AccessControl.isAdmin(accessControlState, caller)) {
+      Runtime.trap("Unauthorized: Only approved users or admins can view their pending deliverables");
+    };
     let values = complianceDeliverables.values().toArray();
     values.filter(func(deliverable) {
       deliverable.client == caller and (Time.now() < deliverable.dueDate)
@@ -698,6 +709,9 @@ actor {
   };
 
   public query ({ caller }) func getMySubmittedDeliverables() : async [ClientDeliverable] {
+    if (not UserApproval.isApproved(userApprovalState, caller) and not AccessControl.isAdmin(accessControlState, caller)) {
+      Runtime.trap("Unauthorized: Only approved users or admins can view their submitted deliverables");
+    };
     let values = clientDeliverables.values().toArray();
     values.filter(func(deliverable) { deliverable.submitter == caller });
   };
@@ -740,6 +754,9 @@ actor {
   };
 
   public query ({ caller }) func getMyPayments() : async [PaymentRecord] {
+    if (not UserApproval.isApproved(userApprovalState, caller) and not AccessControl.isAdmin(accessControlState, caller)) {
+      Runtime.trap("Unauthorized: Only approved users or admins can view their payments");
+    };
     let values = paymentRecords.values().toArray();
     values.filter(func(payment) { payment.client == caller });
   };
@@ -1149,6 +1166,7 @@ actor {
     exportableFiles.concat(deliverablesFiles).concat(toDoFiles);
   };
 
+  // Public endpoint: company contact details are publicly visible
   public query func getCompanyContactDetails() : async CompanyContactDetails {
     companyContactDetails;
   };

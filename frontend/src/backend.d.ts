@@ -325,7 +325,7 @@ export interface backendInterface {
     getUserProfile(user: Principal): Promise<UserProfile | null>;
     getUserProfileByPrincipal(user: Principal): Promise<UserProfile | null>;
     isAdminUser(): Promise<boolean>;
-    isAnyUser(_caller: Principal): Promise<boolean>;
+    isAnyUser(): Promise<boolean>;
     isCallerAdmin(): Promise<boolean>;
     isCallerApproved(): Promise<boolean>;
     listApprovals(): Promise<Array<UserApprovalInfo>>;

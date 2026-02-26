@@ -1,39 +1,60 @@
 {
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
-  "summary": "New project",
+  "summary": "Project with profile management, Admin Tab (To-dos, Timelines, Follow-ups), client details (Principal ID, Company Name, Registered Name), and Client Documents & Compliance Deliverables page with sortable/filterable table headers.",
   "architectural_notes": [],
-  "known_issues": [],
-  "isFixRequest": false,
+  "known_issues": [
+    "Admin Tab: Saving To-dos, Timelines, or Follow-ups throws 'Something went wrong!' error"
+  ],
+  "isFixRequest": true,
   "existing_features": [
     {
-      "id": "feature-ensure-that-a-user-authenticated-with-the-email-finproledge-gmail-com-is-reliably-granted-admin-access-in-the-adminguard-component-bypassing-or-correctly-resolving-the-backend-role-check-so-the-admin-portal-renders-without-being-blocked-or-redirected",
-      "title": "Ensure that a user authenticated with the email finproledge@gmail.com is reliably granted admin access in the AdminGuard component, bypassing or correctly resolving the backend role check so the admin portal renders without being blocked or redirected.",
+      "id": "feature-fix-the-bug-in-the-admin-tab-where-saving-a-new-to-do-timeline-or-follow-up-item-throws-a-something-went-wrong-error-investigate-the-backend-mutation-handlers-createtodo-createtimeline-createfollowup-and-the-corresponding-frontend-hooks-usecreatetodo-usecreateclienttimeline-usecreateclientfollowup-to-identify-and-resolve-the-root-cause-ensure-all-three-creation-flows-complete-successfully-and-the-new-items-appear-in-their-respective-lists-after-saving",
+      "title": "Fix the bug in the Admin Tab where saving a new To-Do, Timeline, or Follow-Up item throws a 'Something went wrong!' error. Investigate the backend mutation handlers (createToDo, createTimeline, createFollowUp) and the corresponding frontend hooks (useCreateToDo, useCreateClientTimeline, useCreateClientFollowUp) to identify and resolve the root cause. Ensure all three creation flows complete successfully and the new items appear in their respective lists after saving.",
       "reqIds": [
         "REQ-1"
       ],
       "version": 1
     },
     {
-      "id": "feature-ensure-the-navigation-component-also-surfaces-admin-only-links-e-g-admin-dashboard-when-the-authenticated-user-s-email-is-finproledge-gmail-com-consistent-with-the-adminguard-fix",
-      "title": "Ensure the Navigation component also surfaces admin-only links (e.g., Admin Dashboard) when the authenticated user's email is finproledge@gmail.com, consistent with the AdminGuard fix.",
+      "id": "feature-in-every-location-where-a-client-s-principal-id-is-displayed-e-g-in-admin-tables-such-as-complianceadmintodolist-complianceadmintimeline-complianceadminfollowup-adminclientdeliverabletable-and-any-other-admin-views-showing-a-principal-also-display-the-client-s-company-name-and-registered-name-by-resolving-these-fields-from-the-user-profile-associated-with-that-principal-id-the-display-should-show-all-three-values-principal-id-company-name-and-registered-name",
+      "title": "In every location where a client's Principal ID is displayed (e.g., in admin tables such as ComplianceAdminToDoList, ComplianceAdminTimeline, ComplianceAdminFollowUp, AdminClientDeliverableTable, and any other admin views showing a principal), also display the client's Company Name and Registered Name by resolving these fields from the user profile associated with that Principal ID. The display should show all three values: Principal ID, Company Name, and Registered Name.",
       "reqIds": [
         "REQ-2"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-on-the-client-documents-compliance-deliverables-page-and-the-adminclientdeliverabletable-component-make-all-table-headers-interactive-by-adding-client-side-sort-and-filter-functionality-for-every-column-users-should-be-able-to-click-any-column-header-to-toggle-ascending-descending-sort-and-each-column-should-have-a-filter-input-or-dropdown-to-narrow-visible-rows-this-applies-to-all-columns-currently-present-in-the-deliverables-table-e-g-client-name-document-title-type-status-date-etc",
+      "title": "On the Client Documents & Compliance Deliverables page (and the AdminClientDeliverableTable component), make all table headers interactive by adding client-side sort and filter functionality for every column. Users should be able to click any column header to toggle ascending/descending sort, and each column should have a filter input or dropdown to narrow visible rows. This applies to all columns currently present in the deliverables table (e.g., client name, document title, type, status, date, etc.).",
+      "reqIds": [
+        "REQ-3"
       ],
       "version": 1
     }
   ],
   "new_feature_requests": [
     {
+      "id": "AR-1",
+      "summary": "Bug fix: Admin Tab - Unable to add To-dos, Timelines, or Follow-ups; 'Something went wrong!' error on save",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-2",
+      "summary": "Update Principal ID section to also display mapped Company Name and Registered Name for the client",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
       "id": "AR-3",
-      "summary": "Audit and fix the backend role-check logic so that the principal associated with finproledge@gmail.com is recognised as an admin by the isAdmin (or equivalent) backend function, ensuring AdminGuard's backend query path also succeeds for this user.",
-      "reqIds": [
-        "REQ-3"
-      ],
+      "summary": "Make table headers on Client Documents & Compliance Deliverables page active with sort and filter functionality for every column",
+      "reqIds": [],
       "status": "pending"
     }
   ],
-  "projectName": "FINPROLEDGE Portal",
+  "gameProjectType": "none",
+  "projectName": "FINPROLEDGE",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

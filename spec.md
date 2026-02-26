@@ -1,12 +1,11 @@
 # Specification
 
 ## Summary
-**Goal:** Fix admin portal access so that the user with email finproledge@gmail.com can reliably access the admin portal without being blocked or redirected.
+**Goal:** Fix Admin Tab save errors, enrich Principal ID display with company details, and add sortable/filterable table headers on the Compliance Deliverables page.
 
 **Planned changes:**
-- Update `AdminGuard` component to correctly identify finproledge@gmail.com as an admin during the email-verification fallback path
-- Update the Navigation component to show admin-only links (e.g., Admin Dashboard) when logged in as finproledge@gmail.com
-- Fix the backend role-check logic in `backend/main.mo` so the principal linked to finproledge@gmail.com is recognized as an admin by the `isAdmin` (or equivalent) function
-- Ensure non-admin users remain blocked by AdminGuard and hidden from admin navigation links
+- Fix bugs in the Admin Tab where creating a new To-Do, Timeline, or Follow-Up item throws a "Something went wrong!" error; ensure all three creation flows complete successfully and new items appear in their lists after saving.
+- In all admin-facing views that display a Principal ID (e.g., ComplianceAdminToDoList, ComplianceAdminTimeline, ComplianceAdminFollowUp, AdminClientDeliverableTable), also resolve and display the client's Company Name and Registered Name alongside the Principal ID, with graceful fallback if the profile cannot be resolved.
+- On the Client Documents & Compliance Deliverables page (AdminClientDeliverableTable), make all column headers clickable to toggle ascending/descending sort with a visual sort-direction indicator, and add per-column filter inputs or dropdowns that update the table in real time; existing row actions (approve, reject, download) remain functional.
 
-**User-visible outcome:** The user finproledge@gmail.com can log in and access the full admin portal (service requests, documents, approvals, payments, deliverables, analytics) and see admin navigation links, while all other non-admin users remain restricted as before.
+**User-visible outcome:** Admins can successfully create To-Do, Timeline, and Follow-Up items without errors. All admin tables now show the client's Company Name and Registered Name next to their Principal ID. The Compliance Deliverables table supports sorting and filtering on every column for easier management.

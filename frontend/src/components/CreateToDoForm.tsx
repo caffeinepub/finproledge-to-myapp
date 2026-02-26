@@ -1,12 +1,8 @@
-import { useState, useRef } from 'react';
-import { ToDoPriority, ToDoStatus, ExternalBlob, ToDoDocument } from '../backend';
-import { useCreateToDo } from '../hooks/useComplianceAdmin';
-import { useListApprovals } from '../hooks/useApprovals';
-import { useGetUserProfileByPrincipal } from '../hooks/useUserProfile';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -14,21 +10,26 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { useCreateToDo } from '../hooks/useComplianceAdmin';
+import { useListApprovals } from '../hooks/useApprovals';
+import { useGetUserProfileByPrincipal } from '../hooks/useUserProfile';
+import { ToDoPriority, ToDoStatus, ToDoDocument } from '../backend';
+import { Principal } from '@dfinity/principal';
+import { ExternalBlob } from '../backend';
 import { toast } from 'sonner';
-import { Loader2, Upload, X } from 'lucide-react';
-import { ApprovalStatus } from '../backend';
+import { Loader2 } from 'lucide-react';
 
 interface CreateToDoFormProps {
   onSuccess?: () => void;
 }
 
+// Helper sub-component to resolve a principal to a display name
 function ClientOption({ principalStr }: { principalStr: string }) {
   const { data: profile } = useGetUserProfileByPrincipal(principalStr);
-  return (
-    <SelectItem value={principalStr}>
-      {profile ? `${profile.name} (${profile.email})` : principalStr.slice(0, 20) + '…'}
-    </SelectItem>
-  );
+  if (profile) {
+    return <span>{profile.name} {profile.company ? `(${profile.company})` : ''}</span>;
+  }
+  return <span>{principalStr.slice(0, 12)}…</span>;
 }
 
 export default function CreateToDoForm({ onSuccess }: CreateToDoFormProps) {
@@ -36,16 +37,15 @@ export default function CreateToDoForm({ onSuccess }: CreateToDoFormProps) {
   const [description, setDescription] = useState('');
   const [priority, setPriority] = useState<ToDoPriority>(ToDoPriority.medium);
   const [status, setStatus] = useState<ToDoStatus>(ToDoStatus.pending);
-  const [assignedClient, setAssignedClient] = useState<string>('');
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [selectedClient, setSelectedClient] = useState<string>('none');
+  const [docFile, setDocFile] = useState<File | null>(null);
 
   const createToDo = useCreateToDo();
   const { data: approvals } = useListApprovals();
 
-  const approvedClients = approvals?.filter(
-    (a) => a.status === ApprovalStatus.approved
-  ) ?? [];
+  const approvedUsers = (approvals ?? []).filter(
+    (a) => a.status === 'approved'
+  );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,91 +54,98 @@ export default function CreateToDoForm({ onSuccess }: CreateToDoFormProps) {
       return;
     }
 
-    try {
-      let document: ToDoDocument | null = null;
-      if (selectedFile) {
-        const arrayBuffer = await selectedFile.arrayBuffer();
-        const uint8Array = new Uint8Array(arrayBuffer) as Uint8Array<ArrayBuffer>;
-        const blob = ExternalBlob.fromBytes(uint8Array);
+    let document: ToDoDocument | null = null;
+    if (docFile) {
+      try {
+        const arrayBuffer = await docFile.arrayBuffer();
+        const bytes = new Uint8Array(arrayBuffer) as Uint8Array<ArrayBuffer>;
+        const blob = ExternalBlob.fromBytes(bytes);
         document = {
+          fileName: docFile.name,
+          mimeType: docFile.type || 'application/octet-stream',
           file: blob,
-          fileName: selectedFile.name,
-          mimeType: selectedFile.type || 'application/octet-stream',
         };
+      } catch (err) {
+        toast.error('Failed to read document file');
+        return;
       }
+    }
 
-      const { Principal } = await import('@dfinity/principal');
-      const clientPrincipal = assignedClient
-        ? Principal.fromText(assignedClient)
+    const assignedClient: Principal | null =
+      selectedClient && selectedClient !== 'none'
+        ? Principal.fromText(selectedClient)
         : null;
 
-      await createToDo.mutateAsync({
-        title: title.trim(),
-        description: description.trim(),
-        priority,
-        status,
-        assignedClient: clientPrincipal,
-        document,
-      });
-
-      toast.success('To-Do created successfully!');
-      setTitle('');
-      setDescription('');
-      setPriority(ToDoPriority.medium);
-      setStatus(ToDoStatus.pending);
-      setAssignedClient('');
-      setSelectedFile(null);
-      onSuccess?.();
-    } catch (err) {
-      toast.error('Failed to create To-Do. Please try again.');
-    }
+    createToDo.mutate(
+      { title, description, priority, status, assignedClient, document },
+      {
+        onSuccess: () => {
+          toast.success('To-Do created successfully');
+          setTitle('');
+          setDescription('');
+          setPriority(ToDoPriority.medium);
+          setStatus(ToDoStatus.pending);
+          setSelectedClient('none');
+          setDocFile(null);
+          onSuccess?.();
+        },
+        onError: (err) => {
+          const msg = err instanceof Error ? err.message : 'Something went wrong';
+          toast.error(`Failed to create To-Do: ${msg}`);
+        },
+      }
+    );
   };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="space-y-2">
-        <Label htmlFor="title">
-          Title <span className="text-destructive">*</span>
-        </Label>
+      <div>
+        <Label htmlFor="todo-title">Title *</Label>
         <Input
-          id="title"
+          id="todo-title"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          placeholder="Enter To-Do title"
+          placeholder="Enter to-do title"
           required
         />
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="description">Description</Label>
+      <div>
+        <Label htmlFor="todo-description">Description</Label>
         <Textarea
-          id="description"
+          id="todo-description"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-          placeholder="Enter description..."
+          placeholder="Enter description"
           rows={3}
         />
       </div>
 
       <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="priority">Priority</Label>
-          <Select value={priority} onValueChange={(v) => setPriority(v as ToDoPriority)}>
-            <SelectTrigger id="priority">
+        <div>
+          <Label htmlFor="todo-priority">Priority</Label>
+          <Select
+            value={priority}
+            onValueChange={(v) => setPriority(v as ToDoPriority)}
+          >
+            <SelectTrigger id="todo-priority">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value={ToDoPriority.high}>High</SelectItem>
-              <SelectItem value={ToDoPriority.medium}>Medium</SelectItem>
               <SelectItem value={ToDoPriority.low}>Low</SelectItem>
+              <SelectItem value={ToDoPriority.medium}>Medium</SelectItem>
+              <SelectItem value={ToDoPriority.high}>High</SelectItem>
             </SelectContent>
           </Select>
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="status">Status</Label>
-          <Select value={status} onValueChange={(v) => setStatus(v as ToDoStatus)}>
-            <SelectTrigger id="status">
+        <div>
+          <Label htmlFor="todo-status">Status</Label>
+          <Select
+            value={status}
+            onValueChange={(v) => setStatus(v as ToDoStatus)}
+          >
+            <SelectTrigger id="todo-status">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -150,67 +157,40 @@ export default function CreateToDoForm({ onSuccess }: CreateToDoFormProps) {
         </div>
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="assignedClient">Assign to Client</Label>
-        <Select value={assignedClient} onValueChange={setAssignedClient}>
-          <SelectTrigger id="assignedClient">
-            <SelectValue placeholder="Select a client (optional)" />
+      <div>
+        <Label htmlFor="todo-client">Assign to Client (optional)</Label>
+        <Select value={selectedClient} onValueChange={setSelectedClient}>
+          <SelectTrigger id="todo-client">
+            <SelectValue placeholder="Select a client" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">No client assigned</SelectItem>
-            {approvedClients.map((approval) => (
-              <ClientOption
-                key={approval.principal.toString()}
-                principalStr={approval.principal.toString()}
-              />
-            ))}
+            <SelectItem value="none">No client assigned</SelectItem>
+            {approvedUsers.map((approval) => {
+              const principalStr = approval.principal.toString();
+              return (
+                <SelectItem key={principalStr} value={principalStr}>
+                  <ClientOption principalStr={principalStr} />
+                </SelectItem>
+              );
+            })}
           </SelectContent>
         </Select>
       </div>
 
-      {/* Document Upload */}
-      <div className="space-y-2">
-        <Label>Attach Document (optional)</Label>
-        {selectedFile ? (
-          <div className="flex items-center gap-2 p-3 bg-muted rounded-sm border border-border">
-            <Upload className="w-4 h-4 text-muted-foreground" />
-            <span className="text-sm text-foreground flex-1 truncate">{selectedFile.name}</span>
-            <button
-              type="button"
-              onClick={() => {
-                setSelectedFile(null);
-                if (fileInputRef.current) fileInputRef.current.value = '';
-              }}
-              className="text-muted-foreground hover:text-destructive"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-        ) : (
-          <div
-            className="border-2 border-dashed border-border rounded-sm p-4 text-center cursor-pointer hover:border-primary/50 hover:bg-muted/30 transition-colors"
-            onClick={() => fileInputRef.current?.click()}
-          >
-            <Upload className="w-5 h-5 mx-auto mb-1 text-muted-foreground" />
-            <p className="text-sm text-muted-foreground">Click to attach a document</p>
-          </div>
-        )}
-        <input
-          ref={fileInputRef}
+      <div>
+        <Label htmlFor="todo-doc">Attach Document (optional)</Label>
+        <Input
+          id="todo-doc"
           type="file"
-          className="hidden"
-          onChange={(e) => {
-            const file = e.target.files?.[0];
-            if (file) setSelectedFile(file);
-          }}
+          onChange={(e) => setDocFile(e.target.files?.[0] ?? null)}
         />
       </div>
 
       <Button type="submit" disabled={createToDo.isPending} className="w-full">
         {createToDo.isPending ? (
           <>
-            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            Creating...
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            Creating…
           </>
         ) : (
           'Create To-Do'

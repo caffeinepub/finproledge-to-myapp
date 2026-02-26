@@ -15,11 +15,11 @@ export function ToDoStatusSelect({ toDoId, currentStatus }: ToDoStatusSelectProp
   const updateStatus = useUpdateToDoStatus();
 
   const handleChange = async (value: string) => {
-    const newStatus = value as ToDoStatus;
+    const status = value as ToDoStatus;
     const previousStatus = optimisticStatus;
-    setOptimisticStatus(newStatus);
+    setOptimisticStatus(status);
     try {
-      await updateStatus.mutateAsync({ toDoId, newStatus });
+      await updateStatus.mutateAsync({ toDoId, status });
       toast.success('Status updated');
     } catch {
       setOptimisticStatus(previousStatus);
@@ -54,11 +54,11 @@ export function TimelineStatusSelect({ timelineId, currentStatus }: TimelineStat
   const updateStatus = useUpdateTimelineStatus();
 
   const handleChange = async (value: string) => {
-    const newStatus = value as TimelineStatus;
+    const status = value as TimelineStatus;
     const previousStatus = optimisticStatus;
-    setOptimisticStatus(newStatus);
+    setOptimisticStatus(status);
     try {
-      await updateStatus.mutateAsync({ timelineId, newStatus });
+      await updateStatus.mutateAsync({ timelineId, status });
       toast.success('Status updated');
     } catch {
       setOptimisticStatus(previousStatus);
@@ -93,11 +93,11 @@ export function FollowUpStatusSelect({ followUpId, currentStatus }: FollowUpStat
   const updateStatus = useUpdateFollowUpStatus();
 
   const handleChange = async (value: string) => {
-    const newStatus = value as FollowUpStatus;
+    const status = value as FollowUpStatus;
     const previousStatus = optimisticStatus;
-    setOptimisticStatus(newStatus);
+    setOptimisticStatus(status);
     try {
-      await updateStatus.mutateAsync({ followUpId, newStatus });
+      await updateStatus.mutateAsync({ followUpId, status });
       toast.success('Status updated');
     } catch {
       setOptimisticStatus(previousStatus);

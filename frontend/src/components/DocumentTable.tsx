@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { useGetAllDocuments } from '../hooks/useDocuments';
-import { useInternetIdentity } from '../hooks/useInternetIdentity';
-import { ClientDocument, DocumentType } from '../backend';
+import { Download, FileText } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import {
   Table,
   TableBody,
@@ -10,169 +10,158 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Download, FileText } from 'lucide-react';
-import DownloadOptionsMenu, { DownloadFile } from './DownloadOptionsMenu';
+import { ClientDocument, DocumentType } from '../backend';
+import DownloadOptionsMenu from './DownloadOptionsMenu';
 
-const ADMIN_EMAIL = 'finproledge@gmail.com';
-
-const DOC_TYPE_LABELS: Record<string, { label: string; color: string }> = {
-  taxFiling: { label: 'Tax Filing', color: 'bg-blue-100 text-blue-800' },
-  payrollReport: { label: 'Payroll Report', color: 'bg-green-100 text-green-800' },
-  auditDoc: { label: 'Audit Document', color: 'bg-purple-100 text-purple-800' },
-  gstFiling: { label: 'GST Filing', color: 'bg-orange-100 text-orange-800' },
-  tdsFiling: { label: 'TDS Filing', color: 'bg-red-100 text-red-800' },
-  financialManagement: { label: 'Financial Management', color: 'bg-teal-100 text-teal-800' },
-  accountingServices: { label: 'Accounting Services', color: 'bg-indigo-100 text-indigo-800' },
-  loanFinancing: { label: 'Loan Financing', color: 'bg-yellow-100 text-yellow-800' },
+const docTypeLabels: Record<string, string> = {
+  taxFiling: 'Tax Filing',
+  payrollReport: 'Payroll Report',
+  auditDoc: 'Audit Document',
+  gstFiling: 'GST Filing',
+  tdsFiling: 'TDS Filing',
+  financialManagement: 'Financial Management',
+  accountingServices: 'Accounting Services',
+  loanFinancing: 'Loan Financing',
 };
 
-function getDocTypeInfo(docType: DocumentType) {
-  const key = docType as unknown as string;
-  return DOC_TYPE_LABELS[key] ?? { label: key, color: 'bg-gray-100 text-gray-800' };
-}
-
-function formatDate(timestamp: bigint): string {
-  const ms = Number(timestamp) / 1_000_000;
-  return new Date(ms).toLocaleDateString('en-IN', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  });
-}
+const docTypeColors: Record<string, string> = {
+  taxFiling: 'bg-blue-100 text-blue-800',
+  payrollReport: 'bg-green-100 text-green-800',
+  auditDoc: 'bg-purple-100 text-purple-800',
+  gstFiling: 'bg-orange-100 text-orange-800',
+  tdsFiling: 'bg-red-100 text-red-800',
+  financialManagement: 'bg-teal-100 text-teal-800',
+  accountingServices: 'bg-indigo-100 text-indigo-800',
+  loanFinancing: 'bg-yellow-100 text-yellow-800',
+};
 
 interface DocumentTableProps {
-  documents?: ClientDocument[];
-  isLoading?: boolean;
+  documents: ClientDocument[];
+  isAdmin?: boolean;
 }
 
-export default function DocumentTable({ documents: propDocuments, isLoading: propLoading }: DocumentTableProps) {
-  const { identity } = useInternetIdentity();
-  const userEmail = identity ? undefined : undefined; // resolved via profile
+export default function DocumentTable({ documents, isAdmin }: DocumentTableProps) {
+  const [downloadingId, setDownloadingId] = useState<bigint | null>(null);
 
-  // Determine if admin by checking profile email stored in localStorage or via prop
-  // We rely on AdminGuard wrapping the admin page; here we check if documents prop is passed (admin mode)
-  const isAdminMode = propDocuments !== undefined;
+  const handleDownload = async (doc: ClientDocument) => {
+    setDownloadingId(doc.id);
+    try {
+      // Get raw bytes from ExternalBlob to preserve binary integrity
+      const bytes = await doc.file.getBytes();
+      // Use the stored mimeType to reconstruct the Blob correctly
+      const mimeType = doc.mimeType || 'application/octet-stream';
+      const blob = new Blob([bytes], { type: mimeType });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = doc.name;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Download failed:', error);
+    } finally {
+      setDownloadingId(null);
+    }
+  };
 
-  const { data: fetchedDocuments, isLoading: fetchLoading } = useGetAllDocuments();
+  const formatDate = (timestamp: bigint) => {
+    return new Date(Number(timestamp) / 1_000_000).toLocaleDateString('en-IN', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    });
+  };
 
-  const documents = propDocuments ?? fetchedDocuments ?? [];
-  const isLoading = propLoading ?? fetchLoading;
+  const getDocTypeKey = (docType: DocumentType): string => String(docType);
 
-  async function handleDownload(doc: ClientDocument) {
-    const bytes = await doc.file.getBytes();
-    const blob = new Blob([bytes], { type: doc.mimeType });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = doc.name;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    setTimeout(() => URL.revokeObjectURL(url), 10000);
-  }
-
-  // Build table rows for export
-  const tableRows = documents.map(doc => ({
-    ID: String(doc.id),
+  const tableData = documents.map((doc) => ({
     Name: doc.name,
-    Type: getDocTypeInfo(doc.docType).label,
-    'MIME Type': doc.mimeType,
+    Type: docTypeLabels[getDocTypeKey(doc.docType)] || 'Unknown',
     'Uploaded At': formatDate(doc.uploadedAt),
-    Client: doc.client.toString(),
   }));
 
-  // Build file list for ZIP/Image downloads
-  const downloadFiles: DownloadFile[] = documents.map(doc => ({
+  const downloadFiles = documents.map((doc) => ({
     name: doc.name,
     mimeType: doc.mimeType,
     getBytes: () => doc.file.getBytes(),
   }));
 
-  if (isLoading) {
+  if (documents.length === 0) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gold" />
+      <div className="text-center py-12 text-muted-foreground">
+        <FileText className="h-12 w-12 mx-auto mb-3 opacity-40" />
+        <p>No documents uploaded yet.</p>
       </div>
     );
   }
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <FileText className="h-5 w-5 text-gold" />
-          <h3 className="font-semibold text-foreground">
-            Documents ({documents.length})
-          </h3>
-        </div>
-        {isAdminMode && (
+      {isAdmin && (
+        <div className="flex justify-end">
           <DownloadOptionsMenu
-            tableData={tableRows}
+            tableData={tableData}
             title="Client Documents"
             files={downloadFiles}
-            availableFormats={['pdf', 'spreadsheet', 'document', 'csv', 'zip', 'image']}
+            availableFormats={['pdf', 'spreadsheet', 'document', 'csv', 'zip']}
           />
-        )}
-      </div>
-
-      {documents.length === 0 ? (
-        <div className="text-center py-12 text-muted-foreground">
-          <FileText className="h-12 w-12 mx-auto mb-3 opacity-30" />
-          <p>No documents found.</p>
-        </div>
-      ) : (
-        <div className="rounded-lg border border-border overflow-hidden">
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-muted/50">
-                <TableHead className="font-semibold">Name</TableHead>
-                <TableHead className="font-semibold">Type</TableHead>
-                <TableHead className="font-semibold">Uploaded</TableHead>
-                {isAdminMode && <TableHead className="font-semibold">Client</TableHead>}
-                <TableHead className="font-semibold text-right">Action</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {documents.map(doc => {
-                const typeInfo = getDocTypeInfo(doc.docType);
-                return (
-                  <TableRow key={String(doc.id)} className="hover:bg-muted/30">
-                    <TableCell className="font-medium max-w-[200px] truncate">
-                      {doc.name}
-                    </TableCell>
-                    <TableCell>
-                      <Badge className={`text-xs ${typeInfo.color} border-0`}>
-                        {typeInfo.label}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {formatDate(doc.uploadedAt)}
-                    </TableCell>
-                    {isAdminMode && (
-                      <TableCell className="text-xs text-muted-foreground font-mono max-w-[120px] truncate">
-                        {doc.client.toString().slice(0, 12)}…
-                      </TableCell>
-                    )}
-                    <TableCell className="text-right">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDownload(doc)}
-                        className="gap-1 text-gold hover:text-gold hover:bg-gold/10"
-                      >
-                        <Download className="h-4 w-4" />
-                        Download
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
         </div>
       )}
+      <div className="rounded-md border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Document Name</TableHead>
+              <TableHead>Type</TableHead>
+              <TableHead>Uploaded</TableHead>
+              <TableHead className="text-right">Action</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {documents.map((doc) => {
+              const typeKey = getDocTypeKey(doc.docType);
+              return (
+                <TableRow key={String(doc.id)}>
+                  <TableCell className="font-medium">
+                    <div className="flex items-center gap-2">
+                      <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
+                      <span className="truncate max-w-[200px]">{doc.name}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge
+                      variant="secondary"
+                      className={docTypeColors[typeKey] || 'bg-gray-100 text-gray-800'}
+                    >
+                      {docTypeLabels[typeKey] || typeKey}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-muted-foreground text-sm">
+                    {formatDate(doc.uploadedAt)}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleDownload(doc)}
+                      disabled={downloadingId === doc.id}
+                      className="text-gold hover:text-gold/80"
+                    >
+                      {downloadingId === doc.id ? (
+                        <span className="animate-spin h-4 w-4 border-2 border-gold border-t-transparent rounded-full inline-block" />
+                      ) : (
+                        <Download className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+      </div>
     </div>
   );
 }

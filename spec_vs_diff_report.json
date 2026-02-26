@@ -1,25 +1,63 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-26T05:00:35.627Z",
-  "summary": "The diff implements REQ-1 and REQ-2 in the frontend (AdminGuard and Navigation components) by adding email-based admin override logic for finproledge@gmail.com with localStorage fallback and lowercase normalization. REQ-3 (backend fix) is not clearly implemented — the backend/main.mo diff is truncated and shows no explicit hardcoded principal or email-to-admin mapping for finproledge@gmail.com, and the MixinAuthorization import is unchanged with no visible isCallerAdmin fix targeting that principal.",
+  "generatedAt": "2026-02-26T09:38:45.989Z",
+  "summary": "The diff addresses all three requirements. REQ-1 is handled by rewriting the frontend hooks (useComplianceAdmin.ts) with proper mutationFn signatures and adding dedicated Create*Form components. REQ-2 is implemented via ClientCell components in ComplianceAdminToDoList, ComplianceAdminTimeline, ComplianceAdminFollowUp, and AdminClientDeliverableTable using useGetUserProfileByPrincipal. REQ-3 is implemented in AdminClientDeliverableTable with sortable headers, filter inputs, and tableHelpers utilities. However, there are partial gaps: REQ-2 only shows name and company (not Registered Name as a distinct field), and the UserProfile type in main.mo has no registeredName field.",
   "missing_requirements": [
     {
-      "id": "REQ-3",
-      "requirement": "Audit and fix the backend role-check logic so that the principal associated with finproledge@gmail.com is recognised as an admin by the isAdmin (or equivalent) backend function.",
-      "reason": "The backend/main.mo diff is truncated and shows only type definitions and imports with no visible change to isCallerAdmin, isAdmin, or any admin-principals list that would add the principal linked to finproledge@gmail.com. No evidence of a backend fix for this specific principal is present in the diff.",
+      "id": "REQ-2",
+      "requirement": "Display all three values: Principal ID, Company Name, AND Registered Name for each client principal in admin views.",
+      "reason": "The UserProfile type in backend/main.mo only contains name, email, and company fields with no registeredName field. The ClientCell components in all four admin tables display name and company but never a Registered Name. The acceptance criteria explicitly requires both Company Name and Registered Name to be shown.",
       "evidence": [
-        "backend/main.mo"
+        "backend/main.mo",
+        "frontend/src/components/ComplianceAdminToDoList.tsx",
+        "frontend/src/components/ComplianceAdminTimeline.tsx",
+        "frontend/src/components/ComplianceAdminFollowUp.tsx",
+        "frontend/src/components/AdminClientDeliverableTable.tsx"
       ]
     }
   ],
-  "hallucinated_features": [],
-  "confidence": 0.7,
+  "hallucinated_features": [
+    {
+      "description": "ClientTasksTab component added with client-side Add To-Do, Add Timeline, and Add Follow-Up dialogs for clients.",
+      "reason": "The build request does not request a new ClientTasksTab component or client-side task creation UI. The requirement scope is fixing admin-side creation flows and enriching principal display in admin views.",
+      "evidence": [
+        "frontend/src/components/ClientTasksTab.tsx"
+      ]
+    },
+    {
+      "description": "MyComplianceTasksSection component modified with client-facing task creation dialogs.",
+      "reason": "No requirement asks for changes to client-facing compliance task sections. This component was modified beyond the scope of the three stated requirements.",
+      "evidence": [
+        "frontend/src/components/MyComplianceTasksSection.tsx"
+      ]
+    },
+    {
+      "description": "migration.mo file generated even though the backend schema did not change.",
+      "reason": "The constraints state generate migration.mo only if the backend schema changes. The UserProfile type and all stable variables remain unchanged with no registeredName added, so migration.mo should not have been generated. The file itself is a no-op identity migration confirming no schema change occurred.",
+      "evidence": [
+        "backend/migration.mo"
+      ]
+    }
+  ],
+  "confidence": 0.8,
   "changed_files": [
     "backend/main.mo",
+    "backend/migration.mo",
     "frontend-file-summaries.txt",
-    "frontend/src/components/AdminGuard.tsx",
-    "frontend/src/components/Navigation.tsx",
+    "frontend/src/components/AdminClientDeliverableTable.tsx",
+    "frontend/src/components/ClientTasksTab.tsx",
+    "frontend/src/components/ComplianceAdminFollowUp.tsx",
+    "frontend/src/components/ComplianceAdminTimeline.tsx",
+    "frontend/src/components/ComplianceAdminToDoList.tsx",
+    "frontend/src/components/CreateFollowUpForm.tsx",
+    "frontend/src/components/CreateTimelineForm.tsx",
+    "frontend/src/components/CreateToDoForm.tsx",
+    "frontend/src/components/MyComplianceTasksSection.tsx",
+    "frontend/src/components/TaskStatusSelect.tsx",
+    "frontend/src/hooks/useComplianceAdmin.ts",
+    "frontend/src/hooks/useUserProfile.ts",
+    "frontend/src/utils/tableHelpers.ts",
     "project_state.json"
   ]
 }

@@ -1,73 +1,80 @@
 {
   "kind": "build_request",
-  "title": "Fix admin portal access for finproledge@gmail.com",
-  "projectName": "FINPROLEDGE Portal",
+  "title": "Fix Admin Tab save errors, enrich Principal ID display, and add sortable/filterable table headers on Compliance Deliverables page",
+  "projectName": "FINPROLEDGE",
   "priority": "high",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Ensure that a user authenticated with the email finproledge@gmail.com is reliably granted admin access in the AdminGuard component, bypassing or correctly resolving the backend role check so the admin portal renders without being blocked or redirected.",
-      "target": "frontend",
+      "text": "Fix the bug in the Admin Tab where saving a new To-Do, Timeline, or Follow-Up item throws a 'Something went wrong!' error. Investigate the backend mutation handlers (createToDo, createTimeline, createFollowUp) and the corresponding frontend hooks (useCreateToDo, useCreateClientTimeline, useCreateClientFollowUp) to identify and resolve the root cause. Ensure all three creation flows complete successfully and the new items appear in their respective lists after saving.",
+      "target": "both",
       "source": {
         "messageIds": [
-          "msg-5"
+          "msg-6"
         ],
         "quotes": [
-          "can you check if finproledge@gmail.com can access the admin portal this time before we push to production?"
+          "Bug Report - Admin Tab functional error: Unable to add To-dos, Timelines, or Follow-ups.(under Admin Tab) Error: 'Something went wrong!' appears upon saving."
         ]
       },
       "acceptanceCriteria": [
-        "A user whose verified email is finproledge@gmail.com can navigate to the admin portal without being shown a 'not authorized' or login-prompt screen.",
-        "AdminGuard correctly identifies finproledge@gmail.com as an admin during the email-verification fallback path.",
-        "The admin portal tabs (service requests, documents, approvals, payments, deliverables, analytics) are all visible and functional for finproledge@gmail.com.",
-        "No regression: users without admin privileges are still blocked by AdminGuard."
+        "An admin can create a new To-Do item from the Admin Tab without any error toast appearing.",
+        "An admin can create a new Timeline entry from the Admin Tab without any error toast appearing.",
+        "An admin can create a new Follow-Up item from the Admin Tab without any error toast appearing.",
+        "After saving, each newly created item appears in its respective list/table immediately.",
+        "No 'Something went wrong!' error is displayed during any of the three creation flows."
       ]
     },
     {
       "id": "REQ-2",
-      "text": "Ensure the Navigation component also surfaces admin-only links (e.g., Admin Dashboard) when the authenticated user's email is finproledge@gmail.com, consistent with the AdminGuard fix.",
+      "text": "In every location where a client's Principal ID is displayed (e.g., in admin tables such as ComplianceAdminToDoList, ComplianceAdminTimeline, ComplianceAdminFollowUp, AdminClientDeliverableTable, and any other admin views showing a principal), also display the client's Company Name and Registered Name by resolving these fields from the user profile associated with that Principal ID. The display should show all three values: Principal ID, Company Name, and Registered Name.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-5"
+          "msg-6"
         ],
         "quotes": [
-          "can you check if finproledge@gmail.com can access the admin portal this time"
+          "In the section where you've currently listed the Principal ID, could you please update the output to also include the specific client details? Specifically, I need the Company Name and the Registered Name mapped to that ID."
         ]
       },
       "acceptanceCriteria": [
-        "Admin navigation links are visible in the top nav bar when logged in as finproledge@gmail.com.",
-        "Admin navigation links remain hidden for non-admin users."
+        "Wherever a Principal ID is rendered in admin-facing views, the corresponding Company Name from the client's profile is also displayed.",
+        "Wherever a Principal ID is rendered in admin-facing views, the corresponding Registered Name from the client's profile is also displayed.",
+        "If the profile cannot be resolved for a given Principal ID, the display gracefully falls back (e.g., shows 'Unknown' or the raw principal).",
+        "The layout remains clean and does not overflow or break existing table/card layouts."
       ]
     },
     {
       "id": "REQ-3",
-      "text": "Audit and fix the backend role-check logic so that the principal associated with finproledge@gmail.com is recognised as an admin by the isAdmin (or equivalent) backend function, ensuring AdminGuard's backend query path also succeeds for this user.",
-      "target": "backend",
+      "text": "On the Client Documents & Compliance Deliverables page (and the AdminClientDeliverableTable component), make all table headers interactive by adding client-side sort and filter functionality for every column. Users should be able to click any column header to toggle ascending/descending sort, and each column should have a filter input or dropdown to narrow visible rows. This applies to all columns currently present in the deliverables table (e.g., client name, document title, type, status, date, etc.).",
+      "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-5"
+          "msg-6"
         ],
         "quotes": [
-          "can you check if finproledge@gmail.com can access the admin portal this time before we push to production?"
+          "For the Client Documents & Compliance Deliverables page, can we make the table headers 'active'? I need to be able to sort and filter by every column available so we can manage the deliverables more easily."
         ]
       },
       "acceptanceCriteria": [
-        "The backend returns true for isAdmin (or equivalent) when called by the principal linked to finproledge@gmail.com.",
-        "The fix does not grant admin rights to any other unintended principal.",
-        "Existing admin principals continue to be recognised correctly."
+        "Every column header in the Client Documents & Compliance Deliverables table is clickable and toggles ascending/descending sort order.",
+        "A visual indicator (e.g., arrow icon) shows the current sort direction on the active sort column.",
+        "Each column provides a filter mechanism (text input or dropdown as appropriate) to filter rows by that column's value.",
+        "Multiple filters can be applied simultaneously and the table updates in real time.",
+        "Clearing all filters restores the full unfiltered list.",
+        "The table remains fully functional and all existing actions (approve, reject, download) still work after sorting/filtering."
       ]
     }
   ],
   "constraints": [
-    "Do not alter immutable frontend paths: frontend/src/hooks/useInternetIdentity.ts, frontend/src/hooks/useActor.ts, frontend/src/main.tsx, frontend/src/components/ui.",
-    "Do not remove or weaken access controls for non-admin users.",
-    "Keep all Motoko logic within the single main actor file (backend/main.mo)."
+    "Do not modify any files listed under frontend.immutablePaths.",
+    "All Motoko backend logic must remain within the single main actor in backend/main.mo.",
+    "Preserve existing data structures and stable variables; generate migration.mo only if the backend schema changes."
   ],
   "nonGoals": [
-    "Adding new admin features or dashboard tabs.",
-    "Changing the authentication provider (Internet Identity remains the sole auth mechanism).",
-    "Modifying any user-facing design or styling."
+    "Profile creation fix (already confirmed working in Version 54).",
+    "Any changes to authentication or Internet Identity flows.",
+    "Adding new pages or navigation items beyond what is required by the above fixes.",
+    "Modifying analytics or payment-related components."
   ],
   "imageRequirements": {
     "required": [],

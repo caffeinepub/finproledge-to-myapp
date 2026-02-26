@@ -1,508 +1,498 @@
 import React, { useState } from 'react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import AdminGuard from '../components/AdminGuard';
 import { useGetAllRequests, useUpdateRequestStatus } from '../hooks/useServiceRequests';
 import { useGetAllDocuments } from '../hooks/useDocuments';
+import { useGetAllComplianceDeliverables, useCreateDeliverable } from '../hooks/useDeliverables';
 import { useListApprovals, useSetApproval } from '../hooks/useApprovals';
-import { useGetUserProfileByPrincipal } from '../hooks/useUserProfile';
-import { RequestStatus, ServiceType, DocumentType, ApprovalStatus, UserApprovalInfo } from '../backend';
-import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import {
-  CheckCircle, XCircle, Download, FileText, Users, ClipboardList,
-  AlertCircle, Loader2, CreditCard, Mail, KeyRound, PackageOpen, BarChart3,
-} from 'lucide-react';
-import AdminGuard from '../components/AdminGuard';
+import AdminClientDeliverableTable from '../components/AdminClientDeliverableTable';
 import AdminPaymentTable from '../components/AdminPaymentTable';
 import AdminPaymentSettings from '../components/AdminPaymentSettings';
-import AdminClientDeliverableTable from '../components/AdminClientDeliverableTable';
 import AnalyticsDashboard from '../components/AnalyticsDashboard';
+import DocumentTable from '../components/DocumentTable';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import { ApprovalStatus, RequestStatus, DeliverableType } from '../backend';
 import { Principal } from '@dfinity/principal';
+import { useGetUserProfileByPrincipal } from '../hooks/useUserProfile';
+import { Plus, Users, FileText, CreditCard, BarChart3, CheckSquare, Shield } from 'lucide-react';
+import ComplianceAdminToDoList from '../components/ComplianceAdminToDoList';
+import ComplianceAdminTimeline from '../components/ComplianceAdminTimeline';
+import ComplianceAdminFollowUp from '../components/ComplianceAdminFollowUp';
+import CreateToDoForm from '../components/CreateToDoForm';
+import CreateTimelineForm from '../components/CreateTimelineForm';
+import CreateFollowUpForm from '../components/CreateFollowUpForm';
 
-function formatDate(time: bigint) {
-  return new Date(Number(time) / 1_000_000).toLocaleDateString('en-US', {
-    year: 'numeric', month: 'short', day: 'numeric'
-  });
+const serviceTypeLabels: Record<string, string> = {
+  incomeTaxFiling: 'Income Tax Filing',
+  corporateTaxFiling: 'Corporate Tax Filing',
+  audits: 'Audits',
+  payrollAdmin: 'Payroll Admin',
+  ledgerMaintenance: 'Ledger Maintenance',
+  bankReconciliation: 'Bank Reconciliation',
+  gstFiling: 'GST Filing',
+  tdsFiling: 'TDS Filing',
+  financialManagement: 'Financial Management',
+  accountingServices: 'Accounting Services',
+  loanFinancing: 'Loan Financing',
+  other: 'Other',
+};
+
+const requestStatusColors: Record<string, string> = {
+  pending: 'bg-yellow-100 text-yellow-800',
+  inProgress: 'bg-blue-100 text-blue-800',
+  completed: 'bg-green-100 text-green-800',
+  cancelled: 'bg-red-100 text-red-800',
+};
+
+// useGetUserProfileByPrincipal expects a string principal
+function ClientName({ principalStr }: { principalStr: string }) {
+  const { data: profile } = useGetUserProfileByPrincipal(principalStr);
+  return <span>{profile?.name || principalStr.slice(0, 12) + '...'}</span>;
 }
 
-function serviceTypeLabel(st: ServiceType) {
-  const map: Record<string, string> = {
-    incomeTaxFiling: 'Income Tax Filing',
-    corporateTaxFiling: 'Corporate Tax Filing',
-    audits: 'Audit Services',
-    payrollAdmin: 'Payroll Administration',
-    ledgerMaintenance: 'Ledger Maintenance',
-    bankReconciliation: 'Bank Reconciliation',
-  };
-  return map[st] ?? st;
-}
+function ApprovalsTab() {
+  const { data: approvals = [], isLoading } = useListApprovals();
+  const setApprovalMutation = useSetApproval();
 
-function docTypeLabel(dt: DocumentType) {
-  const map: Record<string, string> = {
-    taxFiling: 'Tax Filing',
-    payrollReport: 'Payroll Report',
-    auditDoc: 'Audit Document',
-  };
-  return map[dt] ?? dt;
-}
-
-function statusLabel(s: RequestStatus) {
-  const map: Record<string, string> = {
-    pending: 'Pending',
-    inProgress: 'In Progress',
-    completed: 'Completed',
-    cancelled: 'Cancelled',
-  };
-  return map[s] ?? s;
-}
-
-function ApprovalStatusBadge({ status }: { status: ApprovalStatus }) {
-  if (status === ApprovalStatus.approved) {
-    return <span className="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">Approved</span>;
-  }
-  if (status === ApprovalStatus.rejected) {
-    return <span className="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-semibold bg-red-50 text-red-800 border border-red-200">Rejected</span>;
-  }
-  return <span className="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-200">Awaiting Review</span>;
-}
-
-function RequestStatusBadge({ status }: { status: RequestStatus }) {
-  const styles: Record<string, string> = {
-    pending: 'bg-amber-50 text-amber-800 border-amber-200',
-    inProgress: 'bg-blue-50 text-blue-800 border-blue-200',
-    completed: 'bg-emerald-50 text-emerald-800 border-emerald-200',
-    cancelled: 'bg-gray-100 text-gray-600 border-gray-200',
-  };
-  return (
-    <span className={`inline-flex items-center px-2.5 py-0.5 rounded text-xs font-semibold border ${styles[status] ?? 'bg-gray-100 text-gray-600 border-gray-200'}`}>
-      {statusLabel(status)}
-    </span>
-  );
-}
-
-function ClientLoginDetails({ principal }: { principal: Principal }) {
-  // Pass principal as string — useGetUserProfileByPrincipal expects string
-  const { data: profile, isLoading } = useGetUserProfileByPrincipal(principal.toString());
-  const principalStr = principal.toString();
+  if (isLoading) return <div className="py-8 text-center text-muted-foreground">Loading...</div>;
 
   return (
-    <div className="space-y-1.5">
-      <div className="flex items-start gap-1.5">
-        <KeyRound className="h-3 w-3 text-muted-foreground mt-0.5 flex-shrink-0" />
-        <div>
-          <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium leading-none mb-0.5">Principal ID</p>
-          <p className="font-mono text-xs text-foreground break-all leading-snug">{principalStr}</p>
-        </div>
-      </div>
-
-      {isLoading ? (
-        <div className="flex items-center gap-1.5">
-          <Mail className="h-3 w-3 text-muted-foreground flex-shrink-0" />
-          <Skeleton className="h-3 w-32" />
-        </div>
-      ) : profile ? (
-        <div className="space-y-1">
-          {profile.name && (
-            <div className="flex items-center gap-1.5">
-              <Users className="h-3 w-3 text-muted-foreground flex-shrink-0" />
-              <p className="text-xs text-foreground font-medium">{profile.name}</p>
-            </div>
-          )}
-          <div className="flex items-center gap-1.5">
-            <Mail className="h-3 w-3 text-muted-foreground flex-shrink-0" />
-            <p className="text-xs text-muted-foreground">
-              {profile.email || <span className="italic">No email on record</span>}
-            </p>
-          </div>
-          {profile.company && (
-            <p className="text-xs text-muted-foreground pl-4">{profile.company}</p>
-          )}
-        </div>
+    <div className="space-y-4">
+      <h3 className="text-lg font-semibold">User Approvals</h3>
+      {approvals.length === 0 ? (
+        <p className="text-muted-foreground text-center py-8">No approval requests yet.</p>
       ) : (
-        <div className="flex items-center gap-1.5">
-          <Mail className="h-3 w-3 text-muted-foreground flex-shrink-0" />
-          <p className="text-xs text-muted-foreground italic">No profile on record</p>
+        <div className="rounded-md border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Principal</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {approvals.map((approval) => (
+                <TableRow key={approval.principal.toString()}>
+                  <TableCell className="font-mono text-sm">
+                    {approval.principal.toString().slice(0, 20)}...
+                  </TableCell>
+                  <TableCell>
+                    <Badge
+                      variant="secondary"
+                      className={
+                        String(approval.status) === 'approved'
+                          ? 'bg-green-100 text-green-800'
+                          : String(approval.status) === 'rejected'
+                          ? 'bg-red-100 text-red-800'
+                          : 'bg-yellow-100 text-yellow-800'
+                      }
+                    >
+                      {String(approval.status)}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-green-600 border-green-200 hover:bg-green-50"
+                        onClick={() =>
+                          setApprovalMutation.mutate({
+                            user: approval.principal,
+                            status: ApprovalStatus.approved,
+                          })
+                        }
+                        disabled={setApprovalMutation.isPending}
+                      >
+                        Approve
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-red-600 border-red-200 hover:bg-red-50"
+                        onClick={() =>
+                          setApprovalMutation.mutate({
+                            user: approval.principal,
+                            status: ApprovalStatus.rejected,
+                          })
+                        }
+                        disabled={setApprovalMutation.isPending}
+                      >
+                        Reject
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </div>
       )}
     </div>
   );
 }
 
-function ClientApprovalRow({ info, onApprove, onReject, isLoading }: {
-  info: UserApprovalInfo;
-  onApprove: () => void;
-  onReject: () => void;
-  isLoading: boolean;
-}) {
+function EngagementsTab() {
+  const { data: requests = [], isLoading } = useGetAllRequests();
+  const updateStatusMutation = useUpdateRequestStatus();
+
+  if (isLoading) return <div className="py-8 text-center text-muted-foreground">Loading...</div>;
+
   return (
-    <TableRow className="border-b border-border hover:bg-muted/30 transition-colors align-top">
-      <TableCell className="py-4 px-4">
-        <ClientLoginDetails principal={info.principal} />
-      </TableCell>
-      <TableCell className="py-4 px-4">
-        <ApprovalStatusBadge status={info.status} />
-      </TableCell>
-      <TableCell className="py-4 px-4">
-        {info.status === ApprovalStatus.pending && (
-          <div className="flex gap-2">
-            <Button
-              size="sm"
-              onClick={onApprove}
-              disabled={isLoading}
-              className="bg-emerald-700 hover:bg-emerald-800 text-white text-xs h-7 px-3"
-            >
-              {isLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle className="h-3 w-3 mr-1" />}
-              Approve
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={onReject}
-              disabled={isLoading}
-              className="border-red-300 text-red-700 hover:bg-red-50 text-xs h-7 px-3"
-            >
-              {isLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <XCircle className="h-3 w-3 mr-1" />}
-              Reject
-            </Button>
-          </div>
-        )}
-        {info.status !== ApprovalStatus.pending && (
-          <span className="text-xs text-muted-foreground italic">No action required</span>
-        )}
-      </TableCell>
-    </TableRow>
+    <div className="space-y-4">
+      <h3 className="text-lg font-semibold">All Service Requests</h3>
+      {requests.length === 0 ? (
+        <p className="text-muted-foreground text-center py-8">No service requests yet.</p>
+      ) : (
+        <div className="rounded-md border overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Client</TableHead>
+                <TableHead>Service</TableHead>
+                <TableHead>Description</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Created</TableHead>
+                <TableHead>Update Status</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {requests.map((request) => (
+                <TableRow key={String(request.id)}>
+                  <TableCell className="text-sm">
+                    {request.name || (
+                      <ClientName principalStr={request.client.toString()} />
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className="text-xs">
+                      {serviceTypeLabels[String(request.serviceType)] || String(request.serviceType)}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-sm text-muted-foreground max-w-[200px] truncate">
+                    {request.description}
+                  </TableCell>
+                  <TableCell>
+                    <Badge
+                      variant="secondary"
+                      className={requestStatusColors[String(request.status)] || ''}
+                    >
+                      {String(request.status)}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-sm text-muted-foreground">
+                    {new Date(Number(request.createdAt) / 1_000_000).toLocaleDateString('en-IN')}
+                  </TableCell>
+                  <TableCell>
+                    <Select
+                      value={String(request.status)}
+                      onValueChange={(value) =>
+                        updateStatusMutation.mutate({
+                          requestId: request.id,
+                          status: value as RequestStatus,
+                        })
+                      }
+                    >
+                      <SelectTrigger className="w-32 h-8 text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="pending">Pending</SelectItem>
+                        <SelectItem value="inProgress">In Progress</SelectItem>
+                        <SelectItem value="completed">Completed</SelectItem>
+                        <SelectItem value="cancelled">Cancelled</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
+    </div>
   );
 }
 
-function AdminDashboardContent() {
-  const { data: requests, isLoading: requestsLoading } = useGetAllRequests();
-  const { data: documents, isLoading: docsLoading } = useGetAllDocuments();
-  const { data: approvals, isLoading: approvalsLoading } = useListApprovals();
-  const updateStatus = useUpdateRequestStatus();
-  const setApproval = useSetApproval();
-  const [pendingApprovalId, setPendingApprovalId] = useState<string | null>(null);
+function DocumentsTab() {
+  const { data: documents = [], isLoading } = useGetAllDocuments();
 
-  const handleApprove = (principal: Principal) => {
-    const key = principal.toString();
-    setPendingApprovalId(key);
-    setApproval.mutate(
-      { user: principal, status: ApprovalStatus.approved },
-      { onSettled: () => setPendingApprovalId(null) }
-    );
-  };
-
-  const handleReject = (principal: Principal) => {
-    const key = principal.toString();
-    setPendingApprovalId(key);
-    setApproval.mutate(
-      { user: principal, status: ApprovalStatus.rejected },
-      { onSettled: () => setPendingApprovalId(null) }
-    );
-  };
-
-  const pendingCount = approvals?.filter(a => a.status === ApprovalStatus.pending).length ?? 0;
+  if (isLoading) return <div className="py-8 text-center text-muted-foreground">Loading...</div>;
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Page Header */}
-      <div className="bg-primary py-8 px-6 border-b border-white/10">
-        <div className="max-w-7xl mx-auto">
-          <h1 className="text-2xl font-serif font-bold tracking-wide text-white">Administration Dashboard</h1>
-          <p className="text-white/70 text-sm mt-1">Client management, service engagements, document ledger, payments, and analytics</p>
-        </div>
+    <div className="space-y-4">
+      <h3 className="text-lg font-semibold">All Client Documents</h3>
+      <DocumentTable documents={documents} isAdmin />
+    </div>
+  );
+}
+
+function DeliverablesTab() {
+  const { data: deliverables = [], isLoading } = useGetAllComplianceDeliverables();
+  const createDeliverableMutation = useCreateDeliverable();
+  const { data: approvals = [] } = useListApprovals();
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [form, setForm] = useState({
+    clientPrincipal: '',
+    title: '',
+    dueDate: '',
+    deliverableType: 'consulting',
+  });
+
+  const handleCreate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.clientPrincipal || !form.title || !form.dueDate) return;
+    try {
+      await createDeliverableMutation.mutateAsync({
+        clientPrincipal: Principal.fromText(form.clientPrincipal),
+        title: form.title,
+        dueDate: BigInt(new Date(form.dueDate).getTime()) * BigInt(1_000_000),
+        deliverableType: form.deliverableType as DeliverableType,
+      });
+      setDialogOpen(false);
+      setForm({ clientPrincipal: '', title: '', dueDate: '', deliverableType: 'consulting' });
+    } catch (error) {
+      console.error('Failed to create deliverable:', error);
+    }
+  };
+
+  if (isLoading) return <div className="py-8 text-center text-muted-foreground">Loading...</div>;
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-semibold">Compliance Deliverables</h3>
+        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <DialogTrigger asChild>
+            <Button size="sm" className="bg-gold hover:bg-gold/90 text-navy">
+              <Plus className="h-4 w-4 mr-1" />
+              Add Deliverable
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Create Deliverable</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleCreate} className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Client</label>
+                <Select
+                  value={form.clientPrincipal}
+                  onValueChange={(v) => setForm((f) => ({ ...f, clientPrincipal: v }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select client" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {approvals.map((a) => (
+                      <SelectItem key={a.principal.toString()} value={a.principal.toString()}>
+                        {a.principal.toString().slice(0, 20)}...
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Title</label>
+                <input
+                  className="w-full border rounded px-3 py-2 text-sm bg-background text-foreground"
+                  value={form.title}
+                  onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Due Date</label>
+                <input
+                  type="date"
+                  className="w-full border rounded px-3 py-2 text-sm bg-background text-foreground"
+                  value={form.dueDate}
+                  onChange={(e) => setForm((f) => ({ ...f, dueDate: e.target.value }))}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Type</label>
+                <Select
+                  value={form.deliverableType}
+                  onValueChange={(v) => setForm((f) => ({ ...f, deliverableType: v }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="consulting">Consulting</SelectItem>
+                    <SelectItem value="monthly">Monthly</SelectItem>
+                    <SelectItem value="quarterly">Quarterly</SelectItem>
+                    <SelectItem value="annual">Annual</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex gap-2 justify-end">
+                <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={createDeliverableMutation.isPending}
+                  className="bg-gold hover:bg-gold/90 text-navy"
+                >
+                  {createDeliverableMutation.isPending ? 'Creating...' : 'Create'}
+                </Button>
+              </div>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 space-y-8">
-
-        {/* Summary Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <Card className="border border-border shadow-sm">
-            <CardContent className="pt-5 pb-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-primary/10 rounded">
-                  <Users className="h-5 w-5 text-primary" />
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground uppercase tracking-wider font-medium">Pending Approvals</p>
-                  <p className="text-2xl font-bold text-foreground">{pendingCount}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="border border-border shadow-sm">
-            <CardContent className="pt-5 pb-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-primary/10 rounded">
-                  <ClipboardList className="h-5 w-5 text-primary" />
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground uppercase tracking-wider font-medium">Service Engagements</p>
-                  <p className="text-2xl font-bold text-foreground">{requests?.length ?? 0}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="border border-border shadow-sm">
-            <CardContent className="pt-5 pb-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-primary/10 rounded">
-                  <FileText className="h-5 w-5 text-primary" />
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground uppercase tracking-wider font-medium">Client Documents</p>
-                  <p className="text-2xl font-bold text-foreground">{documents?.length ?? 0}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+      {deliverables.length === 0 ? (
+        <p className="text-muted-foreground text-center py-8">No deliverables yet.</p>
+      ) : (
+        <div className="rounded-md border overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Client</TableHead>
+                <TableHead>Title</TableHead>
+                <TableHead>Type</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Due Date</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {deliverables.map((d) => (
+                <TableRow key={String(d.id)}>
+                  <TableCell className="text-sm">
+                    <ClientName principalStr={d.client.toString()} />
+                  </TableCell>
+                  <TableCell className="font-medium text-sm">{d.title}</TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className="text-xs">
+                      {String(d.deliverableType)}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="secondary" className="text-xs">
+                      {String(d.status)}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-sm text-muted-foreground">
+                    {new Date(Number(d.dueDate) / 1_000_000).toLocaleDateString('en-IN')}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </div>
+      )}
+    </div>
+  );
+}
 
-        {/* Tabbed Sections */}
-        <Tabs defaultValue="approvals" className="w-full">
-          <TabsList className="grid w-full grid-cols-6 mb-6">
-            <TabsTrigger value="approvals" className="flex items-center gap-1.5 text-xs sm:text-sm">
-              <Users className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">Approvals</span>
-              <span className="sm:hidden">Approvals</span>
-              {pendingCount > 0 && (
-                <span className="ml-1 bg-amber-500 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
-                  {pendingCount}
-                </span>
-              )}
-            </TabsTrigger>
-            <TabsTrigger value="engagements" className="flex items-center gap-1.5 text-xs sm:text-sm">
-              <ClipboardList className="h-3.5 w-3.5" />
-              <span>Engagements</span>
-            </TabsTrigger>
-            <TabsTrigger value="documents" className="flex items-center gap-1.5 text-xs sm:text-sm">
-              <FileText className="h-3.5 w-3.5" />
-              <span>Documents</span>
-            </TabsTrigger>
-            <TabsTrigger value="payments" className="flex items-center gap-1.5 text-xs sm:text-sm">
-              <CreditCard className="h-3.5 w-3.5" />
-              <span>Payments</span>
-            </TabsTrigger>
-            <TabsTrigger value="deliverables" className="flex items-center gap-1.5 text-xs sm:text-sm">
-              <PackageOpen className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">Deliverables</span>
-              <span className="sm:hidden">Deliverables</span>
-            </TabsTrigger>
-            <TabsTrigger value="analytics" className="flex items-center gap-1.5 text-xs sm:text-sm">
-              <BarChart3 className="h-3.5 w-3.5" />
-              <span>Analytics</span>
-            </TabsTrigger>
-          </TabsList>
+function CompliancePortalTab() {
+  const [activeSubTab, setActiveSubTab] = useState('todos');
+  const [toDoDialogOpen, setToDoDialogOpen] = useState(false);
+  const [timelineDialogOpen, setTimelineDialogOpen] = useState(false);
+  const [followUpDialogOpen, setFollowUpDialogOpen] = useState(false);
 
-          {/* Client Approvals Tab */}
-          <TabsContent value="approvals">
-            <Card className="border border-border shadow-sm">
-              <CardHeader className="border-b border-border bg-muted/30 px-6 py-4">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-base font-serif font-semibold text-foreground flex items-center gap-2">
-                    <Users className="h-4 w-4 text-primary" />
-                    Client Approvals
-                  </CardTitle>
-                  {pendingCount > 0 && (
-                    <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-800 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded">
-                      <AlertCircle className="h-3 w-3" />
-                      {pendingCount} awaiting review
-                    </span>
-                  )}
-                </div>
-              </CardHeader>
-              <CardContent className="p-0">
-                {approvalsLoading ? (
-                  <div className="p-6 space-y-3">
-                    {[1, 2, 3].map(i => <Skeleton key={i} className="h-16 w-full" />)}
-                  </div>
-                ) : !approvals || approvals.length === 0 ? (
-                  <div className="p-8 text-center text-muted-foreground text-sm">
-                    No client approval requests on record.
-                  </div>
-                ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="border-b border-border bg-muted/20">
-                        <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground py-3 px-4">Login Details</TableHead>
-                        <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground py-3 px-4">Status</TableHead>
-                        <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground py-3 px-4">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {approvals.map((info) => (
-                        <ClientApprovalRow
-                          key={info.principal.toString()}
-                          info={info}
-                          onApprove={() => handleApprove(info.principal)}
-                          onReject={() => handleReject(info.principal)}
-                          isLoading={pendingApprovalId === info.principal.toString()}
-                        />
-                      ))}
-                    </TableBody>
-                  </Table>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Service Engagements Tab */}
-          <TabsContent value="engagements">
-            <Card className="border border-border shadow-sm">
-              <CardHeader className="border-b border-border bg-muted/30 px-6 py-4">
-                <CardTitle className="text-base font-serif font-semibold text-foreground flex items-center gap-2">
-                  <ClipboardList className="h-4 w-4 text-primary" />
-                  Service Engagements
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-0">
-                {requestsLoading ? (
-                  <div className="p-6 space-y-3">
-                    {[1, 2, 3].map(i => <Skeleton key={i} className="h-10 w-full" />)}
-                  </div>
-                ) : !requests || requests.length === 0 ? (
-                  <div className="p-8 text-center text-muted-foreground text-sm">
-                    No service engagements on record.
-                  </div>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow className="border-b border-border bg-muted/20">
-                          <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground py-3 px-4">Ref #</TableHead>
-                          <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground py-3 px-4">Client</TableHead>
-                          <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground py-3 px-4">Service Type</TableHead>
-                          <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground py-3 px-4">Engagement Date</TableHead>
-                          <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground py-3 px-4">Deadline</TableHead>
-                          <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground py-3 px-4">Status</TableHead>
-                          <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground py-3 px-4">Update Status</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {requests.map((req, idx) => (
-                          <TableRow key={req.id.toString()} className={`border-b border-border hover:bg-muted/20 transition-colors ${idx % 2 === 0 ? '' : 'bg-muted/10'}`}>
-                            <TableCell className="py-3 px-4 text-xs font-mono text-muted-foreground">#{req.id.toString().padStart(4, '0')}</TableCell>
-                            <TableCell className="py-3 px-4 text-xs text-muted-foreground font-mono">
-                              {req.name ?? req.client.toString().slice(0, 16) + '…'}
-                            </TableCell>
-                            <TableCell className="py-3 px-4 text-sm">{serviceTypeLabel(req.serviceType)}</TableCell>
-                            <TableCell className="py-3 px-4 text-xs text-muted-foreground whitespace-nowrap">{formatDate(req.createdAt)}</TableCell>
-                            <TableCell className="py-3 px-4 text-xs text-muted-foreground whitespace-nowrap">{formatDate(req.deadline)}</TableCell>
-                            <TableCell className="py-3 px-4"><RequestStatusBadge status={req.status} /></TableCell>
-                            <TableCell className="py-3 px-4">
-                              <Select
-                                value={req.status}
-                                onValueChange={(val) =>
-                                  updateStatus.mutate({ requestId: req.id, status: val as RequestStatus })
-                                }
-                              >
-                                <SelectTrigger className="h-7 text-xs w-36">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value={RequestStatus.pending}>Pending</SelectItem>
-                                  <SelectItem value={RequestStatus.inProgress}>In Progress</SelectItem>
-                                  <SelectItem value={RequestStatus.completed}>Completed</SelectItem>
-                                  <SelectItem value={RequestStatus.cancelled}>Cancelled</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Documents Tab */}
-          <TabsContent value="documents">
-            <Card className="border border-border shadow-sm">
-              <CardHeader className="border-b border-border bg-muted/30 px-6 py-4">
-                <CardTitle className="text-base font-serif font-semibold text-foreground flex items-center gap-2">
-                  <FileText className="h-4 w-4 text-primary" />
-                  Client Documents
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-0">
-                {docsLoading ? (
-                  <div className="p-6 space-y-3">
-                    {[1, 2, 3].map(i => <Skeleton key={i} className="h-10 w-full" />)}
-                  </div>
-                ) : !documents || documents.length === 0 ? (
-                  <div className="p-8 text-center text-muted-foreground text-sm">
-                    No documents uploaded yet.
-                  </div>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow className="border-b border-border bg-muted/20">
-                          <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground py-3 px-4">Ref #</TableHead>
-                          <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground py-3 px-4">Client</TableHead>
-                          <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground py-3 px-4">Document Name</TableHead>
-                          <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground py-3 px-4">Type</TableHead>
-                          <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground py-3 px-4">Uploaded</TableHead>
-                          <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground py-3 px-4">Download</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {documents.map((doc, idx) => (
-                          <TableRow key={doc.id.toString()} className={`border-b border-border hover:bg-muted/20 transition-colors ${idx % 2 === 0 ? '' : 'bg-muted/10'}`}>
-                            <TableCell className="py-3 px-4 text-xs font-mono text-muted-foreground">#{doc.id.toString().padStart(4, '0')}</TableCell>
-                            <TableCell className="py-3 px-4 text-xs text-muted-foreground font-mono">
-                              {doc.client.toString().slice(0, 16)}…
-                            </TableCell>
-                            <TableCell className="py-3 px-4 text-sm font-medium">{doc.name}</TableCell>
-                            <TableCell className="py-3 px-4 text-xs">{docTypeLabel(doc.docType)}</TableCell>
-                            <TableCell className="py-3 px-4 text-xs text-muted-foreground whitespace-nowrap">{formatDate(doc.uploadedAt)}</TableCell>
-                            <TableCell className="py-3 px-4">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="h-7 text-xs px-3"
-                                onClick={() => window.open(doc.file.getDirectURL(), '_blank')}
-                              >
-                                <Download className="h-3 w-3 mr-1" />
-                                Download
-                              </Button>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Payments Tab */}
-          <TabsContent value="payments">
-            <div className="space-y-6">
-              <AdminPaymentSettings />
-              <AdminPaymentTable />
-            </div>
-          </TabsContent>
-
-          {/* Deliverables Tab */}
-          <TabsContent value="deliverables">
-            <AdminClientDeliverableTable />
-          </TabsContent>
-
-          {/* Analytics Tab */}
-          <TabsContent value="analytics">
-            <Card className="border border-border shadow-sm">
-              <CardContent className="p-0">
-                <AnalyticsDashboard />
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-2">
+        <Shield className="h-5 w-5 text-gold" />
+        <h3 className="text-lg font-semibold">Compliance Portal</h3>
       </div>
+
+      <Tabs value={activeSubTab} onValueChange={setActiveSubTab}>
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="todos">To-Do List</TabsTrigger>
+          <TabsTrigger value="timeline">Timeline</TabsTrigger>
+          <TabsTrigger value="followup">Follow-Up</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="todos" className="mt-4">
+          <div className="flex justify-end mb-4">
+            <Dialog open={toDoDialogOpen} onOpenChange={setToDoDialogOpen}>
+              <DialogTrigger asChild>
+                <Button size="sm" className="bg-gold hover:bg-gold/90 text-navy">
+                  <Plus className="h-4 w-4 mr-1" />
+                  Add To-Do
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-lg">
+                <DialogHeader>
+                  <DialogTitle>Create To-Do</DialogTitle>
+                </DialogHeader>
+                <CreateToDoForm onSuccess={() => setToDoDialogOpen(false)} />
+              </DialogContent>
+            </Dialog>
+          </div>
+          <ComplianceAdminToDoList />
+        </TabsContent>
+
+        <TabsContent value="timeline" className="mt-4">
+          <div className="flex justify-end mb-4">
+            <Dialog open={timelineDialogOpen} onOpenChange={setTimelineDialogOpen}>
+              <DialogTrigger asChild>
+                <Button size="sm" className="bg-gold hover:bg-gold/90 text-navy">
+                  <Plus className="h-4 w-4 mr-1" />
+                  Add Timeline Entry
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-lg">
+                <DialogHeader>
+                  <DialogTitle>Create Timeline Entry</DialogTitle>
+                </DialogHeader>
+                <CreateTimelineForm onSuccess={() => setTimelineDialogOpen(false)} />
+              </DialogContent>
+            </Dialog>
+          </div>
+          <ComplianceAdminTimeline />
+        </TabsContent>
+
+        <TabsContent value="followup" className="mt-4">
+          <div className="flex justify-end mb-4">
+            <Dialog open={followUpDialogOpen} onOpenChange={setFollowUpDialogOpen}>
+              <DialogTrigger asChild>
+                <Button size="sm" className="bg-gold hover:bg-gold/90 text-navy">
+                  <Plus className="h-4 w-4 mr-1" />
+                  Add Follow-Up
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-lg">
+                <DialogHeader>
+                  <DialogTitle>Create Follow-Up</DialogTitle>
+                </DialogHeader>
+                <CreateFollowUpForm onSuccess={() => setFollowUpDialogOpen(false)} />
+              </DialogContent>
+            </Dialog>
+          </div>
+          <ComplianceAdminFollowUp />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
@@ -510,7 +500,81 @@ function AdminDashboardContent() {
 export default function AdminDashboardPage() {
   return (
     <AdminGuard>
-      <AdminDashboardContent />
+      <div className="min-h-screen bg-background">
+        <div className="bg-navy py-8">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h1 className="text-2xl font-bold text-white">
+              Admin <span className="text-gold">Dashboard</span>
+            </h1>
+            <p className="text-white/60 text-sm mt-1">
+              Manage clients, documents, payments, and compliance
+            </p>
+          </div>
+        </div>
+
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <Tabs defaultValue="approvals">
+            <TabsList className="flex flex-wrap gap-1 h-auto mb-6">
+              <TabsTrigger value="approvals" className="flex items-center gap-1.5">
+                <Users className="h-4 w-4" />
+                Approvals
+              </TabsTrigger>
+              <TabsTrigger value="engagements" className="flex items-center gap-1.5">
+                <CheckSquare className="h-4 w-4" />
+                Engagements
+              </TabsTrigger>
+              <TabsTrigger value="documents" className="flex items-center gap-1.5">
+                <FileText className="h-4 w-4" />
+                Documents
+              </TabsTrigger>
+              <TabsTrigger value="payments" className="flex items-center gap-1.5">
+                <CreditCard className="h-4 w-4" />
+                Payments
+              </TabsTrigger>
+              <TabsTrigger value="deliverables" className="flex items-center gap-1.5">
+                <FileText className="h-4 w-4" />
+                Deliverables
+              </TabsTrigger>
+              <TabsTrigger value="analytics" className="flex items-center gap-1.5">
+                <BarChart3 className="h-4 w-4" />
+                Analytics
+              </TabsTrigger>
+              <TabsTrigger value="compliance" className="flex items-center gap-1.5">
+                <Shield className="h-4 w-4" />
+                Compliance Portal
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="approvals">
+              <ApprovalsTab />
+            </TabsContent>
+            <TabsContent value="engagements">
+              <EngagementsTab />
+            </TabsContent>
+            <TabsContent value="documents">
+              <DocumentsTab />
+            </TabsContent>
+            <TabsContent value="payments">
+              <div className="space-y-6">
+                <AdminPaymentSettings />
+                <AdminPaymentTable />
+              </div>
+            </TabsContent>
+            <TabsContent value="deliverables">
+              <div className="space-y-6">
+                <DeliverablesTab />
+                <AdminClientDeliverableTable />
+              </div>
+            </TabsContent>
+            <TabsContent value="analytics">
+              <AnalyticsDashboard />
+            </TabsContent>
+            <TabsContent value="compliance">
+              <CompliancePortalTab />
+            </TabsContent>
+          </Tabs>
+        </div>
+      </div>
     </AdminGuard>
   );
 }

@@ -1,6 +1,6 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useActor } from './useActor';
-import { UserProfile } from '../backend';
+import type { UserProfile } from '../backend';
 
 export function useGetCallerUserProfile() {
   const { actor, isFetching: actorFetching } = useActor();
@@ -12,7 +12,6 @@ export function useGetCallerUserProfile() {
       try {
         return await actor.getCallerUserProfile();
       } catch {
-        // Backend may reject unapproved/anonymous users — treat as no profile
         return null;
       }
     },
@@ -27,23 +26,6 @@ export function useGetCallerUserProfile() {
   };
 }
 
-export function useGetUserProfileByPrincipal(principalStr: string | null | undefined) {
-  const { actor, isFetching: actorFetching } = useActor();
-
-  return useQuery<UserProfile | null>({
-    queryKey: ['userProfileByPrincipal', principalStr],
-    queryFn: async () => {
-      if (!actor || !principalStr) return null;
-      const { Principal } = await import('@dfinity/principal');
-      const principal = Principal.fromText(principalStr);
-      return actor.getUserProfileByPrincipal(principal);
-    },
-    enabled: !!actor && !actorFetching && !!principalStr,
-    retry: false,
-    staleTime: 60000,
-  });
-}
-
 export function useSaveCallerUserProfile() {
   const { actor } = useActor();
   const queryClient = useQueryClient();
@@ -56,5 +38,26 @@ export function useSaveCallerUserProfile() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['currentUserProfile'] });
     },
+  });
+}
+
+export function useGetUserProfileByPrincipal(principalStr: string | null | undefined) {
+  const { actor, isFetching } = useActor();
+
+  return useQuery<UserProfile | null>({
+    queryKey: ['userProfile', principalStr],
+    queryFn: async () => {
+      if (!actor || !principalStr) return null;
+      try {
+        const { Principal } = await import('@dfinity/principal');
+        const principal = Principal.fromText(principalStr);
+        return await actor.getUserProfileByPrincipal(principal);
+      } catch {
+        return null;
+      }
+    },
+    enabled: !!actor && !isFetching && !!principalStr,
+    staleTime: 5 * 60 * 1000, // 5 minutes cache
+    retry: false,
   });
 }

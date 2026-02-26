@@ -418,7 +418,7 @@ export interface backendInterface {
     getUserProfile(user: Principal): Promise<UserProfile | null>;
     getUserProfileByPrincipal(user: Principal): Promise<UserProfile | null>;
     isAdminUser(): Promise<boolean>;
-    isAnyUser(_caller: Principal): Promise<boolean>;
+    isAnyUser(): Promise<boolean>;
     isCallerAdmin(): Promise<boolean>;
     isCallerApproved(): Promise<boolean>;
     listApprovals(): Promise<Array<UserApprovalInfo>>;
@@ -1146,17 +1146,17 @@ export class Backend implements backendInterface {
             return result;
         }
     }
-    async isAnyUser(arg0: Principal): Promise<boolean> {
+    async isAnyUser(): Promise<boolean> {
         if (this.processError) {
             try {
-                const result = await this.actor.isAnyUser(arg0);
+                const result = await this.actor.isAnyUser();
                 return result;
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
-            const result = await this.actor.isAnyUser(arg0);
+            const result = await this.actor.isAnyUser();
             return result;
         }
     }

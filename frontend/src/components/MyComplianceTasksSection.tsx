@@ -6,21 +6,28 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useGetMyToDos, useGetMyTimelines, useGetMyFollowUps, ToDoPriority } from '../hooks/useComplianceAdmin';
+import { useGetMyToDos, useGetMyTimelines, useGetMyFollowUps } from '../hooks/useComplianceAdmin';
 import { ToDoStatusSelect, TimelineStatusSelect, FollowUpStatusSelect } from './TaskStatusSelect';
 import ClientCreateToDoForm from './ClientCreateToDoForm';
 import ClientCreateTimelineForm from './ClientCreateTimelineForm';
 import ClientCreateFollowUpForm from './ClientCreateFollowUpForm';
-import { ToDoItem, TimelineEntry, FollowUpItem, ToDoStatus, TimelineStatus, FollowUpStatus } from '../backend';
+import {
+  ToDoItem,
+  TimelineEntry,
+  FollowUpItem,
+  ToDoStatus,
+  TimelineStatus,
+  FollowUpStatus,
+  ToDoPriority,
+} from '../backend';
 
 function PriorityBadge({ priority }: { priority: unknown }) {
-  const p = priority as unknown as ToDoPriority;
   const map: Record<string, { label: string; className: string }> = {
-    high: { label: 'High', className: 'bg-red-100 text-red-700 border-red-200' },
-    medium: { label: 'Medium', className: 'bg-yellow-100 text-yellow-700 border-yellow-200' },
-    low: { label: 'Low', className: 'bg-green-100 text-green-700 border-green-200' },
+    [ToDoPriority.high]: { label: 'High', className: 'bg-red-100 text-red-700 border-red-200' },
+    [ToDoPriority.medium]: { label: 'Medium', className: 'bg-yellow-100 text-yellow-700 border-yellow-200' },
+    [ToDoPriority.low]: { label: 'Low', className: 'bg-green-100 text-green-700 border-green-200' },
   };
-  const config = map[p as string] ?? { label: String(p), className: '' };
+  const config = map[priority as string] ?? { label: String(priority), className: '' };
   return <Badge variant="outline" className={config.className}>{config.label}</Badge>;
 }
 
@@ -86,7 +93,7 @@ export default function MyComplianceTasksSection() {
             {todosLoading ? (
               <div className="space-y-2">{[...Array(3)].map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}</div>
             ) : !todos || todos.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground text-sm">No to-dos yet.</div>
+              <div className="text-center py-6 text-muted-foreground text-sm">No to-dos yet.</div>
             ) : (
               <div className="border border-border rounded-sm overflow-hidden">
                 <Table>
@@ -138,15 +145,15 @@ export default function MyComplianceTasksSection() {
             {timelinesLoading ? (
               <div className="space-y-2">{[...Array(3)].map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}</div>
             ) : !timelines || timelines.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground text-sm">No timelines yet.</div>
+              <div className="text-center py-6 text-muted-foreground text-sm">No timelines yet.</div>
             ) : (
               <div className="border border-border rounded-sm overflow-hidden">
                 <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead>Title</TableHead>
-                      <TableHead>Start Date</TableHead>
-                      <TableHead>End Date</TableHead>
+                      <TableHead>Start</TableHead>
+                      <TableHead>End</TableHead>
                       <TableHead>Status</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -188,7 +195,7 @@ export default function MyComplianceTasksSection() {
             {followUpsLoading ? (
               <div className="space-y-2">{[...Array(3)].map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}</div>
             ) : !followUps || followUps.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground text-sm">No follow-ups yet.</div>
+              <div className="text-center py-6 text-muted-foreground text-sm">No follow-ups yet.</div>
             ) : (
               <div className="border border-border rounded-sm overflow-hidden">
                 <Table>
