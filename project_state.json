@@ -1,24 +1,22 @@
 {
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
-  "summary": "Web application with navigation hierarchy featuring a Client Portal (including Compliance) and Admin menu (including Compliance Admin).",
-  "architectural_notes": [
-    "Navigation hierarchy: Compliance is nested under Client Portal; Compliance Admin is nested under Admin menu."
-  ],
+  "summary": "New project",
+  "architectural_notes": [],
   "known_issues": [],
   "isFixRequest": false,
   "existing_features": [
     {
-      "id": "feature-in-the-navigation-component-move-the-compliance-link-so-it-appears-as-a-nested-item-under-the-client-portal-section-visible-to-authenticated-approved-users-it-should-no-longer-appear-as-a-top-level-navigation-item",
-      "title": "In the Navigation component, move the 'Compliance' link so it appears as a nested item under the 'Client Portal' section (visible to authenticated, approved users). It should no longer appear as a top-level navigation item.",
+      "id": "feature-add-a-download-options-menu-in-the-admin-dashboard-that-allows-admins-to-download-files-documents-deliverables-to-do-attachments-in-the-following-formats-pdf-spreadsheet-xlsx-csv-document-docx-csv-zip-folder-or-image-png-jpg-the-download-button-should-present-a-dropdown-with-these-format-options-for-formats-that-require-conversion-e-g-exporting-a-list-as-csv-or-zip-generate-the-file-client-side-from-available-data-for-file-blobs-already-stored-e-g-uploaded-documents-and-deliverables-provide-direct-download-with-the-selected-format-extension-zip-downloads-should-bundle-multiple-selected-files-into-a-single-archive",
+      "title": "Add a download options menu in the Admin Dashboard that allows admins to download files (documents, deliverables, to-do attachments) in the following formats: PDF, spreadsheet (XLSX/CSV), document (DOCX), CSV, ZIP folder, or image (PNG/JPG). The download button should present a dropdown with these format options. For formats that require conversion (e.g., exporting a list as CSV or ZIP), generate the file client-side from available data. For file blobs already stored (e.g., uploaded documents and deliverables), provide direct download with the selected format extension. ZIP downloads should bundle multiple selected files into a single archive.",
       "reqIds": [
         "REQ-1"
       ],
       "version": 1
     },
     {
-      "id": "feature-in-the-navigation-component-move-the-compliance-admin-link-so-it-appears-as-a-nested-item-under-the-admin-menu-section-visible-to-admin-users-only-it-should-no-longer-appear-as-a-top-level-navigation-item",
-      "title": "In the Navigation component, move the 'Compliance Admin' link so it appears as a nested item under the 'Admin' menu section (visible to admin users only). It should no longer appear as a top-level navigation item.",
+      "id": "feature-remove-the-99-8-filling-accuracy-statistic-and-the-client-support-24-7-text-from-all-locations-in-the-frontend-ui-where-they-currently-appear-likely-on-the-homepage-stats-marketing-section",
+      "title": "Remove the '99.8% filling accuracy' statistic and the 'client support 24/7' text from all locations in the frontend UI where they currently appear (likely on the HomePage stats/marketing section).",
       "reqIds": [
         "REQ-2"
       ],
@@ -28,12 +26,17 @@
   "new_feature_requests": [
     {
       "id": "AR-1",
-      "summary": "Update navigation hierarchy: place Compliance within Client Portal and Compliance Admin within Admin menu",
+      "summary": "Admins can download files in multiple formats: PDFs, spreadsheets, documents, CSVs, ZIP folders, or images",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-2",
+      "summary": "Remove '99.8% filling accuracy' and 'client support 24/7' from the project/UI",
       "reqIds": [],
       "status": "pending"
     }
   ],
-  "gameProjectType": "none",
   "projectName": "FINPROLEDGE Portal",
   "clarification_mode": "instant",
   "clarification_rounds": 0

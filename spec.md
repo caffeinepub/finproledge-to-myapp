@@ -1,10 +1,13 @@
 # Specification
 
 ## Summary
-**Goal:** Reorganize the navigation hierarchy by nesting "Compliance" under the Client Portal section and "Compliance Admin" under the Admin menu, removing both as top-level nav items.
+**Goal:** Add multi-format file download options for admins in the Admin Dashboard and remove two outdated marketing stats from the HomePage.
 
 **Planned changes:**
-- Move the "Compliance" link from a top-level nav item to a nested item within the "Client Portal" section (desktop and mobile menus), preserving visibility rules for authenticated and approved users.
-- Move the "Compliance Admin" link from a top-level nav item to a nested item within the "Admin" menu section (desktop and mobile menus), preserving admin-only visibility.
+- Add a download dropdown button to relevant admin tables (DocumentTable, AdminClientDeliverableTable, ComplianceAdminToDoList) with format options: PDF, Spreadsheet (XLSX/CSV), Document (DOCX), CSV, ZIP, and Image (PNG/JPG)
+- Implement client-side file generation: CSV export from table data, ZIP bundling of selected file blobs, PDF via print/generation, and DOCX/image downloads where applicable
+- Restrict the download dropdown to authenticated admin users only (AdminGuard protected)
+- Remove the "99.8% filling accuracy" and "client support 24/7" stat items from the HomePage marketing/stats section
+- Ensure the stats section layout remains clean after removing those two items
 
-**User-visible outcome:** Users will find "Compliance" grouped under the Client Portal section and "Compliance Admin" grouped under the Admin menu, resulting in a cleaner, more organized navigation structure.
+**User-visible outcome:** Admins can download files and table data in multiple formats directly from the Admin Dashboard. The HomePage no longer displays the removed accuracy and support stats.

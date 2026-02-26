@@ -1,32 +1,61 @@
-import { useState } from 'react';
-import { Loader2, Plus, ExternalLink, FileText } from 'lucide-react';
+import React, { useState } from 'react';
+import { useGetAllClientDeliverables, useUpdateClientDeliverableStatus, useSubmitDeliverableForClient } from '../hooks/useClientDeliverables';
+import { useGetUserProfileByPrincipal } from '../hooks/useUserProfile';
+import { ClientDeliverable, ClientDeliverableStatus } from '../backend';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { useGetAllClientDeliverables, useUpdateClientDeliverableStatus, useSubmitDeliverableForClient } from '../hooks/useClientDeliverables';
-import { useGetUserProfileByPrincipal } from '../hooks/useUserProfile';
-import { ClientDeliverableStatus, ClientDeliverable } from '../backend';
-import { toast } from 'sonner';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 import { Progress } from '@/components/ui/progress';
+import { Download, Plus, CheckCircle, XCircle, FileText, Loader2 } from 'lucide-react';
+import DownloadOptionsMenu, { DownloadFile } from './DownloadOptionsMenu';
+import { toast } from 'sonner';
+
+function formatDate(timestamp: bigint): string {
+  const ms = Number(timestamp) / 1_000_000;
+  return new Date(ms).toLocaleDateString('en-IN', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  });
+}
 
 function StatusBadge({ status }: { status: ClientDeliverableStatus }) {
   const map: Record<string, { label: string; className: string }> = {
-    [ClientDeliverableStatus.pending]: { label: 'Pending', className: 'bg-yellow-100 text-yellow-700 border-yellow-200' },
-    [ClientDeliverableStatus.accepted]: { label: 'Accepted', className: 'bg-green-100 text-green-700 border-green-200' },
-    [ClientDeliverableStatus.rejected]: { label: 'Rejected', className: 'bg-red-100 text-red-700 border-red-200' },
+    pending: { label: 'Pending', className: 'bg-yellow-100 text-yellow-800' },
+    accepted: { label: 'Accepted', className: 'bg-green-100 text-green-800' },
+    rejected: { label: 'Rejected', className: 'bg-red-100 text-red-800' },
   };
-  const config = map[status as string] ?? { label: String(status), className: '' };
-  return <Badge variant="outline" className={config.className}>{config.label}</Badge>;
+  const key = status as unknown as string;
+  const info = map[key] ?? { label: key, className: 'bg-gray-100 text-gray-800' };
+  return <Badge className={`text-xs border-0 ${info.className}`}>{info.label}</Badge>;
 }
 
 function ClientNameCell({ principal }: { principal: string }) {
   const { data: profile } = useGetUserProfileByPrincipal(principal);
-  return <span>{profile?.name ?? principal.slice(0, 12) + '...'}</span>;
+  return (
+    <span className="text-sm">
+      {profile
+        ? profile.name
+        : <span className="font-mono text-xs text-muted-foreground">{principal.slice(0, 12)}…</span>}
+    </span>
+  );
 }
 
 function AdminAddDeliverableForm({ onSuccess }: { onSuccess: () => void }) {
@@ -59,7 +88,9 @@ function AdminAddDeliverableForm({ onSuccess }: { onSuccess: () => void }) {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-2">
-        <Label htmlFor="clientPrincipal">Client Principal ID <span className="text-destructive">*</span></Label>
+        <Label htmlFor="clientPrincipal">
+          Client Principal ID <span className="text-destructive">*</span>
+        </Label>
         <Input
           id="clientPrincipal"
           value={clientPrincipal}
@@ -69,7 +100,9 @@ function AdminAddDeliverableForm({ onSuccess }: { onSuccess: () => void }) {
         />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="title">Title <span className="text-destructive">*</span></Label>
+        <Label htmlFor="title">
+          Title <span className="text-destructive">*</span>
+        </Label>
         <Input
           id="title"
           value={title}
@@ -89,7 +122,9 @@ function AdminAddDeliverableForm({ onSuccess }: { onSuccess: () => void }) {
         />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="file">File <span className="text-destructive">*</span></Label>
+        <Label htmlFor="file">
+          File <span className="text-destructive">*</span>
+        </Label>
         <Input
           id="file"
           type="file"
@@ -109,7 +144,9 @@ function AdminAddDeliverableForm({ onSuccess }: { onSuccess: () => void }) {
         disabled={submitForClient.isPending || !clientPrincipal || !title || !file}
       >
         {submitForClient.isPending ? (
-          <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Submitting...</>
+          <>
+            <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Submitting...
+          </>
         ) : (
           'Submit Deliverable'
         )}
@@ -119,23 +156,57 @@ function AdminAddDeliverableForm({ onSuccess }: { onSuccess: () => void }) {
 }
 
 export default function AdminClientDeliverableTable() {
-  const { data: deliverables, isLoading } = useGetAllClientDeliverables();
+  const { data: deliverables = [], isLoading } = useGetAllClientDeliverables();
   const updateStatus = useUpdateClientDeliverableStatus();
   const [addDialogOpen, setAddDialogOpen] = useState(false);
 
-  const handleStatusChange = async (id: bigint, newStatus: ClientDeliverableStatus) => {
-    try {
-      await updateStatus.mutateAsync({ deliverableId: id, newStatus });
-      toast.success(`Deliverable ${newStatus === ClientDeliverableStatus.accepted ? 'accepted' : 'rejected'}`);
-    } catch {
-      toast.error('Failed to update status');
-    }
-  };
+  async function handleDownload(deliverable: ClientDeliverable) {
+    const bytes = await deliverable.file.getBytes();
+    const blob = new Blob([bytes], { type: 'application/octet-stream' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = deliverable.title;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+  }
+
+  function handleStatusUpdate(id: bigint, status: ClientDeliverableStatus) {
+    updateStatus.mutate(
+      { deliverableId: id, newStatus: status },
+      {
+        onSuccess: () =>
+          toast.success(
+            status === ClientDeliverableStatus.accepted ? 'Deliverable accepted' : 'Deliverable rejected'
+          ),
+        onError: () => toast.error('Failed to update status'),
+      }
+    );
+  }
+
+  // Build table rows for export
+  const tableRows = (deliverables as ClientDeliverable[]).map((d) => ({
+    ID: String(d.id),
+    Title: d.title,
+    Description: d.description,
+    Status: d.status as unknown as string,
+    'Submitted At': formatDate(d.createdAt),
+    Submitter: d.submitter.toString(),
+  }));
+
+  // Build file list for ZIP/Image downloads
+  const downloadFiles: DownloadFile[] = (deliverables as ClientDeliverable[]).map((d) => ({
+    name: d.title,
+    mimeType: 'application/octet-stream',
+    getBytes: () => d.file.getBytes(),
+  }));
 
   if (isLoading) {
     return (
-      <div className="space-y-2">
-        {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}
+      <div className="flex items-center justify-center py-12">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gold" />
       </div>
     );
   }
@@ -143,86 +214,117 @@ export default function AdminClientDeliverableTable() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="font-semibold text-foreground">Client Submitted Deliverables</h3>
-        <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
-          <DialogTrigger asChild>
-            <Button size="sm" className="bg-navy text-white hover:bg-navy/90">
-              <Plus className="w-4 h-4 mr-1" /> Add Deliverable
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Submit Deliverable for Client</DialogTitle>
-            </DialogHeader>
-            <AdminAddDeliverableForm onSuccess={() => setAddDialogOpen(false)} />
-          </DialogContent>
-        </Dialog>
+        <div className="flex items-center gap-2">
+          <FileText className="h-5 w-5 text-gold" />
+          <h3 className="font-semibold text-foreground">
+            Client Deliverables ({(deliverables as ClientDeliverable[]).length})
+          </h3>
+        </div>
+        <div className="flex items-center gap-2">
+          <DownloadOptionsMenu
+            tableData={tableRows}
+            title="Client Deliverables"
+            files={downloadFiles}
+            availableFormats={['pdf', 'spreadsheet', 'document', 'csv', 'zip']}
+          />
+          <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
+            <DialogTrigger asChild>
+              <Button size="sm" className="gap-2 bg-navy text-white hover:bg-navy/90">
+                <Plus className="h-4 w-4" />
+                Add Deliverable
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-lg">
+              <DialogHeader>
+                <DialogTitle>Submit Deliverable for Client</DialogTitle>
+              </DialogHeader>
+              <AdminAddDeliverableForm onSuccess={() => setAddDialogOpen(false)} />
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
-      {!deliverables || deliverables.length === 0 ? (
+      {(deliverables as ClientDeliverable[]).length === 0 ? (
         <div className="text-center py-12 text-muted-foreground">
-          No client deliverables submitted yet.
+          <FileText className="h-12 w-12 mx-auto mb-3 opacity-30" />
+          <p>No deliverables submitted yet.</p>
         </div>
       ) : (
-        <div className="border border-border rounded-sm overflow-hidden">
+        <div className="rounded-lg border border-border overflow-hidden">
           <Table>
             <TableHeader>
-              <TableRow>
-                <TableHead>Client</TableHead>
-                <TableHead>Title</TableHead>
-                <TableHead>Description</TableHead>
-                <TableHead>Document</TableHead>
-                <TableHead>Submitted</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Actions</TableHead>
+              <TableRow className="bg-muted/50">
+                <TableHead className="font-semibold">Title</TableHead>
+                <TableHead className="font-semibold">Client</TableHead>
+                <TableHead className="font-semibold">Status</TableHead>
+                <TableHead className="font-semibold">Submitted</TableHead>
+                <TableHead className="font-semibold text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {(deliverables as ClientDeliverable[]).map((d) => (
-                <TableRow key={String(d.id)}>
-                  <TableCell className="text-sm">
-                    <ClientNameCell principal={d.submitter.toString()} />
-                  </TableCell>
-                  <TableCell className="font-medium">{d.title}</TableCell>
-                  <TableCell className="text-muted-foreground text-sm max-w-xs truncate">{d.description}</TableCell>
+              {(deliverables as ClientDeliverable[]).map((deliverable) => (
+                <TableRow key={String(deliverable.id)} className="hover:bg-muted/30">
                   <TableCell>
-                    <a
-                      href={d.file.getDirectURL()}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      download
-                      className="inline-flex items-center gap-1 text-navy hover:text-navy/70 text-sm font-medium"
-                    >
-                      <FileText className="w-4 h-4" />
-                      View / Download
-                      <ExternalLink className="w-3 h-3" />
-                    </a>
+                    <div>
+                      <p className="font-medium text-sm">{deliverable.title}</p>
+                      {deliverable.description && (
+                        <p className="text-xs text-muted-foreground mt-0.5 max-w-[200px] truncate">
+                          {deliverable.description}
+                        </p>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <ClientNameCell principal={deliverable.submitter.toString()} />
+                  </TableCell>
+                  <TableCell>
+                    <StatusBadge status={deliverable.status} />
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">
-                    {new Date(Number(d.createdAt) / 1_000_000).toLocaleDateString()}
+                    {formatDate(deliverable.createdAt)}
                   </TableCell>
-                  <TableCell>
-                    <StatusBadge status={d.status as unknown as ClientDeliverableStatus} />
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex gap-2">
+                  <TableCell className="text-right">
+                    <div className="flex items-center justify-end gap-1">
                       <Button
+                        variant="ghost"
                         size="sm"
-                        variant="outline"
-                        className="text-green-700 border-green-300 hover:bg-green-50 h-7 text-xs"
-                        disabled={updateStatus.isPending || (d.status as unknown as string) === ClientDeliverableStatus.accepted}
-                        onClick={() => handleStatusChange(d.id, ClientDeliverableStatus.accepted)}
+                        onClick={() => handleDownload(deliverable)}
+                        className="gap-1 text-gold hover:text-gold hover:bg-gold/10 h-8 px-2"
+                        title="Download file"
                       >
-                        {updateStatus.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Accept'}
+                        <Download className="h-3.5 w-3.5" />
                       </Button>
                       <Button
+                        variant="ghost"
                         size="sm"
-                        variant="outline"
-                        className="text-red-700 border-red-300 hover:bg-red-50 h-7 text-xs"
-                        disabled={updateStatus.isPending || (d.status as unknown as string) === ClientDeliverableStatus.rejected}
-                        onClick={() => handleStatusChange(d.id, ClientDeliverableStatus.rejected)}
+                        onClick={() =>
+                          handleStatusUpdate(deliverable.id, ClientDeliverableStatus.accepted)
+                        }
+                        disabled={
+                          updateStatus.isPending ||
+                          (deliverable.status as unknown as string) ===
+                            ClientDeliverableStatus.accepted
+                        }
+                        className="gap-1 text-green-600 hover:text-green-700 hover:bg-green-50 h-8 px-2"
+                        title="Accept"
                       >
-                        {updateStatus.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Reject'}
+                        <CheckCircle className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() =>
+                          handleStatusUpdate(deliverable.id, ClientDeliverableStatus.rejected)
+                        }
+                        disabled={
+                          updateStatus.isPending ||
+                          (deliverable.status as unknown as string) ===
+                            ClientDeliverableStatus.rejected
+                        }
+                        className="gap-1 text-red-600 hover:text-red-700 hover:bg-red-50 h-8 px-2"
+                        title="Reject"
+                      >
+                        <XCircle className="h-3.5 w-3.5" />
                       </Button>
                     </div>
                   </TableCell>

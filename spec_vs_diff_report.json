@@ -1,14 +1,19 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-26T03:36:24.786Z",
-  "summary": "The diff implements both REQ-1 and REQ-2 correctly. The Navigation component has been updated with a NavDropdown component that nests 'Compliance' under 'Client Portal' and 'Compliance Admin' under 'Admin' in both desktop and mobile menus, while preserving existing auth/role visibility rules. No hallucinated features were detected.",
+  "generatedAt": "2026-02-26T03:55:38.205Z",
+  "summary": "The diff implements both REQ-1 and REQ-2 largely as specified. A DownloadOptionsMenu component and fileExport utilities are added client-side, and the component is integrated into DocumentTable, AdminClientDeliverableTable, and ComplianceAdminToDoList. The '99.8% filling accuracy' and 'client support 24/7' stats are removed from HomePage. The AdminGuard protection for the download menu is implicit via the parent admin page guard, consistent with the single-actor architecture constraint. The Document format is implemented as RTF-in-HTML rather than true DOCX binary but is present as a selectable option.",
   "missing_requirements": [],
   "hallucinated_features": [],
-  "confidence": 0.95,
+  "confidence": 0.88,
   "changed_files": [
     "frontend-file-summaries.txt",
-    "frontend/src/components/Navigation.tsx",
+    "frontend/src/components/AdminClientDeliverableTable.tsx",
+    "frontend/src/components/ComplianceAdminToDoList.tsx",
+    "frontend/src/components/DocumentTable.tsx",
+    "frontend/src/components/DownloadOptionsMenu.tsx",
+    "frontend/src/pages/HomePage.tsx",
+    "frontend/src/utils/fileExport.ts",
     "project_state.json"
   ]
 }

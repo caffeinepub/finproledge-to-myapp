@@ -1,39 +1,68 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Update navigation hierarchy: nest Compliance under Client Portal and Compliance Admin under Admin menu",
+  "title": "Admin file downloads in multiple formats + remove outdated stat copy",
   "requirements": [
     {
       "id": "REQ-1",
-      "summary": "Move the 'Compliance' link to appear as a nested item under the 'Client Portal' section in the Navigation component",
+      "summary": "Add download options menu in Admin Dashboard allowing admins to download files in multiple formats (PDF, XLSX/CSV, DOCX, ZIP, PNG/JPG)",
       "acceptanceCriteria": [
-        "The 'Compliance' link is no longer rendered as a standalone top-level nav item.",
-        "The 'Compliance' link appears grouped under or within the 'Client Portal' navigation section in both desktop and mobile menus.",
-        "Clicking 'Compliance' still navigates to the compliance dashboard page.",
-        "Visibility rules (authenticated + approved users only) are preserved."
+        "Admin users see a download dropdown with options: PDF, Spreadsheet, Document, CSV, ZIP, Image on relevant tables (DocumentTable, AdminClientDeliverableTable, ComplianceAdminToDoList).",
+        "Selecting CSV exports the visible table data as a .csv file download.",
+        "Selecting ZIP bundles available file blobs into a downloadable .zip archive.",
+        "Selecting PDF triggers a print-to-PDF or generates a PDF from the table/document data.",
+        "Selecting Image downloads the file as a .png or .jpg where applicable.",
+        "Selecting Spreadsheet downloads data as a .xlsx or .csv file.",
+        "Selecting Document downloads the file as a .docx where applicable.",
+        "Download functionality is only accessible to authenticated admin users (AdminGuard protected).",
+        "Non-admin users do not see the download format options."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/components/Navigation.tsx",
+          "path": "frontend/src/utils/fileExport.ts",
+          "operation": "create",
+          "description": "Create utility module with client-side file export functions: exportTableToCSV (converts table data to CSV blob), exportTableToXLSX (generates XLSX from data using a library like xlsx), exportToPDF (uses browser print or jsPDF), bundleFilesToZIP (uses JSZip to create archive from multiple blobs), exportToImage (handles PNG/JPG conversion), and exportToDOCX (generates Word documents). Each function returns a downloadable blob with appropriate MIME type."
+        },
+        {
+          "path": "frontend/src/components/DownloadOptionsMenu.tsx",
+          "operation": "create",
+          "description": "Create reusable DownloadOptionsMenu component that renders a dropdown button with format options (PDF, Spreadsheet, Document, CSV, ZIP, Image). Component accepts props for available formats, table data, file blobs, and callbacks. On selection, it invokes the appropriate fileExport utility and triggers browser download. Include loading states during generation."
+        },
+        {
+          "path": "frontend/src/components/DocumentTable.tsx",
           "operation": "modify",
-          "description": "Restructure the desktop navigation links to nest the 'Compliance' link under the 'Client Portal' section. Update the mobile menu to match. Ensure the link only appears for authenticated and approved users, and that clicking it navigates to /compliance-dashboard. Remove 'Compliance' from its current top-level position and group it within Client Portal's navigation structure."
+          "description": "Integrate DownloadOptionsMenu component into the DocumentTable header or action column. Wire it to pass current table data and document file blobs. Enable CSV (table export), PDF (document/table), ZIP (bundle all documents), and Image (for image file types) options. Ensure menu only appears when user is authenticated as admin (check via useInternetIdentity hook and admin email verification)."
+        },
+        {
+          "path": "frontend/src/components/AdminClientDeliverableTable.tsx",
+          "operation": "modify",
+          "description": "Add DownloadOptionsMenu to AdminClientDeliverableTable component. Configure it to export table data as CSV/XLSX, generate PDF from deliverable details, bundle deliverable files into ZIP, and support Document/Image downloads where applicable. Pass client deliverable data and file blobs as props. Restrict visibility to admin users only."
+        },
+        {
+          "path": "frontend/src/components/ComplianceAdminToDoList.tsx",
+          "operation": "modify",
+          "description": "Integrate DownloadOptionsMenu into ComplianceAdminToDoList table. Enable CSV export of to-do list data, PDF generation of the task list, ZIP bundling of attached to-do documents, and individual document downloads in requested formats. Wire to-do items data and attached file blobs. Display only for authenticated admins."
+        },
+        {
+          "path": "frontend/package.json",
+          "operation": "modify",
+          "description": "Add client-side file generation dependencies: 'xlsx' for spreadsheet exports, 'jspdf' and 'jspdf-autotable' for PDF generation, 'jszip' for ZIP archive creation, and 'file-saver' for triggering downloads. Include @types packages for TypeScript support."
         }
       ]
     },
     {
       "id": "REQ-2",
-      "summary": "Move the 'Compliance Admin' link to appear as a nested item under the 'Admin' menu section in the Navigation component",
+      "summary": "Remove '99.8% filling accuracy' and 'client support 24/7' text from frontend UI",
       "acceptanceCriteria": [
-        "The 'Compliance Admin' link is no longer rendered as a standalone top-level nav item.",
-        "The 'Compliance Admin' link appears grouped under or within the 'Admin' navigation section in both desktop and mobile menus.",
-        "Clicking 'Compliance Admin' still navigates to the compliance admin dashboard page.",
-        "Visibility is restricted to admin users only (consistent with AdminGuard logic)."
+        "The text '99.8% filling accuracy' (or similar variant) does not appear anywhere in the rendered UI.",
+        "The text 'client support 24/7' (or similar variant such as '24/7 support') does not appear anywhere in the rendered UI.",
+        "Removing these items does not break the layout of the section they were in; remaining stat cards or items are laid out cleanly."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/components/Navigation.tsx",
+          "path": "frontend/src/pages/HomePage.tsx",
           "operation": "modify",
-          "description": "Restructure the desktop navigation links to nest the 'Compliance Admin' link under the 'Admin' menu section. Update the mobile menu to match. Ensure the link only appears for admin users (matching the existing AdminGuard logic), and that clicking it navigates to /compliance-admin-dashboard. Remove 'Compliance Admin' from its current top-level position and group it within the Admin navigation structure."
+          "description": "Locate and remove the stat card or text element displaying '99.8% filling accuracy' from the stats/marketing section. Also remove the 'client support 24/7' or '24/7 support' text element. Adjust the remaining stats grid or flex layout to maintain visual balance with the reduced number of items (e.g., adjust grid columns or gap spacing)."
         }
       ]
     }
