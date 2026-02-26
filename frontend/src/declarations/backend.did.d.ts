@@ -358,6 +358,8 @@ export interface _SERVICE {
   >,
   'getUserProfile' : ActorMethod<[Principal], [] | [UserProfile]>,
   'getUserProfileByPrincipal' : ActorMethod<[Principal], [] | [UserProfile]>,
+  'isAdminUser' : ActorMethod<[], boolean>,
+  'isAnyUser' : ActorMethod<[Principal], boolean>,
   'isCallerAdmin' : ActorMethod<[], boolean>,
   'isCallerApproved' : ActorMethod<[], boolean>,
   'listApprovals' : ActorMethod<[], Array<UserApprovalInfo>>,

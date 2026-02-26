@@ -11,6 +11,7 @@ const ADMIN_EMAILS = ['finproledge@gmail.com'];
 const LOCAL_EMAIL_KEY = 'user_email_by_principal';
 
 function getLocalEmail(principalId: string): string | null {
+  if (!principalId) return null;
   try {
     const stored = localStorage.getItem(LOCAL_EMAIL_KEY);
     if (!stored) return null;
@@ -38,9 +39,10 @@ function useNavIsCallerAdmin() {
 }
 
 export default function Navigation() {
-  const { identity } = useInternetIdentity();
+  const { identity, isInitializing } = useInternetIdentity();
   const isAuthenticated = !!identity;
-  const principalId = identity?.getPrincipal().toString() ?? '';
+  // Only read principalId once identity is stable (not initializing)
+  const principalId = (!isInitializing && identity) ? identity.getPrincipal().toString() : '';
   const [mobileOpen, setMobileOpen] = useState(false);
   const [servicesOpen, setServicesOpen] = useState(false);
 
@@ -48,7 +50,8 @@ export default function Navigation() {
   const { data: userProfile } = useGetCallerUserProfile();
 
   // Email-based override: check profile email OR locally-stored email (for unapproved users)
-  const profileEmail = userProfile?.email ?? '';
+  // Normalize to lowercase for reliable comparison
+  const profileEmail = (userProfile?.email ?? '').trim().toLowerCase();
   const localEmail = principalId ? getLocalEmail(principalId) : null;
   const effectiveEmail = profileEmail || localEmail || '';
   const isEmailAdmin = ADMIN_EMAILS.includes(effectiveEmail);

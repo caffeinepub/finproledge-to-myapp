@@ -359,6 +359,17 @@ actor {
     email = "info@finlogic.co.in";
   };
 
+  // Returns whether the actual message caller is an admin.
+  // Uses shared({ caller }) so the IC-authenticated principal is checked,
+  // not an arbitrary principal supplied by the client.
+  public shared query ({ caller }) func isAdminUser() : async Bool {
+    AccessControl.isAdmin(accessControlState, caller);
+  };
+
+  public query func isAnyUser(_caller : Principal) : async Bool {
+    true;
+  };
+
   public query ({ caller }) func getNewAnalyticsSummary() : async { leadGeneration : LeadGenerationMetrics; trust : TrustMetrics; searchIntent : SearchIntentMetrics; technicalReliability : TechnicalReliabilityMetrics; clientRetention : ClientRetentionMetrics } {
     if (not (UserApproval.isApproved(userApprovalState, caller) or AccessControl.hasPermission(accessControlState, caller, #admin))) {
       Runtime.trap("Unauthorized: Only approved users and admins can access this data");
@@ -584,14 +595,14 @@ actor {
   };
 
   public shared ({ caller }) func updateStatus(requestId : Nat, status : RequestStatus) : async () {
-    let isAdmin = AccessControl.isAdmin(accessControlState, caller);
-    if (not isAdmin and not UserApproval.isApproved(userApprovalState, caller)) {
+    let isAdminCaller = AccessControl.isAdmin(accessControlState, caller);
+    if (not isAdminCaller and not UserApproval.isApproved(userApprovalState, caller)) {
       Runtime.trap("Unauthorized: Only approved users or admins can update request status");
     };
     switch (serviceRequests.get(requestId)) {
       case (null) { Runtime.trap("Request not found") };
       case (?request) {
-        if (not isAdmin and request.client != caller) {
+        if (not isAdminCaller and request.client != caller) {
           Runtime.trap("Unauthorized: Can only update your own requests");
         };
         let updatedRequest = {
@@ -624,8 +635,8 @@ actor {
   };
 
   public shared ({ caller }) func submitDeliverable(input : ClientDeliverableInput) : async Nat {
-    let isAdmin = AccessControl.isAdmin(accessControlState, caller);
-    if (not isAdmin and not UserApproval.isApproved(userApprovalState, caller)) {
+    let isAdminCaller = AccessControl.isAdmin(accessControlState, caller);
+    if (not isAdminCaller and not UserApproval.isApproved(userApprovalState, caller)) {
       Runtime.trap("Unauthorized: Only approved users or admins can submit deliverables");
     };
     let deliverableId = nextClientDeliverableId;
@@ -667,14 +678,14 @@ actor {
   };
 
   public shared ({ caller }) func updateClientDeliverableStatus(deliverableId : Nat, newStatus : ClientDeliverableStatus) : async () {
-    let isAdmin = AccessControl.isAdmin(accessControlState, caller);
-    if (not isAdmin and not UserApproval.isApproved(userApprovalState, caller)) {
+    let isAdminCaller = AccessControl.isAdmin(accessControlState, caller);
+    if (not isAdminCaller and not UserApproval.isApproved(userApprovalState, caller)) {
       Runtime.trap("Unauthorized: Only approved users or admins can update deliverable status");
     };
     switch (clientDeliverables.get(deliverableId)) {
       case (null) { Runtime.trap("Deliverable not found") };
       case (?deliverable) {
-        if (not isAdmin and deliverable.submitter != caller) {
+        if (not isAdminCaller and deliverable.submitter != caller) {
           Runtime.trap("Unauthorized: Can only update your own deliverables");
         };
         let updatedDeliverable = {
@@ -1014,14 +1025,14 @@ actor {
   };
 
   public shared ({ caller }) func updateToDoStatus(toDoId : Nat, newStatus : ToDoStatus) : async () {
-    let isAdmin = AccessControl.isAdmin(accessControlState, caller);
-    if (not isAdmin and not UserApproval.isApproved(userApprovalState, caller)) {
+    let isAdminCaller = AccessControl.isAdmin(accessControlState, caller);
+    if (not isAdminCaller and not UserApproval.isApproved(userApprovalState, caller)) {
       Runtime.trap("Unauthorized: Only approved users or admins can update To-Dos");
     };
     switch (toDoItems.get(toDoId)) {
       case (null) { Runtime.trap("To-Do item not found") };
       case (?toDo) {
-        if (not isAdmin) {
+        if (not isAdminCaller) {
           switch (toDo.clientPrincipal) {
             case (?client) {
               if (client != caller) {
@@ -1043,14 +1054,14 @@ actor {
   };
 
   public shared ({ caller }) func updateTimelineStatus(timelineId : Nat, newStatus : TimelineStatus) : async () {
-    let isAdmin = AccessControl.isAdmin(accessControlState, caller);
-    if (not isAdmin and not UserApproval.isApproved(userApprovalState, caller)) {
+    let isAdminCaller = AccessControl.isAdmin(accessControlState, caller);
+    if (not isAdminCaller and not UserApproval.isApproved(userApprovalState, caller)) {
       Runtime.trap("Unauthorized: Only approved users or admins can update Timelines");
     };
     switch (timelineEntries.get(timelineId)) {
       case (null) { Runtime.trap("Timeline entry not found") };
       case (?timeline) {
-        if (not isAdmin) {
+        if (not isAdminCaller) {
           switch (timeline.clientPrincipal) {
             case (?client) {
               if (client != caller) {
@@ -1072,14 +1083,14 @@ actor {
   };
 
   public shared ({ caller }) func updateFollowUpStatus(followUpId : Nat, newStatus : FollowUpStatus) : async () {
-    let isAdmin = AccessControl.isAdmin(accessControlState, caller);
-    if (not isAdmin and not UserApproval.isApproved(userApprovalState, caller)) {
+    let isAdminCaller = AccessControl.isAdmin(accessControlState, caller);
+    if (not isAdminCaller and not UserApproval.isApproved(userApprovalState, caller)) {
       Runtime.trap("Unauthorized: Only approved users or admins can update Follow-Ups");
     };
     switch (followUpItems.get(followUpId)) {
       case (null) { Runtime.trap("Follow-up item not found") };
       case (?followUp) {
-        if (not isAdmin) {
+        if (not isAdminCaller) {
           switch (followUp.clientPrincipal) {
             case (?client) {
               if (client != caller) {
@@ -1108,7 +1119,6 @@ actor {
 
     let fileList = clientDocuments.values().toArray();
     let deliverablesList = clientDeliverables.values().toArray();
-    let toDoList = toDoItems.values().toArray();
 
     let exportableFiles = fileList.map(
       func(doc) {
@@ -1139,7 +1149,7 @@ actor {
     exportableFiles.concat(deliverablesFiles).concat(toDoFiles);
   };
 
-  public query ({ caller }) func getCompanyContactDetails() : async CompanyContactDetails {
+  public query func getCompanyContactDetails() : async CompanyContactDetails {
     companyContactDetails;
   };
 

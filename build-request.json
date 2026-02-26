@@ -1,39 +1,73 @@
 {
   "kind": "build_request",
   "title": "Fix admin portal access for finproledge@gmail.com",
-  "projectName": "FinProLedge Portal",
+  "projectName": "FINPROLEDGE Portal",
   "priority": "high",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Ensure that the user with email finproledge@gmail.com is granted admin access to the admin portal. The AdminGuard component must correctly recognize this email as an authorized admin, and the backend role check must return an admin role for this user. All three layers — AdminGuard email-based override, Navigation admin tab visibility, and backend role fallback — must allow this user through without error.",
-      "target": "both",
+      "text": "Ensure that a user authenticated with the email finproledge@gmail.com is reliably granted admin access in the AdminGuard component, bypassing or correctly resolving the backend role check so the admin portal renders without being blocked or redirected.",
+      "target": "frontend",
       "source": {
         "messageIds": [
           "msg-5"
         ],
         "quotes": [
-          "can you give it a try and let me know if finproledge@gmail.com can access it now before we push to production? still no"
+          "can you check if finproledge@gmail.com can access the admin portal this time before we push to production?"
         ]
       },
       "acceptanceCriteria": [
-        "User with email finproledge@gmail.com can log in via Internet Identity and successfully reach the Admin Dashboard page without being shown an access-denied or login prompt screen.",
-        "The Navigation component displays the admin tab/link when finproledge@gmail.com is authenticated.",
-        "AdminGuard allows finproledge@gmail.com through on the email-based override check.",
-        "The backend returns an admin role (or equivalent authorization) for the principal associated with finproledge@gmail.com.",
-        "No regression: other non-admin users are still denied access to admin-only pages."
+        "A user whose verified email is finproledge@gmail.com can navigate to the admin portal without being shown a 'not authorized' or login-prompt screen.",
+        "AdminGuard correctly identifies finproledge@gmail.com as an admin during the email-verification fallback path.",
+        "The admin portal tabs (service requests, documents, approvals, payments, deliverables, analytics) are all visible and functional for finproledge@gmail.com.",
+        "No regression: users without admin privileges are still blocked by AdminGuard."
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "text": "Ensure the Navigation component also surfaces admin-only links (e.g., Admin Dashboard) when the authenticated user's email is finproledge@gmail.com, consistent with the AdminGuard fix.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-5"
+        ],
+        "quotes": [
+          "can you check if finproledge@gmail.com can access the admin portal this time"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Admin navigation links are visible in the top nav bar when logged in as finproledge@gmail.com.",
+        "Admin navigation links remain hidden for non-admin users."
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "text": "Audit and fix the backend role-check logic so that the principal associated with finproledge@gmail.com is recognised as an admin by the isAdmin (or equivalent) backend function, ensuring AdminGuard's backend query path also succeeds for this user.",
+      "target": "backend",
+      "source": {
+        "messageIds": [
+          "msg-5"
+        ],
+        "quotes": [
+          "can you check if finproledge@gmail.com can access the admin portal this time before we push to production?"
+        ]
+      },
+      "acceptanceCriteria": [
+        "The backend returns true for isAdmin (or equivalent) when called by the principal linked to finproledge@gmail.com.",
+        "The fix does not grant admin rights to any other unintended principal.",
+        "Existing admin principals continue to be recognised correctly."
       ]
     }
   ],
   "constraints": [
     "Do not alter immutable frontend paths: frontend/src/hooks/useInternetIdentity.ts, frontend/src/hooks/useActor.ts, frontend/src/main.tsx, frontend/src/components/ui.",
-    "All Motoko logic must remain in the single backend/main.mo actor.",
-    "Only generate migration.mo if existing persisted state must be upgraded."
+    "Do not remove or weaken access controls for non-admin users.",
+    "Keep all Motoko logic within the single main actor file (backend/main.mo)."
   ],
   "nonGoals": [
-    "Adding new admin users beyond finproledge@gmail.com.",
-    "Changing the general authentication flow or Internet Identity integration.",
-    "UI redesign or visual changes."
+    "Adding new admin features or dashboard tabs.",
+    "Changing the authentication provider (Internet Identity remains the sole auth mechanism).",
+    "Modifying any user-facing design or styling."
   ],
   "imageRequirements": {
     "required": [],

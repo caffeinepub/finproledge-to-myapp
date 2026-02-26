@@ -1,11 +1,12 @@
 # Specification
 
 ## Summary
-**Goal:** Fix admin portal access so that the user `finproledge@gmail.com` can successfully log in and reach the Admin Dashboard.
+**Goal:** Fix admin portal access so that the user with email finproledge@gmail.com can reliably access the admin portal without being blocked or redirected.
 
 **Planned changes:**
-- Update the `AdminGuard` component to include `finproledge@gmail.com` as an authorized admin in the email-based override check
-- Update the Navigation component so the admin tab/link is visible when `finproledge@gmail.com` is authenticated
-- Update the backend role logic to return an admin role for the principal associated with `finproledge@gmail.com`
+- Update `AdminGuard` component to correctly identify finproledge@gmail.com as an admin during the email-verification fallback path
+- Update the Navigation component to show admin-only links (e.g., Admin Dashboard) when logged in as finproledge@gmail.com
+- Fix the backend role-check logic in `backend/main.mo` so the principal linked to finproledge@gmail.com is recognized as an admin by the `isAdmin` (or equivalent) function
+- Ensure non-admin users remain blocked by AdminGuard and hidden from admin navigation links
 
-**User-visible outcome:** The user `finproledge@gmail.com` can log in via Internet Identity and access the Admin Dashboard without encountering an access-denied or login prompt screen. All other non-admin users remain denied access.
+**User-visible outcome:** The user finproledge@gmail.com can log in and access the full admin portal (service requests, documents, approvals, payments, deliverables, analytics) and see admin navigation links, while all other non-admin users remain restricted as before.

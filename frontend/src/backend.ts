@@ -417,6 +417,8 @@ export interface backendInterface {
     getPendingDeliverables(client: Principal): Promise<Array<ComplianceDeliverable>>;
     getUserProfile(user: Principal): Promise<UserProfile | null>;
     getUserProfileByPrincipal(user: Principal): Promise<UserProfile | null>;
+    isAdminUser(): Promise<boolean>;
+    isAnyUser(_caller: Principal): Promise<boolean>;
     isCallerAdmin(): Promise<boolean>;
     isCallerApproved(): Promise<boolean>;
     listApprovals(): Promise<Array<UserApprovalInfo>>;
@@ -1128,6 +1130,34 @@ export class Backend implements backendInterface {
         } else {
             const result = await this.actor.getUserProfileByPrincipal(arg0);
             return from_candid_opt_n88(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async isAdminUser(): Promise<boolean> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.isAdminUser();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.isAdminUser();
+            return result;
+        }
+    }
+    async isAnyUser(arg0: Principal): Promise<boolean> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.isAnyUser(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.isAnyUser(arg0);
+            return result;
         }
     }
     async isCallerAdmin(): Promise<boolean> {

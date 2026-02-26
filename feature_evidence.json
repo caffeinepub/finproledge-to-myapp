@@ -2,11 +2,10 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-ensure-that-the-user-with-email-finproledge-gmail-com-is-granted-admin-access-to-the-admin-portal-the-adminguard-component-must-correctly-recognize-this-email-as-an-authorized-admin-and-the-backend-role-check-must-return-an-admin-role-for-this-user-all-three-layers-adminguard-email-based-override-navigation-admin-tab-visibility-and-backend-role-fallback-must-allow-this-user-through-without-error",
-      "featureTitle": "Ensure that the user with email finproledge@gmail.com is granted admin access to the admin portal. The AdminGuard component must correctly recognize this email as an authorized admin, and the backend role check must return an admin role for this user. All three layers — AdminGuard email-based override, Navigation admin tab visibility, and backend role fallback — must allow this user through without error.",
+      "featureId": "feature-ensure-that-a-user-authenticated-with-the-email-finproledge-gmail-com-is-reliably-granted-admin-access-in-the-adminguard-component-bypassing-or-correctly-resolving-the-backend-role-check-so-the-admin-portal-renders-without-being-blocked-or-redirected",
+      "featureTitle": "Ensure that a user authenticated with the email finproledge@gmail.com is reliably granted admin access in the AdminGuard component, bypassing or correctly resolving the backend role check so the admin portal renders without being blocked or redirected.",
       "files": [
-        "frontend/src/components/AdminGuard.tsx",
-        "frontend/src/components/Navigation.tsx"
+        "frontend/src/components/AdminGuard.tsx"
       ],
       "components": [
         "authorization@4.0.0",
@@ -20,6 +19,27 @@
       ],
       "testIds": [
         "REQ-1"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-ensure-the-navigation-component-also-surfaces-admin-only-links-e-g-admin-dashboard-when-the-authenticated-user-s-email-is-finproledge-gmail-com-consistent-with-the-adminguard-fix",
+      "featureTitle": "Ensure the Navigation component also surfaces admin-only links (e.g., Admin Dashboard) when the authenticated user's email is finproledge@gmail.com, consistent with the AdminGuard fix.",
+      "files": [
+        "frontend/src/components/Navigation.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "blob-storage@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "user-approval@3.0.0"
+      ],
+      "testIds": [
+        "REQ-2"
       ],
       "confidence": "high"
     }

@@ -5,24 +5,33 @@
   "requirements": [
     {
       "id": "REQ-1",
-      "summary": "Ensure finproledge@gmail.com has full admin access through all three authorization layers (AdminGuard email override, Navigation admin tab visibility, backend role check)",
+      "summary": "Ensure finproledge@gmail.com is reliably granted admin access in AdminGuard, bypassing or correctly resolving the backend role check",
       "acceptanceCriteria": [
-        "User with email finproledge@gmail.com can log in via Internet Identity and successfully reach the Admin Dashboard page without being shown an access-denied or login prompt screen.",
-        "The Navigation component displays the admin tab/link when finproledge@gmail.com is authenticated.",
-        "AdminGuard allows finproledge@gmail.com through on the email-based override check.",
-        "The backend returns an admin role (or equivalent authorization) for the principal associated with finproledge@gmail.com.",
-        "No regression: other non-admin users are still denied access to admin-only pages."
+        "A user whose verified email is finproledge@gmail.com can navigate to the admin portal without being shown a 'not authorized' or login-prompt screen.",
+        "AdminGuard correctly identifies finproledge@gmail.com as an admin during the email-verification fallback path.",
+        "The admin portal tabs (service requests, documents, approvals, payments, deliverables, analytics) are all visible and functional for finproledge@gmail.com.",
+        "No regression: users without admin privileges are still blocked by AdminGuard."
       ],
       "file_operations": [
         {
           "path": "frontend/src/components/AdminGuard.tsx",
           "operation": "modify",
-          "description": "Update the email-based override check to correctly recognize finproledge@gmail.com as an authorized admin. Ensure the component checks the user's email from their profile (via useGetCallerUserProfile) and explicitly allows finproledge@gmail.com through before showing the access-denied screen. Verify the logic flow: (1) check authentication, (2) check email override for finproledge@gmail.com, (3) check backend admin role, (4) only show access-denied if all checks fail. Add console logging during development to debug which check is blocking the user."
-        },
+          "description": "Fix the email-based admin override logic to reliably grant access when the authenticated user's verified email is finproledge@gmail.com. Ensure the email verification fallback path correctly identifies this email as an admin. Add robust error handling and loading states to prevent premature redirects. Verify that the backend admin check (isCallerAdmin) and the email override work in harmony without race conditions."
+        }
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "summary": "Surface admin-only navigation links when authenticated user email is finproledge@gmail.com",
+      "acceptanceCriteria": [
+        "Admin navigation links are visible in the top nav bar when logged in as finproledge@gmail.com.",
+        "Admin navigation links remain hidden for non-admin users."
+      ],
+      "file_operations": [
         {
           "path": "frontend/src/components/Navigation.tsx",
           "operation": "modify",
-          "description": "Update the admin tab visibility logic to show the admin navigation link when the authenticated user's email is finproledge@gmail.com. Ensure the component fetches the user profile and checks both the backend admin role (via useQuery for isCallerAdmin) and the email-based override (finproledge@gmail.com) before rendering the admin menu item. The admin link should be visible if either condition is true."
+          "description": "Update the admin link visibility logic to include the email-based override (finproledge@gmail.com) in addition to the backend isCallerAdmin check. Ensure that when the user profile email matches finproledge@gmail.com, admin navigation items (Admin Dashboard, Compliance Admin) are displayed. Maintain consistency with the AdminGuard email verification pattern to prevent UI discrepancies."
         }
       ]
     }

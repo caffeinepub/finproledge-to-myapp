@@ -3,22 +3,37 @@
   "projectStateVersion": 3,
   "summary": "New project",
   "architectural_notes": [],
-  "known_issues": [
-    "Admin portal access issue: finproledge@gmail.com cannot access the admin portal"
-  ],
-  "isFixRequest": true,
+  "known_issues": [],
+  "isFixRequest": false,
   "existing_features": [
     {
-      "id": "feature-ensure-that-the-user-with-email-finproledge-gmail-com-is-granted-admin-access-to-the-admin-portal-the-adminguard-component-must-correctly-recognize-this-email-as-an-authorized-admin-and-the-backend-role-check-must-return-an-admin-role-for-this-user-all-three-layers-adminguard-email-based-override-navigation-admin-tab-visibility-and-backend-role-fallback-must-allow-this-user-through-without-error",
-      "title": "Ensure that the user with email finproledge@gmail.com is granted admin access to the admin portal. The AdminGuard component must correctly recognize this email as an authorized admin, and the backend role check must return an admin role for this user. All three layers — AdminGuard email-based override, Navigation admin tab visibility, and backend role fallback — must allow this user through without error.",
+      "id": "feature-ensure-that-a-user-authenticated-with-the-email-finproledge-gmail-com-is-reliably-granted-admin-access-in-the-adminguard-component-bypassing-or-correctly-resolving-the-backend-role-check-so-the-admin-portal-renders-without-being-blocked-or-redirected",
+      "title": "Ensure that a user authenticated with the email finproledge@gmail.com is reliably granted admin access in the AdminGuard component, bypassing or correctly resolving the backend role check so the admin portal renders without being blocked or redirected.",
       "reqIds": [
         "REQ-1"
       ],
       "version": 1
+    },
+    {
+      "id": "feature-ensure-the-navigation-component-also-surfaces-admin-only-links-e-g-admin-dashboard-when-the-authenticated-user-s-email-is-finproledge-gmail-com-consistent-with-the-adminguard-fix",
+      "title": "Ensure the Navigation component also surfaces admin-only links (e.g., Admin Dashboard) when the authenticated user's email is finproledge@gmail.com, consistent with the AdminGuard fix.",
+      "reqIds": [
+        "REQ-2"
+      ],
+      "version": 1
     }
   ],
-  "new_feature_requests": [],
-  "projectName": "FinProLedge Portal",
+  "new_feature_requests": [
+    {
+      "id": "AR-3",
+      "summary": "Audit and fix the backend role-check logic so that the principal associated with finproledge@gmail.com is recognised as an admin by the isAdmin (or equivalent) backend function, ensuring AdminGuard's backend query path also succeeds for this user.",
+      "reqIds": [
+        "REQ-3"
+      ],
+      "status": "pending"
+    }
+  ],
+  "projectName": "FINPROLEDGE Portal",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }
