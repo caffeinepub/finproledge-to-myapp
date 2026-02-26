@@ -3,41 +3,22 @@
   "projectStateVersion": 3,
   "summary": "New project",
   "architectural_notes": [],
-  "known_issues": [],
-  "isFixRequest": false,
+  "known_issues": [
+    "Admin portal access issue: finproledge@gmail.com cannot access the admin portal"
+  ],
+  "isFixRequest": true,
   "existing_features": [
     {
-      "id": "feature-add-a-download-options-menu-in-the-admin-dashboard-that-allows-admins-to-download-files-documents-deliverables-to-do-attachments-in-the-following-formats-pdf-spreadsheet-xlsx-csv-document-docx-csv-zip-folder-or-image-png-jpg-the-download-button-should-present-a-dropdown-with-these-format-options-for-formats-that-require-conversion-e-g-exporting-a-list-as-csv-or-zip-generate-the-file-client-side-from-available-data-for-file-blobs-already-stored-e-g-uploaded-documents-and-deliverables-provide-direct-download-with-the-selected-format-extension-zip-downloads-should-bundle-multiple-selected-files-into-a-single-archive",
-      "title": "Add a download options menu in the Admin Dashboard that allows admins to download files (documents, deliverables, to-do attachments) in the following formats: PDF, spreadsheet (XLSX/CSV), document (DOCX), CSV, ZIP folder, or image (PNG/JPG). The download button should present a dropdown with these format options. For formats that require conversion (e.g., exporting a list as CSV or ZIP), generate the file client-side from available data. For file blobs already stored (e.g., uploaded documents and deliverables), provide direct download with the selected format extension. ZIP downloads should bundle multiple selected files into a single archive.",
+      "id": "feature-ensure-that-the-user-with-email-finproledge-gmail-com-is-granted-admin-access-to-the-admin-portal-the-adminguard-component-must-correctly-recognize-this-email-as-an-authorized-admin-and-the-backend-role-check-must-return-an-admin-role-for-this-user-all-three-layers-adminguard-email-based-override-navigation-admin-tab-visibility-and-backend-role-fallback-must-allow-this-user-through-without-error",
+      "title": "Ensure that the user with email finproledge@gmail.com is granted admin access to the admin portal. The AdminGuard component must correctly recognize this email as an authorized admin, and the backend role check must return an admin role for this user. All three layers — AdminGuard email-based override, Navigation admin tab visibility, and backend role fallback — must allow this user through without error.",
       "reqIds": [
         "REQ-1"
       ],
       "version": 1
-    },
-    {
-      "id": "feature-remove-the-99-8-filling-accuracy-statistic-and-the-client-support-24-7-text-from-all-locations-in-the-frontend-ui-where-they-currently-appear-likely-on-the-homepage-stats-marketing-section",
-      "title": "Remove the '99.8% filling accuracy' statistic and the 'client support 24/7' text from all locations in the frontend UI where they currently appear (likely on the HomePage stats/marketing section).",
-      "reqIds": [
-        "REQ-2"
-      ],
-      "version": 1
     }
   ],
-  "new_feature_requests": [
-    {
-      "id": "AR-1",
-      "summary": "Admins can download files in multiple formats: PDFs, spreadsheets, documents, CSVs, ZIP folders, or images",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-2",
-      "summary": "Remove '99.8% filling accuracy' and 'client support 24/7' from the project/UI",
-      "reqIds": [],
-      "status": "pending"
-    }
-  ],
-  "projectName": "FINPROLEDGE Portal",
+  "new_feature_requests": [],
+  "projectName": "FinProLedge Portal",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

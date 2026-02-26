@@ -2,14 +2,11 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-add-a-download-options-menu-in-the-admin-dashboard-that-allows-admins-to-download-files-documents-deliverables-to-do-attachments-in-the-following-formats-pdf-spreadsheet-xlsx-csv-document-docx-csv-zip-folder-or-image-png-jpg-the-download-button-should-present-a-dropdown-with-these-format-options-for-formats-that-require-conversion-e-g-exporting-a-list-as-csv-or-zip-generate-the-file-client-side-from-available-data-for-file-blobs-already-stored-e-g-uploaded-documents-and-deliverables-provide-direct-download-with-the-selected-format-extension-zip-downloads-should-bundle-multiple-selected-files-into-a-single-archive",
-      "featureTitle": "Add a download options menu in the Admin Dashboard that allows admins to download files (documents, deliverables, to-do attachments) in the following formats: PDF, spreadsheet (XLSX/CSV), document (DOCX), CSV, ZIP folder, or image (PNG/JPG). The download button should present a dropdown with these format options. For formats that require conversion (e.g., exporting a list as CSV or ZIP), generate the file client-side from available data. For file blobs already stored (e.g., uploaded documents and deliverables), provide direct download with the selected format extension. ZIP downloads should bundle multiple selected files into a single archive.",
+      "featureId": "feature-ensure-that-the-user-with-email-finproledge-gmail-com-is-granted-admin-access-to-the-admin-portal-the-adminguard-component-must-correctly-recognize-this-email-as-an-authorized-admin-and-the-backend-role-check-must-return-an-admin-role-for-this-user-all-three-layers-adminguard-email-based-override-navigation-admin-tab-visibility-and-backend-role-fallback-must-allow-this-user-through-without-error",
+      "featureTitle": "Ensure that the user with email finproledge@gmail.com is granted admin access to the admin portal. The AdminGuard component must correctly recognize this email as an authorized admin, and the backend role check must return an admin role for this user. All three layers — AdminGuard email-based override, Navigation admin tab visibility, and backend role fallback — must allow this user through without error.",
       "files": [
-        "frontend/src/components/AdminClientDeliverableTable.tsx",
-        "frontend/src/components/ComplianceAdminToDoList.tsx",
-        "frontend/src/components/DocumentTable.tsx",
-        "frontend/src/components/DownloadOptionsMenu.tsx",
-        "frontend/src/utils/fileExport.ts"
+        "frontend/src/components/AdminGuard.tsx",
+        "frontend/src/components/Navigation.tsx"
       ],
       "components": [
         "authorization@4.0.0",
@@ -23,27 +20,6 @@
       ],
       "testIds": [
         "REQ-1"
-      ],
-      "confidence": "high"
-    },
-    {
-      "featureId": "feature-remove-the-99-8-filling-accuracy-statistic-and-the-client-support-24-7-text-from-all-locations-in-the-frontend-ui-where-they-currently-appear-likely-on-the-homepage-stats-marketing-section",
-      "featureTitle": "Remove the '99.8% filling accuracy' statistic and the 'client support 24/7' text from all locations in the frontend UI where they currently appear (likely on the HomePage stats/marketing section).",
-      "files": [
-        "frontend/src/pages/HomePage.tsx"
-      ],
-      "components": [
-        "authorization@4.0.0",
-        "blob-storage@4.0.0",
-        "core-infrastructure@1.0.2",
-        "shadcn-ui@1.0.0",
-        "build-template-react@1.0.0",
-        "initial-app@1.0.0",
-        "github-export-icp-cli@1.0.0",
-        "user-approval@3.0.0"
-      ],
-      "testIds": [
-        "REQ-2"
       ],
       "confidence": "high"
     }

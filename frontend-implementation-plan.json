@@ -1,68 +1,28 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Admin file downloads in multiple formats + remove outdated stat copy",
+  "title": "Fix admin portal access for finproledge@gmail.com",
   "requirements": [
     {
       "id": "REQ-1",
-      "summary": "Add download options menu in Admin Dashboard allowing admins to download files in multiple formats (PDF, XLSX/CSV, DOCX, ZIP, PNG/JPG)",
+      "summary": "Ensure finproledge@gmail.com has full admin access through all three authorization layers (AdminGuard email override, Navigation admin tab visibility, backend role check)",
       "acceptanceCriteria": [
-        "Admin users see a download dropdown with options: PDF, Spreadsheet, Document, CSV, ZIP, Image on relevant tables (DocumentTable, AdminClientDeliverableTable, ComplianceAdminToDoList).",
-        "Selecting CSV exports the visible table data as a .csv file download.",
-        "Selecting ZIP bundles available file blobs into a downloadable .zip archive.",
-        "Selecting PDF triggers a print-to-PDF or generates a PDF from the table/document data.",
-        "Selecting Image downloads the file as a .png or .jpg where applicable.",
-        "Selecting Spreadsheet downloads data as a .xlsx or .csv file.",
-        "Selecting Document downloads the file as a .docx where applicable.",
-        "Download functionality is only accessible to authenticated admin users (AdminGuard protected).",
-        "Non-admin users do not see the download format options."
+        "User with email finproledge@gmail.com can log in via Internet Identity and successfully reach the Admin Dashboard page without being shown an access-denied or login prompt screen.",
+        "The Navigation component displays the admin tab/link when finproledge@gmail.com is authenticated.",
+        "AdminGuard allows finproledge@gmail.com through on the email-based override check.",
+        "The backend returns an admin role (or equivalent authorization) for the principal associated with finproledge@gmail.com.",
+        "No regression: other non-admin users are still denied access to admin-only pages."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/utils/fileExport.ts",
-          "operation": "create",
-          "description": "Create utility module with client-side file export functions: exportTableToCSV (converts table data to CSV blob), exportTableToXLSX (generates XLSX from data using a library like xlsx), exportToPDF (uses browser print or jsPDF), bundleFilesToZIP (uses JSZip to create archive from multiple blobs), exportToImage (handles PNG/JPG conversion), and exportToDOCX (generates Word documents). Each function returns a downloadable blob with appropriate MIME type."
+          "path": "frontend/src/components/AdminGuard.tsx",
+          "operation": "modify",
+          "description": "Update the email-based override check to correctly recognize finproledge@gmail.com as an authorized admin. Ensure the component checks the user's email from their profile (via useGetCallerUserProfile) and explicitly allows finproledge@gmail.com through before showing the access-denied screen. Verify the logic flow: (1) check authentication, (2) check email override for finproledge@gmail.com, (3) check backend admin role, (4) only show access-denied if all checks fail. Add console logging during development to debug which check is blocking the user."
         },
         {
-          "path": "frontend/src/components/DownloadOptionsMenu.tsx",
-          "operation": "create",
-          "description": "Create reusable DownloadOptionsMenu component that renders a dropdown button with format options (PDF, Spreadsheet, Document, CSV, ZIP, Image). Component accepts props for available formats, table data, file blobs, and callbacks. On selection, it invokes the appropriate fileExport utility and triggers browser download. Include loading states during generation."
-        },
-        {
-          "path": "frontend/src/components/DocumentTable.tsx",
+          "path": "frontend/src/components/Navigation.tsx",
           "operation": "modify",
-          "description": "Integrate DownloadOptionsMenu component into the DocumentTable header or action column. Wire it to pass current table data and document file blobs. Enable CSV (table export), PDF (document/table), ZIP (bundle all documents), and Image (for image file types) options. Ensure menu only appears when user is authenticated as admin (check via useInternetIdentity hook and admin email verification)."
-        },
-        {
-          "path": "frontend/src/components/AdminClientDeliverableTable.tsx",
-          "operation": "modify",
-          "description": "Add DownloadOptionsMenu to AdminClientDeliverableTable component. Configure it to export table data as CSV/XLSX, generate PDF from deliverable details, bundle deliverable files into ZIP, and support Document/Image downloads where applicable. Pass client deliverable data and file blobs as props. Restrict visibility to admin users only."
-        },
-        {
-          "path": "frontend/src/components/ComplianceAdminToDoList.tsx",
-          "operation": "modify",
-          "description": "Integrate DownloadOptionsMenu into ComplianceAdminToDoList table. Enable CSV export of to-do list data, PDF generation of the task list, ZIP bundling of attached to-do documents, and individual document downloads in requested formats. Wire to-do items data and attached file blobs. Display only for authenticated admins."
-        },
-        {
-          "path": "frontend/package.json",
-          "operation": "modify",
-          "description": "Add client-side file generation dependencies: 'xlsx' for spreadsheet exports, 'jspdf' and 'jspdf-autotable' for PDF generation, 'jszip' for ZIP archive creation, and 'file-saver' for triggering downloads. Include @types packages for TypeScript support."
-        }
-      ]
-    },
-    {
-      "id": "REQ-2",
-      "summary": "Remove '99.8% filling accuracy' and 'client support 24/7' text from frontend UI",
-      "acceptanceCriteria": [
-        "The text '99.8% filling accuracy' (or similar variant) does not appear anywhere in the rendered UI.",
-        "The text 'client support 24/7' (or similar variant such as '24/7 support') does not appear anywhere in the rendered UI.",
-        "Removing these items does not break the layout of the section they were in; remaining stat cards or items are laid out cleanly."
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/pages/HomePage.tsx",
-          "operation": "modify",
-          "description": "Locate and remove the stat card or text element displaying '99.8% filling accuracy' from the stats/marketing section. Also remove the 'client support 24/7' or '24/7 support' text element. Adjust the remaining stats grid or flex layout to maintain visual balance with the reduced number of items (e.g., adjust grid columns or gap spacing)."
+          "description": "Update the admin tab visibility logic to show the admin navigation link when the authenticated user's email is finproledge@gmail.com. Ensure the component fetches the user profile and checks both the backend admin role (via useQuery for isCallerAdmin) and the email-based override (finproledge@gmail.com) before rendering the admin menu item. The admin link should be visible if either condition is true."
         }
       ]
     }

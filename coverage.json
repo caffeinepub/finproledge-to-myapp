@@ -1,44 +1,26 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-26T03:55:38.209Z",
+  "generatedAt": "2026-02-26T04:47:08.709Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 2,
-    "implemented": 2,
+    "total": 1,
+    "implemented": 1,
     "items": [
       {
         "id": "REQ-1",
-        "summary": "Add a download options menu in the Admin Dashboard that allows admins to download files (documents, deliverables, to-do attachments) in the following formats: PDF, spreadsheet (XLSX/CSV), document (DOCX), CSV, ZIP folder, or image (PNG/JPG). The download button should present a dropdown with these format options. For formats that require conversion (e.g., exporting a list as CSV or ZIP), generate the file client-side from available data. For file blobs already stored (e.g., uploaded documents and deliverables), provide direct download with the selected format extension. ZIP downloads should bundle multiple selected files into a single archive.",
+        "summary": "Ensure that the user with email finproledge@gmail.com is granted admin access to the admin portal. The AdminGuard component must correctly recognize this email as an authorized admin, and the backend role check must return an admin role for this user. All three layers — AdminGuard email-based override, Navigation admin tab visibility, and backend role fallback — must allow this user through without error.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/utils/fileExport.ts",
-          "frontend/src/components/DownloadOptionsMenu.tsx",
-          "frontend/src/components/DocumentTable.tsx",
-          "frontend/src/components/AdminClientDeliverableTable.tsx",
-          "frontend/src/components/ComplianceAdminToDoList.tsx",
-          "frontend/package.json"
+          "frontend/src/components/AdminGuard.tsx",
+          "frontend/src/components/Navigation.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/utils/fileExport.ts",
-          "frontend/src/components/DownloadOptionsMenu.tsx",
-          "frontend/src/components/DocumentTable.tsx",
-          "frontend/src/components/AdminClientDeliverableTable.tsx",
-          "frontend/src/components/ComplianceAdminToDoList.tsx"
-        ]
-      },
-      {
-        "id": "REQ-2",
-        "summary": "Remove the '99.8% filling accuracy' statistic and the 'client support 24/7' text from all locations in the frontend UI where they currently appear (likely on the HomePage stats/marketing section).",
-        "status": "implemented",
-        "plannedFiles": [
-          "frontend/src/pages/HomePage.tsx"
-        ],
-        "matchedFiles": [
-          "frontend/src/pages/HomePage.tsx"
+          "frontend/src/components/AdminGuard.tsx",
+          "frontend/src/components/Navigation.tsx"
         ]
       }
     ]
@@ -48,12 +30,8 @@
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
-    "frontend/src/components/AdminClientDeliverableTable.tsx",
-    "frontend/src/components/ComplianceAdminToDoList.tsx",
-    "frontend/src/components/DocumentTable.tsx",
-    "frontend/src/components/DownloadOptionsMenu.tsx",
-    "frontend/src/pages/HomePage.tsx",
-    "frontend/src/utils/fileExport.ts",
+    "frontend/src/components/AdminGuard.tsx",
+    "frontend/src/components/Navigation.tsx",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

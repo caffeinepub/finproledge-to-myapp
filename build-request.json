@@ -1,63 +1,39 @@
 {
   "kind": "build_request",
-  "title": "Admin file downloads in multiple formats + remove outdated stat copy",
-  "projectName": "FINPROLEDGE Portal",
-  "priority": "normal",
+  "title": "Fix admin portal access for finproledge@gmail.com",
+  "projectName": "FinProLedge Portal",
+  "priority": "high",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Add a download options menu in the Admin Dashboard that allows admins to download files (documents, deliverables, to-do attachments) in the following formats: PDF, spreadsheet (XLSX/CSV), document (DOCX), CSV, ZIP folder, or image (PNG/JPG). The download button should present a dropdown with these format options. For formats that require conversion (e.g., exporting a list as CSV or ZIP), generate the file client-side from available data. For file blobs already stored (e.g., uploaded documents and deliverables), provide direct download with the selected format extension. ZIP downloads should bundle multiple selected files into a single archive.",
-      "target": "frontend",
+      "text": "Ensure that the user with email finproledge@gmail.com is granted admin access to the admin portal. The AdminGuard component must correctly recognize this email as an authorized admin, and the backend role check must return an admin role for this user. All three layers — AdminGuard email-based override, Navigation admin tab visibility, and backend role fallback — must allow this user through without error.",
+      "target": "both",
       "source": {
         "messageIds": [
-          "msg-latest"
+          "msg-5"
         ],
         "quotes": [
-          "Admins can download files as PDFs, spreadsheets, documents, CSVs, ZIP folders, or images."
+          "can you give it a try and let me know if finproledge@gmail.com can access it now before we push to production? still no"
         ]
       },
       "acceptanceCriteria": [
-        "Admin users see a download dropdown with options: PDF, Spreadsheet, Document, CSV, ZIP, Image on relevant tables (DocumentTable, AdminClientDeliverableTable, ComplianceAdminToDoList).",
-        "Selecting CSV exports the visible table data as a .csv file download.",
-        "Selecting ZIP bundles available file blobs into a downloadable .zip archive.",
-        "Selecting PDF triggers a print-to-PDF or generates a PDF from the table/document data.",
-        "Selecting Image downloads the file as a .png or .jpg where applicable.",
-        "Selecting Spreadsheet downloads data as a .xlsx or .csv file.",
-        "Selecting Document downloads the file as a .docx where applicable.",
-        "Download functionality is only accessible to authenticated admin users (AdminGuard protected).",
-        "Non-admin users do not see the download format options."
-      ]
-    },
-    {
-      "id": "REQ-2",
-      "text": "Remove the '99.8% filling accuracy' statistic and the 'client support 24/7' text from all locations in the frontend UI where they currently appear (likely on the HomePage stats/marketing section).",
-      "target": "frontend",
-      "source": {
-        "messageIds": [
-          "msg-latest"
-        ],
-        "quotes": [
-          "Remove the 99.8% filling accuracy and client support 24/7."
-        ]
-      },
-      "acceptanceCriteria": [
-        "The text '99.8% filling accuracy' (or similar variant) does not appear anywhere in the rendered UI.",
-        "The text 'client support 24/7' (or similar variant such as '24/7 support') does not appear anywhere in the rendered UI.",
-        "Removing these items does not break the layout of the section they were in; remaining stat cards or items are laid out cleanly."
+        "User with email finproledge@gmail.com can log in via Internet Identity and successfully reach the Admin Dashboard page without being shown an access-denied or login prompt screen.",
+        "The Navigation component displays the admin tab/link when finproledge@gmail.com is authenticated.",
+        "AdminGuard allows finproledge@gmail.com through on the email-based override check.",
+        "The backend returns an admin role (or equivalent authorization) for the principal associated with finproledge@gmail.com.",
+        "No regression: other non-admin users are still denied access to admin-only pages."
       ]
     }
   ],
   "constraints": [
-    "Admin download functionality must respect the AdminGuard — only authenticated admins may access it.",
-    "Do not modify files under frontend/src/hooks/useInternetIdentity.ts, frontend/src/hooks/useActor.ts, frontend/src/main.tsx, or frontend/src/components/ui.",
-    "File downloads must be generated client-side; do not add new backend endpoints solely for format conversion.",
-    "All backend Motoko logic must remain in backend/main.mo (single-actor architecture)."
+    "Do not alter immutable frontend paths: frontend/src/hooks/useInternetIdentity.ts, frontend/src/hooks/useActor.ts, frontend/src/main.tsx, frontend/src/components/ui.",
+    "All Motoko logic must remain in the single backend/main.mo actor.",
+    "Only generate migration.mo if existing persisted state must be upgraded."
   ],
   "nonGoals": [
-    "Server-side file format conversion or new backend download endpoints.",
-    "Adding download capabilities to non-admin (client) views.",
-    "Changing any other marketing copy beyond the two specified stat items.",
-    "Implementing real-time file processing or external conversion APIs."
+    "Adding new admin users beyond finproledge@gmail.com.",
+    "Changing the general authentication flow or Internet Identity integration.",
+    "UI redesign or visual changes."
   ],
   "imageRequirements": {
     "required": [],

@@ -9,7 +9,12 @@ export function useGetCallerUserProfile() {
     queryKey: ['currentUserProfile'],
     queryFn: async () => {
       if (!actor) throw new Error('Actor not available');
-      return actor.getCallerUserProfile();
+      try {
+        return await actor.getCallerUserProfile();
+      } catch {
+        // Backend may reject unapproved/anonymous users — treat as no profile
+        return null;
+      }
     },
     enabled: !!actor && !actorFetching,
     retry: false,
