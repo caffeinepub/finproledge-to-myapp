@@ -1,86 +1,59 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-26T09:38:45.993Z",
+  "generatedAt": "2026-02-28T14:01:48.082Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
     "total": 3,
-    "implemented": 3,
+    "implemented": 0,
     "items": [
       {
         "id": "REQ-1",
-        "summary": "Fix the bug in the Admin Tab where saving a new To-Do, Timeline, or Follow-Up item throws a 'Something went wrong!' error. Investigate the backend mutation handlers (createToDo, createTimeline, createFollowUp) and the corresponding frontend hooks (useCreateToDo, useCreateClientTimeline, useCreateClientFollowUp) to identify and resolve the root cause. Ensure all three creation flows complete successfully and the new items appear in their respective lists after saving.",
-        "status": "implemented",
+        "summary": "Audit the approvals data mapping in the frontend: inspect all fields returned by the backend `listApprovals` (or equivalent) query and ensure every field on each approval object — including nested detail fields such as client profile info, status, timestamps, and any sub-objects — is correctly destructured and rendered in the approvals tab of the Admin Dashboard. Remove any truncation logic that silently hides records or fields. Ensure the UI displays a complete, untruncated list of all approval entries with all their detail fields visible.",
+        "status": "missing",
         "plannedFiles": [
-          "frontend/src/components/CreateToDoForm.tsx",
-          "frontend/src/components/CreateTimelineForm.tsx",
-          "frontend/src/components/CreateFollowUpForm.tsx",
-          "frontend/src/hooks/useComplianceAdmin.ts"
+          "frontend/src/hooks/useApprovals.ts",
+          "frontend/src/pages/AdminDashboardPage.tsx",
+          "frontend/src/hooks/useUserProfile.ts"
         ],
-        "matchedFiles": [
-          "frontend/src/components/CreateToDoForm.tsx",
-          "frontend/src/components/CreateTimelineForm.tsx",
-          "frontend/src/components/CreateFollowUpForm.tsx",
-          "frontend/src/hooks/useComplianceAdmin.ts"
-        ]
+        "matchedFiles": []
       },
       {
         "id": "REQ-2",
-        "summary": "In every location where a client's Principal ID is displayed (e.g., in admin tables such as ComplianceAdminToDoList, ComplianceAdminTimeline, ComplianceAdminFollowUp, AdminClientDeliverableTable, and any other admin views showing a principal), also display the client's Company Name and Registered Name by resolving these fields from the user profile associated with that Principal ID. The display should show all three values: Principal ID, Company Name, and Registered Name.",
-        "status": "implemented",
+        "summary": "Fix the file upload pipeline for Deliverables and To-Dos so that files attached by the client arrive at the admin side in their original, readable format. Audit the `ExternalBlob` conversion in `ClientDeliverableForm.tsx`, `CreateToDoForm.tsx`, and `ClientCreateToDoForm.tsx`: verify that the file is read as an `ArrayBuffer` or `Uint8Array` and stored as the correct Blob type without encoding corruption. On the admin download side, audit the reconstruction logic in `DocumentTable.tsx`, `ComplianceAdminToDoList.tsx`, and any download utility so that the original MIME type and byte sequence are preserved. Ensure the downloaded file opens correctly in its original application.",
+        "status": "missing",
         "plannedFiles": [
+          "frontend/src/components/ClientDeliverableForm.tsx",
+          "frontend/src/components/CreateToDoForm.tsx",
+          "frontend/src/components/ClientCreateToDoForm.tsx",
+          "frontend/src/components/DocumentTable.tsx",
           "frontend/src/components/ComplianceAdminToDoList.tsx",
-          "frontend/src/components/ComplianceAdminTimeline.tsx",
-          "frontend/src/components/ComplianceAdminFollowUp.tsx",
-          "frontend/src/components/AdminClientDeliverableTable.tsx",
-          "frontend/src/hooks/useUserProfile.ts"
+          "frontend/src/components/AdminClientDeliverableTable.tsx"
         ],
-        "matchedFiles": [
-          "frontend/src/components/ComplianceAdminToDoList.tsx",
-          "frontend/src/components/ComplianceAdminTimeline.tsx",
-          "frontend/src/components/ComplianceAdminFollowUp.tsx",
-          "frontend/src/components/AdminClientDeliverableTable.tsx",
-          "frontend/src/hooks/useUserProfile.ts"
-        ]
+        "matchedFiles": []
       },
       {
         "id": "REQ-3",
-        "summary": "On the Client Documents & Compliance Deliverables page (and the AdminClientDeliverableTable component), make all table headers interactive by adding client-side sort and filter functionality for every column. Users should be able to click any column header to toggle ascending/descending sort, and each column should have a filter input or dropdown to narrow visible rows. This applies to all columns currently present in the deliverables table (e.g., client name, document title, type, status, date, etc.).",
-        "status": "implemented",
+        "summary": "Add a persistent filter bar at the top of the Documents view (in `DocumentTable.tsx` and the Documents tab of the Admin Dashboard and Client Portal). The filter bar must allow querying/filtering by: document type (e.g., dropdown or multi-select of available types), upload date range (from/to date pickers), and document name (free-text search). Additionally provide a sort control to sort the document list by upload date (ascending/descending) or document name (A–Z / Z–A). Filters should apply reactively as values change without requiring a separate submit action.",
+        "status": "missing",
         "plannedFiles": [
-          "frontend/src/components/AdminClientDeliverableTable.tsx",
+          "frontend/src/components/DocumentTable.tsx",
+          "frontend/src/pages/AdminDashboardPage.tsx",
+          "frontend/src/pages/ClientPortalPage.tsx",
           "frontend/src/utils/tableHelpers.ts"
         ],
-        "matchedFiles": [
-          "frontend/src/components/AdminClientDeliverableTable.tsx",
-          "frontend/src/utils/tableHelpers.ts"
-        ]
+        "matchedFiles": []
       }
     ]
   },
   "changedFiles": [
     "backend/main.mo",
-    "backend/migration.mo",
     "build-request.json",
     "feature_evidence.json",
-    "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
-    "frontend/src/components/AdminClientDeliverableTable.tsx",
-    "frontend/src/components/ClientTasksTab.tsx",
-    "frontend/src/components/ComplianceAdminFollowUp.tsx",
-    "frontend/src/components/ComplianceAdminTimeline.tsx",
-    "frontend/src/components/ComplianceAdminToDoList.tsx",
-    "frontend/src/components/CreateFollowUpForm.tsx",
-    "frontend/src/components/CreateTimelineForm.tsx",
-    "frontend/src/components/CreateToDoForm.tsx",
-    "frontend/src/components/MyComplianceTasksSection.tsx",
-    "frontend/src/components/TaskStatusSelect.tsx",
-    "frontend/src/hooks/useComplianceAdmin.ts",
-    "frontend/src/hooks/useUserProfile.ts",
-    "frontend/src/utils/tableHelpers.ts",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

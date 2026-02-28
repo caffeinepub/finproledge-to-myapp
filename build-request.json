@@ -1,80 +1,81 @@
 {
   "kind": "build_request",
-  "title": "Fix Admin Tab save errors, enrich Principal ID display, and add sortable/filterable table headers on Compliance Deliverables page",
-  "projectName": "FINPROLEDGE",
+  "title": "Fix approvals data mapping, file corruption in upload workflow, and add Documents filter bar",
+  "projectName": "FinProLedge",
   "priority": "high",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Fix the bug in the Admin Tab where saving a new To-Do, Timeline, or Follow-Up item throws a 'Something went wrong!' error. Investigate the backend mutation handlers (createToDo, createTimeline, createFollowUp) and the corresponding frontend hooks (useCreateToDo, useCreateClientTimeline, useCreateClientFollowUp) to identify and resolve the root cause. Ensure all three creation flows complete successfully and the new items appear in their respective lists after saving.",
-      "target": "both",
+      "text": "Audit the approvals data mapping in the frontend: inspect all fields returned by the backend `listApprovals` (or equivalent) query and ensure every field on each approval object — including nested detail fields such as client profile info, status, timestamps, and any sub-objects — is correctly destructured and rendered in the approvals tab of the Admin Dashboard. Remove any truncation logic that silently hides records or fields. Ensure the UI displays a complete, untruncated list of all approval entries with all their detail fields visible.",
+      "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-6"
+          "msg-1"
         ],
         "quotes": [
-          "Bug Report - Admin Tab functional error: Unable to add To-dos, Timelines, or Follow-ups.(under Admin Tab) Error: 'Something went wrong!' appears upon saving."
+          "The approvals list is currently truncated or missing detail fields. Please audit the data mapping to ensure all client approval details are rendered.",
+          "Fix data synchronization issues; ensure all client approval objects and nested details are visible in the UI."
         ]
       },
       "acceptanceCriteria": [
-        "An admin can create a new To-Do item from the Admin Tab without any error toast appearing.",
-        "An admin can create a new Timeline entry from the Admin Tab without any error toast appearing.",
-        "An admin can create a new Follow-Up item from the Admin Tab without any error toast appearing.",
-        "After saving, each newly created item appears in its respective list/table immediately.",
-        "No 'Something went wrong!' error is displayed during any of the three creation flows."
+        "All approval records returned by the backend are rendered in the approvals list without truncation.",
+        "Every field of each approval object (including nested objects such as client profile details, status, timestamps) is displayed in the UI.",
+        "No approval entry or sub-field is silently omitted due to missing or incorrect data mapping.",
+        "The approvals list re-fetches and stays in sync after any status update or mutation."
       ]
     },
     {
       "id": "REQ-2",
-      "text": "In every location where a client's Principal ID is displayed (e.g., in admin tables such as ComplianceAdminToDoList, ComplianceAdminTimeline, ComplianceAdminFollowUp, AdminClientDeliverableTable, and any other admin views showing a principal), also display the client's Company Name and Registered Name by resolving these fields from the user profile associated with that Principal ID. The display should show all three values: Principal ID, Company Name, and Registered Name.",
-      "target": "frontend",
+      "text": "Fix the file upload pipeline for Deliverables and To-Dos so that files attached by the client arrive at the admin side in their original, readable format. Audit the `ExternalBlob` conversion in `ClientDeliverableForm.tsx`, `CreateToDoForm.tsx`, and `ClientCreateToDoForm.tsx`: verify that the file is read as an `ArrayBuffer` or `Uint8Array` and stored as the correct Blob type without encoding corruption. On the admin download side, audit the reconstruction logic in `DocumentTable.tsx`, `ComplianceAdminToDoList.tsx`, and any download utility so that the original MIME type and byte sequence are preserved. Ensure the downloaded file opens correctly in its original application.",
+      "target": "both",
       "source": {
         "messageIds": [
-          "msg-6"
+          "msg-1"
         ],
         "quotes": [
-          "In the section where you've currently listed the Principal ID, could you please update the output to also include the specific client details? Specifically, I need the Company Name and the Registered Name mapped to that ID."
+          "We have an issue with the Deliverables, To-Dos upload workflow. While the client is successfully attaching the file and the admin is receiving it, the file becomes corrupted or unreadable upon arrival. The admin cannot open the document in its original format."
         ]
       },
       "acceptanceCriteria": [
-        "Wherever a Principal ID is rendered in admin-facing views, the corresponding Company Name from the client's profile is also displayed.",
-        "Wherever a Principal ID is rendered in admin-facing views, the corresponding Registered Name from the client's profile is also displayed.",
-        "If the profile cannot be resolved for a given Principal ID, the display gracefully falls back (e.g., shows 'Unknown' or the raw principal).",
-        "The layout remains clean and does not overflow or break existing table/card layouts."
+        "A file uploaded by a client through the Deliverable or To-Do form is received by the admin with identical byte content to the original.",
+        "The admin can open and read the downloaded file in its native application (e.g., PDF viewer, Word, Excel).",
+        "MIME type metadata is preserved end-to-end so the browser/OS associates the file with the correct application.",
+        "No Base64 double-encoding, truncation, or byte-level corruption occurs during upload or download."
       ]
     },
     {
       "id": "REQ-3",
-      "text": "On the Client Documents & Compliance Deliverables page (and the AdminClientDeliverableTable component), make all table headers interactive by adding client-side sort and filter functionality for every column. Users should be able to click any column header to toggle ascending/descending sort, and each column should have a filter input or dropdown to narrow visible rows. This applies to all columns currently present in the deliverables table (e.g., client name, document title, type, status, date, etc.).",
+      "text": "Add a persistent filter bar at the top of the Documents view (in `DocumentTable.tsx` and the Documents tab of the Admin Dashboard and Client Portal). The filter bar must allow querying/filtering by: document type (e.g., dropdown or multi-select of available types), upload date range (from/to date pickers), and document name (free-text search). Additionally provide a sort control to sort the document list by upload date (ascending/descending) or document name (A–Z / Z–A). Filters should apply reactively as values change without requiring a separate submit action.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-6"
+          "msg-1"
         ],
         "quotes": [
-          "For the Client Documents & Compliance Deliverables page, can we make the table headers 'active'? I need to be able to sort and filter by every column available so we can manage the deliverables more easily."
+          "Integrate a filter bar in the Documents view to sort/query by specific attributes."
         ]
       },
       "acceptanceCriteria": [
-        "Every column header in the Client Documents & Compliance Deliverables table is clickable and toggles ascending/descending sort order.",
-        "A visual indicator (e.g., arrow icon) shows the current sort direction on the active sort column.",
-        "Each column provides a filter mechanism (text input or dropdown as appropriate) to filter rows by that column's value.",
-        "Multiple filters can be applied simultaneously and the table updates in real time.",
-        "Clearing all filters restores the full unfiltered list.",
-        "The table remains fully functional and all existing actions (approve, reject, download) still work after sorting/filtering."
+        "A filter bar is visible above the documents table in both the Admin Documents tab and the Client Portal Documents tab.",
+        "Filtering by document type narrows the list to only matching entries.",
+        "Filtering by upload date range shows only documents uploaded within the specified window.",
+        "Free-text search on document name filters results in real time.",
+        "Sort controls allow ascending/descending sort by date and alphabetical sort by name.",
+        "Clearing all filters restores the full document list.",
+        "Filter and sort state is applied client-side without requiring additional backend calls."
       ]
     }
   ],
   "constraints": [
-    "Do not modify any files listed under frontend.immutablePaths.",
-    "All Motoko backend logic must remain within the single main actor in backend/main.mo.",
-    "Preserve existing data structures and stable variables; generate migration.mo only if the backend schema changes."
+    "Do not modify files listed in frontend.immutablePaths.",
+    "All Motoko logic must remain within the single actor in backend/main.mo.",
+    "File byte integrity must be preserved — do not alter the ExternalBlob storage schema in a way that requires a breaking migration unless strictly necessary."
   ],
   "nonGoals": [
-    "Profile creation fix (already confirmed working in Version 54).",
-    "Any changes to authentication or Internet Identity flows.",
-    "Adding new pages or navigation items beyond what is required by the above fixes.",
-    "Modifying analytics or payment-related components."
+    "Redesigning the overall UI layout or visual theme.",
+    "Adding new document types or approval workflow steps not already present.",
+    "Real-time/WebSocket-based live updates for approvals or documents.",
+    "Filtering or search in tabs other than the Documents view."
   ],
   "imageRequirements": {
     "required": [],

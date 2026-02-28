@@ -1,63 +1,38 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-26T09:38:45.989Z",
-  "summary": "The diff addresses all three requirements. REQ-1 is handled by rewriting the frontend hooks (useComplianceAdmin.ts) with proper mutationFn signatures and adding dedicated Create*Form components. REQ-2 is implemented via ClientCell components in ComplianceAdminToDoList, ComplianceAdminTimeline, ComplianceAdminFollowUp, and AdminClientDeliverableTable using useGetUserProfileByPrincipal. REQ-3 is implemented in AdminClientDeliverableTable with sortable headers, filter inputs, and tableHelpers utilities. However, there are partial gaps: REQ-2 only shows name and company (not Registered Name as a distinct field), and the UserProfile type in main.mo has no registeredName field.",
+  "generatedAt": "2026-02-28T14:01:48.079Z",
+  "summary": "The diff shows only two files modified: backend/main.mo (with truncated content showing type definitions but no functional changes related to the requirements) and project_state.json (which only records the requirements as 'pending' feature requests). None of REQ-1, REQ-2, or REQ-3 have been actually implemented — no frontend files were modified, no approval data mapping was fixed, no file upload pipeline was corrected, and no filter bar was added.",
   "missing_requirements": [
     {
+      "id": "REQ-1",
+      "requirement": "Audit and fix approvals data mapping in the frontend Admin Dashboard: ensure all fields of each approval object are correctly destructured and rendered, remove truncation logic, and keep the list in sync after mutations.",
+      "reason": "No frontend files were modified in the diff. The approvals tab UI, data mapping, and truncation logic remain untouched. project_state.json lists this as 'pending'.",
+      "evidence": [
+        "project_state.json"
+      ]
+    },
+    {
       "id": "REQ-2",
-      "requirement": "Display all three values: Principal ID, Company Name, AND Registered Name for each client principal in admin views.",
-      "reason": "The UserProfile type in backend/main.mo only contains name, email, and company fields with no registeredName field. The ClientCell components in all four admin tables display name and company but never a Registered Name. The acceptance criteria explicitly requires both Company Name and Registered Name to be shown.",
+      "requirement": "Fix file upload pipeline in ClientDeliverableForm.tsx, CreateToDoForm.tsx, ClientCreateToDoForm.tsx for correct ArrayBuffer/Uint8Array handling, and fix download reconstruction in DocumentTable.tsx, ComplianceAdminToDoList.tsx to preserve MIME type and byte integrity.",
+      "reason": "None of the specified frontend files (ClientDeliverableForm.tsx, CreateToDoForm.tsx, ClientCreateToDoForm.tsx, DocumentTable.tsx, ComplianceAdminToDoList.tsx) were modified. project_state.json lists this as 'pending'.",
       "evidence": [
-        "backend/main.mo",
-        "frontend/src/components/ComplianceAdminToDoList.tsx",
-        "frontend/src/components/ComplianceAdminTimeline.tsx",
-        "frontend/src/components/ComplianceAdminFollowUp.tsx",
-        "frontend/src/components/AdminClientDeliverableTable.tsx"
-      ]
-    }
-  ],
-  "hallucinated_features": [
-    {
-      "description": "ClientTasksTab component added with client-side Add To-Do, Add Timeline, and Add Follow-Up dialogs for clients.",
-      "reason": "The build request does not request a new ClientTasksTab component or client-side task creation UI. The requirement scope is fixing admin-side creation flows and enriching principal display in admin views.",
-      "evidence": [
-        "frontend/src/components/ClientTasksTab.tsx"
+        "project_state.json"
       ]
     },
     {
-      "description": "MyComplianceTasksSection component modified with client-facing task creation dialogs.",
-      "reason": "No requirement asks for changes to client-facing compliance task sections. This component was modified beyond the scope of the three stated requirements.",
+      "id": "REQ-3",
+      "requirement": "Add a persistent filter bar to DocumentTable.tsx and the Documents tabs of Admin Dashboard and Client Portal with document type filter, date range pickers, free-text name search, and sort controls that apply reactively client-side.",
+      "reason": "DocumentTable.tsx and any Documents tab components were not modified in the diff. No filter bar implementation is present. project_state.json lists this as 'pending'.",
       "evidence": [
-        "frontend/src/components/MyComplianceTasksSection.tsx"
-      ]
-    },
-    {
-      "description": "migration.mo file generated even though the backend schema did not change.",
-      "reason": "The constraints state generate migration.mo only if the backend schema changes. The UserProfile type and all stable variables remain unchanged with no registeredName added, so migration.mo should not have been generated. The file itself is a no-op identity migration confirming no schema change occurred.",
-      "evidence": [
-        "backend/migration.mo"
+        "project_state.json"
       ]
     }
   ],
-  "confidence": 0.8,
+  "hallucinated_features": [],
+  "confidence": 0.97,
   "changed_files": [
     "backend/main.mo",
-    "backend/migration.mo",
-    "frontend-file-summaries.txt",
-    "frontend/src/components/AdminClientDeliverableTable.tsx",
-    "frontend/src/components/ClientTasksTab.tsx",
-    "frontend/src/components/ComplianceAdminFollowUp.tsx",
-    "frontend/src/components/ComplianceAdminTimeline.tsx",
-    "frontend/src/components/ComplianceAdminToDoList.tsx",
-    "frontend/src/components/CreateFollowUpForm.tsx",
-    "frontend/src/components/CreateTimelineForm.tsx",
-    "frontend/src/components/CreateToDoForm.tsx",
-    "frontend/src/components/MyComplianceTasksSection.tsx",
-    "frontend/src/components/TaskStatusSelect.tsx",
-    "frontend/src/hooks/useComplianceAdmin.ts",
-    "frontend/src/hooks/useUserProfile.ts",
-    "frontend/src/utils/tableHelpers.ts",
     "project_state.json"
   ]
 }

@@ -1,99 +1,109 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Fix Admin Tab save errors, enrich Principal ID display, and add sortable/filterable table headers on Compliance Deliverables page",
+  "title": "Fix approvals data mapping, file corruption in upload workflow, and add Documents filter bar",
   "requirements": [
     {
       "id": "REQ-1",
-      "summary": "Fix the bug in the Admin Tab where saving a new To-Do, Timeline, or Follow-Up item throws a 'Something went wrong!' error",
+      "summary": "Audit and fix approvals data mapping to display all fields without truncation",
       "acceptanceCriteria": [
-        "An admin can create a new To-Do item from the Admin Tab without any error toast appearing.",
-        "An admin can create a new Timeline entry from the Admin Tab without any error toast appearing.",
-        "An admin can create a new Follow-Up item from the Admin Tab without any error toast appearing.",
-        "After saving, each newly created item appears in its respective list/table immediately.",
-        "No 'Something went wrong!' error is displayed during any of the three creation flows."
+        "All approval records returned by the backend are rendered in the approvals list without truncation.",
+        "Every field of each approval object (including nested objects such as client profile details, status, timestamps) is displayed in the UI.",
+        "No approval entry or sub-field is silently omitted due to missing or incorrect data mapping.",
+        "The approvals list re-fetches and stays in sync after any status update or mutation."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/components/CreateToDoForm.tsx",
+          "path": "frontend/src/hooks/useApprovals.ts",
           "operation": "modify",
-          "description": "Investigate and fix the To-Do creation form submission logic. Check that the useCreateToDo hook is being called correctly with all required parameters matching the backend interface signature. Ensure the document field is properly serialized when present and nullable handling is correct. Add additional error logging to identify the specific error cause if validation or mutation fails."
+          "description": "Audit the listApprovals query hook to ensure it exposes all fields returned by the backend. Verify the query invalidation logic triggers correctly after approval status mutations to keep the list in sync."
         },
         {
-          "path": "frontend/src/components/CreateTimelineForm.tsx",
+          "path": "frontend/src/pages/AdminDashboardPage.tsx",
           "operation": "modify",
-          "description": "Investigate and fix the Timeline creation form submission logic. Verify that the useCreateTimelineEntry hook receives all required parameters in the correct order (title, description, startDate, endDate, status, taskReference, clientPrincipal). Ensure date values are properly converted to Time (bigint nanoseconds) and optional fields like taskReference and clientPrincipal are correctly handled as nullable. Add error logging to capture the actual backend error message."
+          "description": "Audit the Approvals tab section to ensure all UserApprovalInfo fields (principal, status) are rendered. Add display of any additional detail fields if available. Remove any truncation, filtering, or pagination logic that silently hides approval records. Ensure the table or list component shows the complete approval dataset. After rendering changes, verify query invalidation ensures the UI updates when approval status changes."
         },
         {
-          "path": "frontend/src/components/CreateFollowUpForm.tsx",
+          "path": "frontend/src/hooks/useUserProfile.ts",
           "operation": "modify",
-          "description": "Investigate and fix the Follow-Up creation form submission logic. Confirm that the useCreateFollowUp hook is called with the correct parameter signature matching the backend createFollowUp method (title, description, dueDate, clientReference, status, notes). Ensure the clientReference principal is properly serialized and nullable fields are handled correctly. Add comprehensive error logging to surface the root cause of failures."
-        },
-        {
-          "path": "frontend/src/hooks/useComplianceAdmin.ts",
-          "operation": "modify",
-          "description": "Review the useCreateToDo, useCreateTimelineEntry, and useCreateFollowUp mutation hooks to ensure they correctly call the backend actor methods with properly typed parameters. Verify that Principal values are correctly instantiated, Time values are bigint nanoseconds, and enum values match the backend interface. Ensure mutation error handling properly surfaces backend errors to the UI. If necessary, add parameter validation before calling the actor to provide clearer error messages."
+          "description": "Ensure the useGetUserProfileByPrincipal hook (or equivalent profile lookup) is available and can be used to resolve principal IDs to user profiles (name, email, company) for display in the approvals list. This enables showing human-readable client details alongside each approval entry."
         }
       ]
     },
     {
       "id": "REQ-2",
-      "summary": "Display client's Company Name and Registered Name alongside Principal ID in all admin views",
+      "summary": "Fix file upload and download pipeline to prevent corruption and preserve original format",
       "acceptanceCriteria": [
-        "Wherever a Principal ID is rendered in admin-facing views, the corresponding Company Name from the client's profile is also displayed.",
-        "Wherever a Principal ID is rendered in admin-facing views, the corresponding Registered Name from the client's profile is also displayed.",
-        "If the profile cannot be resolved for a given Principal ID, the display gracefully falls back (e.g., shows 'Unknown' or the raw principal).",
-        "The layout remains clean and does not overflow or break existing table/card layouts."
+        "A file uploaded by a client through the Deliverable or To-Do form is received by the admin with identical byte content to the original.",
+        "The admin can open and read the downloaded file in its native application (e.g., PDF viewer, Word, Excel).",
+        "MIME type metadata is preserved end-to-end so the browser/OS associates the file with the correct application.",
+        "No Base64 double-encoding, truncation, or byte-level corruption occurs during upload or download."
       ],
       "file_operations": [
         {
+          "path": "frontend/src/components/ClientDeliverableForm.tsx",
+          "operation": "modify",
+          "description": "Audit the file upload logic to ensure the File object is read as an ArrayBuffer (not Base64 string) and converted to Uint8Array before calling ExternalBlob.fromBytes(). Verify the MIME type is correctly extracted from the File object and passed alongside the blob. Confirm no double-encoding or truncation occurs during the conversion. Verify the component's usage instructions for the blob-storage component before implementing."
+        },
+        {
+          "path": "frontend/src/components/CreateToDoForm.tsx",
+          "operation": "modify",
+          "description": "Audit the file upload logic for to-do document attachments. Ensure the File is read as ArrayBuffer, converted to Uint8Array, and wrapped in ExternalBlob.fromBytes() without encoding corruption. Verify MIME type and file name are preserved. Confirm the ToDoDocument structure includes correct mimeType and fileName fields. Verify the component's usage instructions for the blob-storage component before implementing."
+        },
+        {
+          "path": "frontend/src/components/ClientCreateToDoForm.tsx",
+          "operation": "modify",
+          "description": "Audit the client-side to-do creation form's file upload logic. Ensure ArrayBuffer conversion to Uint8Array and ExternalBlob.fromBytes() wrapping is correct, with MIME type and file name preserved in the ToDoDocument payload. Verify the component's usage instructions for the blob-storage component before implementing."
+        },
+        {
+          "path": "frontend/src/components/DocumentTable.tsx",
+          "operation": "modify",
+          "description": "Audit the file download logic in the download button handler. Ensure ExternalBlob.getBytes() retrieves the original Uint8Array without corruption. Verify the Blob constructor receives the byte array and correct MIME type (from document.mimeType). Confirm the download URL is created correctly and triggers a browser download with the original file name. Test that the downloaded file opens in its native application. Verify the component's usage instructions for the blob-storage component before implementing."
+        },
+        {
           "path": "frontend/src/components/ComplianceAdminToDoList.tsx",
           "operation": "modify",
-          "description": "Enhance the client principal display in the To-Do list table to show Company Name and Registered Name alongside the Principal ID. Use the existing useGetUserProfileByPrincipal hook to fetch profile data for each unique client principal. Display all three values (Principal ID, Company Name from profile.company, and Registered Name from profile.name) in a compact format (e.g., multi-line cell or tooltip). Handle loading states with skeleton placeholders and show a fallback (e.g., 'Unknown' or raw principal) if the profile lookup fails or returns null."
-        },
-        {
-          "path": "frontend/src/components/ComplianceAdminTimeline.tsx",
-          "operation": "modify",
-          "description": "Enhance the client principal display in the Timeline table to show Company Name and Registered Name alongside the Principal ID. The component already resolves client names via profile lookup; extend this to also display the company field from the UserProfile. Show Principal ID, profile.name (Registered Name), and profile.company (Company Name) together in the client column. Ensure graceful handling when profiles are unavailable and maintain the existing loading/error states."
-        },
-        {
-          "path": "frontend/src/components/ComplianceAdminFollowUp.tsx",
-          "operation": "modify",
-          "description": "Enhance the client principal display in the Follow-Up table to show Company Name and Registered Name alongside the Principal ID. The component already fetches client names by principal; extend the profile lookup to also retrieve and display the company field. Present Principal ID, profile.name (Registered Name), and profile.company (Company Name) in the client column with proper formatting. Handle null profiles with a fallback display and keep the table layout intact."
+          "description": "Audit the to-do document download logic (if present). Ensure the download handler reconstructs the file from ExternalBlob.getBytes() using the correct MIME type from the ToDoDocument structure. Verify the file opens correctly after download. Verify the component's usage instructions for the blob-storage component before implementing."
         },
         {
           "path": "frontend/src/components/AdminClientDeliverableTable.tsx",
           "operation": "modify",
-          "description": "Enhance the client principal display in the Client Deliverables table to show Company Name and Registered Name alongside the Principal ID. Add profile lookup using useGetUserProfileByPrincipal for each unique submitter principal. Display Principal ID, profile.name (Registered Name), and profile.company (Company Name) in the client/submitter column. Implement loading indicators for profile resolution and show a graceful fallback (e.g., principal string or 'Unknown') when profiles cannot be fetched. Ensure the table columns remain properly aligned and readable."
-        },
-        {
-          "path": "frontend/src/hooks/useUserProfile.ts",
-          "operation": "modify",
-          "description": "Verify that the useGetUserProfileByPrincipal hook is optimized for multiple concurrent lookups and properly handles caching to avoid redundant backend calls when the same principal appears multiple times across admin tables. If needed, add batch lookup support or ensure React Query's deduplication is leveraged. Confirm error handling returns null gracefully without throwing exceptions that would break UI rendering."
+          "description": "Audit the deliverable file download logic to ensure correct byte reconstruction from ExternalBlob and MIME type preservation. Verify downloaded files are not corrupted. Verify the component's usage instructions for the blob-storage component before implementing."
         }
       ]
     },
     {
       "id": "REQ-3",
-      "summary": "Make all table headers interactive with client-side sort and filter functionality on the Client Documents & Compliance Deliverables page",
+      "summary": "Add persistent filter bar to Documents view with type, date range, and name filters plus sort controls",
       "acceptanceCriteria": [
-        "Every column header in the Client Documents & Compliance Deliverables table is clickable and toggles ascending/descending sort order.",
-        "A visual indicator (e.g., arrow icon) shows the current sort direction on the active sort column.",
-        "Each column provides a filter mechanism (text input or dropdown as appropriate) to filter rows by that column's value.",
-        "Multiple filters can be applied simultaneously and the table updates in real time.",
-        "Clearing all filters restores the full unfiltered list.",
-        "The table remains fully functional and all existing actions (approve, reject, download) still work after sorting/filtering."
+        "A filter bar is visible above the documents table in both the Admin Documents tab and the Client Portal Documents tab.",
+        "Filtering by document type narrows the list to only matching entries.",
+        "Filtering by upload date range shows only documents uploaded within the specified window.",
+        "Free-text search on document name filters results in real time.",
+        "Sort controls allow ascending/descending sort by date and alphabetical sort by name.",
+        "Clearing all filters restores the full document list.",
+        "Filter and sort state is applied client-side without requiring additional backend calls."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/components/AdminClientDeliverableTable.tsx",
+          "path": "frontend/src/components/DocumentTable.tsx",
           "operation": "modify",
-          "description": "Add client-side sort and filter functionality to all columns in the AdminClientDeliverableTable. Implement a sortable column header component that shows an arrow icon (up/down/neutral) and toggles between ascending, descending, and no-sort states on click. Add filter inputs (text fields for string columns, dropdowns for enum columns like status/type) above or within each column header. Track active sort column, sort direction, and per-column filter values in component state. Apply sort and filter logic to the deliverables array before rendering table rows, ensuring all filters are ANDed together. Preserve all existing functionality including the inline submission form, status update actions (approve/reject), and file download buttons. Add a 'Clear Filters' button to reset all active filters at once."
+          "description": "Add a persistent filter bar above the documents table with: a document type dropdown (multi-select or single select using DocumentType enum values), a date range picker (from/to date inputs), and a free-text search input for document name. Add sort controls (dropdown or toggle buttons) to sort by upload date (ascending/descending) or document name (A–Z / Z–A). Implement client-side filtering and sorting logic using the existing tableHelpers utilities or custom logic. Apply filters reactively as values change. Provide a clear-all-filters button to reset state. Ensure the filter bar is responsive and matches the existing design system."
+        },
+        {
+          "path": "frontend/src/pages/AdminDashboardPage.tsx",
+          "operation": "modify",
+          "description": "Ensure the Admin Documents tab renders the updated DocumentTable component with the new filter bar. Verify the filter bar is visible and functional in the admin context. No additional wiring is needed if DocumentTable is already used in this tab."
+        },
+        {
+          "path": "frontend/src/pages/ClientPortalPage.tsx",
+          "operation": "modify",
+          "description": "Ensure the Client Portal Documents tab renders the updated DocumentTable component with the new filter bar. Verify the filter bar is visible and functional in the client context. No additional wiring is needed if DocumentTable is already used in this tab."
         },
         {
           "path": "frontend/src/utils/tableHelpers.ts",
-          "operation": "create",
-          "description": "Create a new utility module with reusable sort and filter helper functions for table data. Export a genericSort function that takes an array, a field key, and a direction ('asc' | 'desc') and returns a sorted copy. Export a multiFilter function that takes an array and a map of field keys to filter values, returning rows that match all active filters. Include type-safe comparators for string, number, bigint, date, and enum fields. These utilities will be used by AdminClientDeliverableTable and can be reused by other table components in the future."
+          "operation": "modify",
+          "description": "If needed, extend the existing sorting and filtering utilities to support date-range filtering and multi-criteria filtering (type + date + name). Ensure the utilities handle nanosecond timestamps correctly for date comparisons. Provide helper functions that can be reused in DocumentTable."
         }
       ]
     }

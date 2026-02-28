@@ -1,60 +1,60 @@
 {
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
-  "summary": "Project with profile management, Admin Tab (To-dos, Timelines, Follow-ups), client details (Principal ID, Company Name, Registered Name), and Client Documents & Compliance Deliverables page with sortable/filterable table headers.",
+  "summary": "Project with approvals list, deliverables/to-dos upload workflow, and documents view with filtering capabilities.",
   "architectural_notes": [],
   "known_issues": [
-    "Admin Tab: Saving To-dos, Timelines, or Follow-ups throws 'Something went wrong!' error"
+    "Approvals list is truncated or missing detail fields; data sync issues with nested client approval objects",
+    "File corruption in Deliverables/To-Dos upload workflow - files unreadable upon admin receipt"
   ],
   "isFixRequest": true,
-  "existing_features": [
-    {
-      "id": "feature-fix-the-bug-in-the-admin-tab-where-saving-a-new-to-do-timeline-or-follow-up-item-throws-a-something-went-wrong-error-investigate-the-backend-mutation-handlers-createtodo-createtimeline-createfollowup-and-the-corresponding-frontend-hooks-usecreatetodo-usecreateclienttimeline-usecreateclientfollowup-to-identify-and-resolve-the-root-cause-ensure-all-three-creation-flows-complete-successfully-and-the-new-items-appear-in-their-respective-lists-after-saving",
-      "title": "Fix the bug in the Admin Tab where saving a new To-Do, Timeline, or Follow-Up item throws a 'Something went wrong!' error. Investigate the backend mutation handlers (createToDo, createTimeline, createFollowUp) and the corresponding frontend hooks (useCreateToDo, useCreateClientTimeline, useCreateClientFollowUp) to identify and resolve the root cause. Ensure all three creation flows complete successfully and the new items appear in their respective lists after saving.",
-      "reqIds": [
-        "REQ-1"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-in-every-location-where-a-client-s-principal-id-is-displayed-e-g-in-admin-tables-such-as-complianceadmintodolist-complianceadmintimeline-complianceadminfollowup-adminclientdeliverabletable-and-any-other-admin-views-showing-a-principal-also-display-the-client-s-company-name-and-registered-name-by-resolving-these-fields-from-the-user-profile-associated-with-that-principal-id-the-display-should-show-all-three-values-principal-id-company-name-and-registered-name",
-      "title": "In every location where a client's Principal ID is displayed (e.g., in admin tables such as ComplianceAdminToDoList, ComplianceAdminTimeline, ComplianceAdminFollowUp, AdminClientDeliverableTable, and any other admin views showing a principal), also display the client's Company Name and Registered Name by resolving these fields from the user profile associated with that Principal ID. The display should show all three values: Principal ID, Company Name, and Registered Name.",
-      "reqIds": [
-        "REQ-2"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-on-the-client-documents-compliance-deliverables-page-and-the-adminclientdeliverabletable-component-make-all-table-headers-interactive-by-adding-client-side-sort-and-filter-functionality-for-every-column-users-should-be-able-to-click-any-column-header-to-toggle-ascending-descending-sort-and-each-column-should-have-a-filter-input-or-dropdown-to-narrow-visible-rows-this-applies-to-all-columns-currently-present-in-the-deliverables-table-e-g-client-name-document-title-type-status-date-etc",
-      "title": "On the Client Documents & Compliance Deliverables page (and the AdminClientDeliverableTable component), make all table headers interactive by adding client-side sort and filter functionality for every column. Users should be able to click any column header to toggle ascending/descending sort, and each column should have a filter input or dropdown to narrow visible rows. This applies to all columns currently present in the deliverables table (e.g., client name, document title, type, status, date, etc.).",
-      "reqIds": [
-        "REQ-3"
-      ],
-      "version": 1
-    }
-  ],
+  "existing_features": [],
   "new_feature_requests": [
     {
       "id": "AR-1",
-      "summary": "Bug fix: Admin Tab - Unable to add To-dos, Timelines, or Follow-ups; 'Something went wrong!' error on save",
+      "summary": "Fix approvals list truncation - audit data mapping to ensure all client approval objects and nested details are rendered in UI",
       "reqIds": [],
       "status": "pending"
     },
     {
       "id": "AR-2",
-      "summary": "Update Principal ID section to also display mapped Company Name and Registered Name for the client",
+      "summary": "Fix file corruption in Deliverables/To-Dos upload workflow - files become unreadable/corrupted when admin receives them",
       "reqIds": [],
       "status": "pending"
     },
     {
       "id": "AR-3",
-      "summary": "Make table headers on Client Documents & Compliance Deliverables page active with sort and filter functionality for every column",
+      "summary": "Add filter bar in Documents view to sort/query documents by specific attributes",
       "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-4",
+      "summary": "Audit the approvals data mapping in the frontend: inspect all fields returned by the backend `listApprovals` (or equivalent) query and ensure every field on each approval object — including nested detail fields such as client profile info, status, timestamps, and any sub-objects — is correctly destructured and rendered in the approvals tab of the Admin Dashboard. Remove any truncation logic that silently hides records or fields. Ensure the UI displays a complete, untruncated list of all approval entries with all their detail fields visible.",
+      "reqIds": [
+        "REQ-1"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-5",
+      "summary": "Fix the file upload pipeline for Deliverables and To-Dos so that files attached by the client arrive at the admin side in their original, readable format. Audit the `ExternalBlob` conversion in `ClientDeliverableForm.tsx`, `CreateToDoForm.tsx`, and `ClientCreateToDoForm.tsx`: verify that the file is read as an `ArrayBuffer` or `Uint8Array` and stored as the correct Blob type without encoding corruption. On the admin download side, audit the reconstruction logic in `DocumentTable.tsx`, `ComplianceAdminToDoList.tsx`, and any download utility so that the original MIME type and byte sequence are preserved. Ensure the downloaded file opens correctly in its original application.",
+      "reqIds": [
+        "REQ-2"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-6",
+      "summary": "Add a persistent filter bar at the top of the Documents view (in `DocumentTable.tsx` and the Documents tab of the Admin Dashboard and Client Portal). The filter bar must allow querying/filtering by: document type (e.g., dropdown or multi-select of available types), upload date range (from/to date pickers), and document name (free-text search). Additionally provide a sort control to sort the document list by upload date (ascending/descending) or document name (A–Z / Z–A). Filters should apply reactively as values change without requiring a separate submit action.",
+      "reqIds": [
+        "REQ-3"
+      ],
       "status": "pending"
     }
   ],
   "gameProjectType": "none",
-  "projectName": "FINPROLEDGE",
+  "projectName": "FinProLedge",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }
