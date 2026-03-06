@@ -22,6 +22,7 @@ import {
   ArrowUpDown,
   CheckCircle,
   Download,
+  ExternalLink,
   Search,
   XCircle,
 } from "lucide-react";
@@ -35,6 +36,7 @@ import { useGetUserProfileByPrincipal } from "../hooks/useUserProfile";
 import {
   downloadExternalBlob,
   getMimeTypeFromFilename,
+  openExternalBlobInOriginalFormat,
 } from "../utils/fileDownload";
 import DownloadOptionsMenu from "./DownloadOptionsMenu";
 
@@ -138,6 +140,7 @@ export default function AdminClientDeliverableTable() {
   const [sortField, setSortField] = useState<SortField>("createdAt");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [downloadingId, setDownloadingId] = useState<bigint | null>(null);
+  const [openingId, setOpeningId] = useState<bigint | null>(null);
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -181,6 +184,25 @@ export default function AdminClientDeliverableTable() {
       // handled in utility
     } finally {
       setDownloadingId(null);
+    }
+  };
+
+  /**
+   * Opens the file in the browser in its original format.
+   * PDFs and images open in a new tab; office/binary files are downloaded
+   * with the correct extension so the OS launches the right application.
+   */
+  const handleOpenOriginal = async (deliverable: ClientDeliverable) => {
+    setOpeningId(deliverable.id);
+    try {
+      await openExternalBlobInOriginalFormat(
+        deliverable.file,
+        deliverable.title,
+      );
+    } catch {
+      // error handled in utility
+    } finally {
+      setOpeningId(null);
     }
   };
 
@@ -385,11 +407,24 @@ export default function AdminClientDeliverableTable() {
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-1.5">
+                      {/* Open in original format — PDFs/images open in browser tab;
+                          DOCX/XLSX/ZIP download with correct extension so OS opens them */}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleOpenOriginal(d)}
+                        disabled={openingId === d.id || downloadingId === d.id}
+                        className="gap-1 text-blue-700 border-blue-300 hover:bg-blue-50 dark:text-blue-400 dark:border-blue-700 dark:hover:bg-blue-950"
+                        title="Open file in original format"
+                      >
+                        <ExternalLink className="h-3.5 w-3.5" />
+                        {openingId === d.id ? "…" : "Open"}
+                      </Button>
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => handleDownload(d)}
-                        disabled={downloadingId === d.id}
+                        disabled={downloadingId === d.id || openingId === d.id}
                         className="gap-1"
                       >
                         <Download className="h-3.5 w-3.5" />

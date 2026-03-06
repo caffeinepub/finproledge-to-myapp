@@ -2,6 +2,7 @@ import type { ExternalBlob } from "../backend";
 
 /**
  * Downloads a file from an ExternalBlob with the given filename and MIME type.
+ * The file is saved to disk with the original filename and extension preserved.
  */
 export async function downloadExternalBlob(
   blob: ExternalBlob,
@@ -10,7 +11,13 @@ export async function downloadExternalBlob(
 ): Promise<void> {
   try {
     const bytes = await blob.getBytes();
-    const fileBlob = new Blob([bytes], { type: mimeType });
+    // Always derive the MIME type from the filename extension if the caller
+    // passed the generic fallback, so the OS opens the file correctly.
+    const resolvedMime =
+      mimeType === "application/octet-stream"
+        ? getMimeTypeFromFilename(filename)
+        : mimeType;
+    const fileBlob = new Blob([bytes], { type: resolvedMime });
     const url = URL.createObjectURL(fileBlob);
     const a = document.createElement("a");
     a.href = url;
@@ -21,6 +28,65 @@ export async function downloadExternalBlob(
     URL.revokeObjectURL(url);
   } catch (error) {
     console.error("Download failed:", error);
+    throw error;
+  }
+}
+
+/**
+ * Opens a file from an ExternalBlob in a new browser tab in its original format.
+ * PDFs open in the browser PDF viewer, images render directly, etc.
+ * Falls back to a forced download for binary formats (DOCX, XLSX, ZIP, CSV).
+ */
+export async function openExternalBlobInOriginalFormat(
+  blob: ExternalBlob,
+  filename: string,
+): Promise<void> {
+  const mimeType = getMimeTypeFromFilename(filename);
+
+  // These types can be viewed natively in the browser — open in a new tab.
+  const inBrowserViewable = [
+    "application/pdf",
+    "image/png",
+    "image/jpeg",
+    "image/gif",
+    "image/webp",
+    "image/svg+xml",
+    "text/plain",
+    "text/csv",
+  ];
+
+  try {
+    const bytes = await blob.getBytes();
+    const fileBlob = new Blob([bytes], { type: mimeType });
+    const url = URL.createObjectURL(fileBlob);
+
+    if (inBrowserViewable.includes(mimeType)) {
+      // Open in new tab so the browser renders it natively.
+      const tab = window.open(url, "_blank");
+      if (!tab) {
+        // Pop-up blocked — fall back to download.
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      }
+      // Delay revoke so the tab has time to load the blob URL.
+      setTimeout(() => URL.revokeObjectURL(url), 30_000);
+    } else {
+      // For office/zip/binary files, trigger a download with the correct
+      // extension so the OS opens them in the right application.
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+  } catch (error) {
+    console.error("Open in original format failed:", error);
     throw error;
   }
 }
